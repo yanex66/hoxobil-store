@@ -1,0 +1,115 @@
+{% extends 'shop/base.html' %}
+{% load currency_filters %} 
+
+{% block title %}Order History{% endblock %}
+
+{% block content %}
+    <style>
+        .status-badge-blue {
+            display: inline-block;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--accent-blue);
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.375rem;
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+    </style>
+    
+    <h1 class="text-primary-base mb-4">Order History</h1>
+
+    {% if orders %}
+    <div class="card shadow-lg border-2 border-accent rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0 align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <!-- NEW COLUMN ADDED -->
+                            <th scope="col" class="text-primary-base">Item</th>
+                            
+                            <th scope="col" class="text-primary-base">Order ID</th>
+                            <th scope="col" class="text-primary-base">Date</th>
+                            <th scope="col" class="text-primary-base">Total</th>
+                            <th scope="col" class="text-primary-base">Status</th>
+                            <th scope="col" class="text-primary-base">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <!-- NEW COLUMN CONTENT -->
+                            <td>
+                                {% with item=order.items.first %}
+                                    <div class="d-flex align-items-center">
+                                        <!-- Product Image -->
+                                        {% if item and item.product.image_url %}
+                                            <div class="me-3 border rounded-2 overflow-hidden" style="width: 50px; height: 50px;">
+                                                <img src="{{ item.product.image_url }}" 
+                                                     alt="{{ item.product.name }}" 
+                                                     class="img-fluid" 
+                                                     style="width: 100%; height: 100%; object-fit: cover;">
+                                            </div>
+                                        {% else %}
+                                            <div class="me-3" style="width: 50px; height: 50px; line-height: 50px;">N/A</div>
+                                        {% endif %}
+                                        
+                                        <!-- Product Name -->
+                                        {% if item %}
+                                        <div class="small">
+                                            {{ item.product.name|truncatechars:20 }}
+                                            {% if order.items.count > 1 %}
+                                                <div class="text-muted small">+{{ order.items.count|add:"-1" }} more</div>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                {% endwith %}
+                            </td>
+                            
+                            <td class="fw-bold">
+                                <a href="{% url 'shop:order_detail' order_id=order.id %}" class="text-accent text-decoration-none">
+                                    #{{ order.id }}
+                                </a>
+                            </td>
+                            <td>{{ order.created|date:"M d, Y" }}</td>
+                            
+                            <td class="fw-bold text-accent">
+                                {{ order.get_total_cost|convert_manual:CURRENT_CURRENCY }}
+                            </td>
+                            
+                            <td>
+                                <span class="status-badge-blue">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'shop:order_detail' order_id=order.id %}" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                    {% if order.pod_order_id %}
+                                    <a href="{% url 'shop:order_tracking' order_id=order.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-geo-alt"></i> Track
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info border-2 border-accent text-center shadow" role="alert">
+        You have no previous orders.
+    </div>
+    {% endif %}
+
+{% endblock content %}

@@ -1,0 +1,295 @@
+{% extends 'shop/base.html' %}
+{% block title %}FAQ | HOXOBIL{% endblock %}
+{% block content %}
+<div class="legal-page">
+    <div class="legal-hero">
+        <p class="legal-eyebrow font-mono">Support</p>
+        <h1 class="legal-title font-display">FAQ</h1>
+        <p class="legal-meta font-mono">Frequently Asked Questions</p>
+    </div>
+
+    <div class="legal-body">
+        <p class="legal-lead">Got questions? We've got answers. If you don't find what you're looking for, email us at <a href="mailto:help.hoxobil@gmail.com" class="faq-email-link">help.hoxobil@gmail.com</a>.</p>
+
+        <div class="legal-section">
+            <h2>Orders</h2>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    How do I place an order? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Browse our catalog, select your product, choose your size and colour, and add it to your cart. When you're ready, proceed to checkout, enter your shipping details, and complete payment via Flutterwave.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Can I modify or cancel my order after placing it? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Unfortunately, no. Once an order is confirmed and sent to Printful for production, it cannot be modified or cancelled. Please review your order carefully before completing payment.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Do you restock sold-out items? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>HOXOBIL operates on a drop model — no restocks. When a design is gone, it's gone. Follow us and check the site regularly for new drops.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="legal-section">
+            <h2>Shipping</h2>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    How long does delivery take? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Every order is printed on demand, which takes 2–7 business days. After that, shipping times vary by destination — typically 3–5 days for the US, 5–10 days for the UK and Europe, and 10–20 days for Nigeria and the rest of the world. See our <a href="{% url 'shop:shipping_info' %}">Shipping Info</a> page for full details.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Do you ship to Nigeria? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Yes! We ship worldwide including Nigeria. Delivery to Nigeria typically takes 12–27 business days from the order date.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    How do I track my order? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Once your order ships, tracking information will be available in your <a href="{% url 'shop:order_history' %}">Order History</a>. Click on any order and select "Track Order" for live tracking updates.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Will I pay customs duties? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>International orders may be subject to import duties or taxes set by your country's customs authority. These fees are the buyer's responsibility and are not included in our prices.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="legal-section">
+            <h2>Products</h2>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    What are your products made of? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Our products are produced by Printful using premium quality blanks. Fabric composition is listed on each product page. We use high-quality direct-to-garment (DTG) and embroidery printing techniques.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    How do I choose the right size? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Check our <a href="{% url 'shop:size_guide' %}">Size Guide</a> for detailed measurements. If you're between sizes, we recommend sizing up. For oversized fits, go up 1–2 sizes from your usual. We cannot accept size-related returns, so please measure carefully.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    How should I care for my HOXOBIL pieces? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Turn garments inside out before washing. Use cold water on a gentle cycle. Avoid tumble drying — air dry instead. Do not iron directly on printed areas. This preserves the print quality and fabric for longer.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="legal-section">
+            <h2>Returns & Payments</h2>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Can I return my order? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>We accept returns only for defective or incorrect items — not for change of mind. All items are made to order. See our <a href="{% url 'shop:returns_policy' %}">Returns Policy</a> for full details and how to submit a claim.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    What payment methods do you accept? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>We accept all major cards, bank transfers, and mobile money through Flutterwave. We support payments in NGN, USD, GBP, EUR, and more.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-q" onclick="toggleFaq(this)">
+                    Is my payment information secure? <i class="bi bi-plus-lg faq-icon"></i>
+                </button>
+                <div class="faq-a">
+                    <p>Yes. Payments are processed entirely by Flutterwave using industry-standard encryption. HOXOBIL never stores your card details.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Still have questions CTA -->
+        <div class="faq-cta-box">
+            <h2>Still have questions?</h2>
+            <p>Our team is happy to help.</p>
+
+            <!-- Primary: opens mail app -->
+            <a href="mailto:help.hoxobil@gmail.com" class="faq-cta-btn">
+                <i class="bi bi-envelope-fill"></i> Open Email App
+            </a>
+
+            <!-- Fallback: visible address + copy button -->
+            <div class="faq-email-row">
+                <span class="faq-email-text" id="emailAddr">help.hoxobil@gmail.com</span>
+                <button class="faq-copy-btn" onclick="copyEmail()" id="copyBtn">
+                    <i class="bi bi-clipboard" id="copyIcon"></i> Copy
+                </button>
+            </div>
+            <p class="faq-copy-confirm" id="copyConfirm">
+                <i class="bi bi-check-circle-fill"></i> Copied to clipboard!
+            </p>
+        </div>
+    </div>
+</div>
+
+{% include 'shop/_legal_styles.html' %}
+
+<style>
+    /* Email link in lead */
+    .faq-email-link {
+        color: var(--crimson, #8B0000);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(139,0,0,0.3);
+        transition: border-color 0.2s;
+    }
+    .faq-email-link:hover { border-color: var(--crimson, #8B0000); }
+
+    /* FAQ Accordion */
+    .faq-item { border-bottom: 1px solid var(--border, rgba(139,0,0,0.12)); }
+    .faq-q {
+        width: 100%; background: none; border: none; text-align: left;
+        padding: 1.1rem 0; font-family: 'Raleway', sans-serif; font-size: 1rem;
+        font-weight: 700; color: var(--charcoal, #1C1C1C); cursor: pointer;
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 1rem; transition: color 0.2s;
+    }
+    .faq-q:hover, .faq-q.open { color: var(--crimson, #8B0000); }
+    .faq-icon { font-size: 0.85rem; flex-shrink: 0; transition: transform 0.25s ease; }
+    .faq-q.open .faq-icon { transform: rotate(45deg); }
+    .faq-a {
+        display: none; padding: 0 0 1.1rem;
+        color: rgba(28,28,28,0.65); font-size: 0.95rem; line-height: 1.75;
+    }
+    .faq-a p { margin: 0; }
+    .faq-a a { color: var(--crimson, #8B0000); text-decoration: none; border-bottom: 1px solid rgba(139,0,0,0.25); }
+    .faq-a a:hover { border-color: var(--crimson, #8B0000); }
+
+    /* CTA Box */
+    .faq-cta-box {
+        text-align: center;
+        padding: 2.5rem 2rem;
+        background: var(--ivory-dark, #EDE8DF);
+        border-radius: 8px;
+        margin-top: 1rem;
+        border: 1px solid rgba(139,0,0,0.1);
+    }
+    .faq-cta-box h2 {
+        font-family: 'Oswald', sans-serif; font-size: 1.4rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--charcoal, #1C1C1C); margin-bottom: 0.4rem;
+        border: none !important; padding: 0 !important;
+    }
+    .faq-cta-box > p {
+        color: rgba(28,28,28,0.55); font-size: 0.95rem; margin-bottom: 1.4rem;
+    }
+
+    /* Primary email button */
+    .faq-cta-btn {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        font-family: 'Oswald', sans-serif; font-size: 0.88rem; font-weight: 600;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        background: var(--crimson, #8B0000); color: #FAF7F2 !important;
+        border: 2px solid var(--crimson, #8B0000); border-radius: 3px;
+        padding: 0.8rem 2rem; text-decoration: none !important;
+        transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+        box-shadow: 0 3px 12px rgba(139,0,0,0.2); cursor: pointer;
+        margin-bottom: 1.25rem;
+    }
+    .faq-cta-btn:hover {
+        background: var(--crimson-mid, #A52020);
+        border-color: var(--crimson-mid, #A52020);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(139,0,0,0.3);
+        color: #FAF7F2 !important;
+    }
+
+    /* Email row with address + copy */
+    .faq-email-row {
+        display: inline-flex; align-items: center; gap: 0.6rem;
+        background: #fff; border: 1px solid rgba(139,0,0,0.15);
+        border-radius: 5px; padding: 0.55rem 0.75rem;
+        margin-top: 0.25rem;
+    }
+    .faq-email-text {
+        font-family: 'Roboto Mono', monospace; font-size: 0.85rem;
+        color: var(--charcoal, #1C1C1C); letter-spacing: 0.04em;
+        user-select: all;
+    }
+    .faq-copy-btn {
+        background: none; border: none; cursor: pointer; padding: 0 0.3rem;
+        font-family: 'Roboto Mono', monospace; font-size: 0.75rem; font-weight: 700;
+        color: var(--crimson, #8B0000); letter-spacing: 0.08em;
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        transition: opacity 0.2s;
+    }
+    .faq-copy-btn:hover { opacity: 0.7; }
+
+    /* Copy confirm message */
+    .faq-copy-confirm {
+        display: none; margin-top: 0.6rem; font-size: 0.8rem;
+        color: #1B5E35; font-family: 'Roboto Mono', monospace;
+        letter-spacing: 0.06em;
+    }
+</style>
+
+<script>
+    function toggleFaq(btn) {
+        const answer = btn.nextElementSibling;
+        const isOpen = btn.classList.contains('open');
+        document.querySelectorAll('.faq-q').forEach(b => {
+            b.classList.remove('open');
+            b.nextElementSibling.style.display = 'none';
+        });
+        if (!isOpen) {
+            btn.classList.add('open');
+            answer.style.display = 'block';
+        }
+    }
+
+    function copyEmail() {
+        const email = 'help.hoxobil@gmail.com';
+        const confirm = document.getElementById('copyConfirm');
+        const icon = document.getElementById('copyIcon');
+
+        navigator.clipboard.writeText(email).then(function () {
+            // Show confirmation
+            confirm.style.display = 'block';
+            icon.className = 'bi bi-check-lg';
+            setTimeout(function () {
+                confirm.style.display = 'none';
+                icon.className = 'bi bi-clipboard';
+            }, 2500);
+        }).catch(function () {
+            // Fallback: select text manually
+            const el = document.getElementById('emailAddr');
+            const range = document.createRange();
+            range.selectNode(el);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+        });
+    }
+</script>
+{% endblock %}

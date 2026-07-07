@@ -1,0 +1,101 @@
+{% extends 'shop/base.html' %}
+{% block title %}Shipping Info | HOXOBIL{% endblock %}
+{% block content %}
+<div class="legal-page">
+    <div class="legal-hero">
+        <p class="legal-eyebrow font-mono">Support</p>
+        <h1 class="legal-title font-display">Shipping Info</h1>
+        <p class="legal-meta font-mono">Fulfilled by Printful &nbsp;·&nbsp; Worldwide Delivery</p>
+    </div>
+
+    <div class="legal-body">
+        <p class="legal-lead">Every HOXOBIL piece is printed and shipped on demand by Printful. Here's everything you need to know about how your order gets to you.</p>
+
+        <div class="legal-section">
+            <h2>How It Works</h2>
+            <p>When you place an order, it is sent directly to Printful's production facility. Your item is printed, quality-checked, and packaged — then handed to a carrier for delivery. This process typically takes <strong>2–7 business days</strong> before your order even ships.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Estimated Delivery Times</h2>
+            <div class="shipping-table-wrap">
+                <table class="shipping-table">
+                    <thead>
+                        <tr>
+                            <th>Region</th>
+                            <th>Production</th>
+                            <th>Shipping</th>
+                            <th>Total Estimate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Nigeria</td>
+                            <td>2–7 days</td>
+                            <td>10–20 days</td>
+                            <td>12–27 days</td>
+                        </tr>
+                        <tr>
+                            <td>United States</td>
+                            <td>2–7 days</td>
+                            <td>3–5 days</td>
+                            <td>5–12 days</td>
+                        </tr>
+                        <tr>
+                            <td>United Kingdom</td>
+                            <td>2–7 days</td>
+                            <td>5–10 days</td>
+                            <td>7–17 days</td>
+                        </tr>
+                        <tr>
+                            <td>Europe</td>
+                            <td>2–7 days</td>
+                            <td>5–10 days</td>
+                            <td>7–17 days</td>
+                        </tr>
+                        <tr>
+                            <td>Canada / Australia</td>
+                            <td>2–7 days</td>
+                            <td>7–14 days</td>
+                            <td>9–21 days</td>
+                        </tr>
+                        <tr>
+                            <td>Rest of World</td>
+                            <td>2–7 days</td>
+                            <td>10–20 days</td>
+                            <td>12–27 days</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="legal-note">Estimates are business days and do not include weekends, public holidays, or customs delays.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Shipping Costs</h2>
+            <p>Shipping costs are calculated at checkout based on your location, the items in your cart, and the selected shipping method. We offer <strong>free shipping on orders over $75</strong>.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Tracking Your Order</h2>
+            <p>Once your order ships, you'll receive a tracking number. You can track your shipment from your <a href="{% url 'shop:order_history' %}">Order History</a> page. Click into any order and select "Track Order" for live updates.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Customs & Import Duties</h2>
+            <p>International orders may be subject to customs duties, taxes, or import fees imposed by your country. These charges are the buyer's responsibility and are not included in our prices or shipping costs. HOXOBIL has no control over these fees.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Lost or Delayed Packages</h2>
+            <p>If your package has not arrived within the estimated timeframe, please first check your tracking link. If the package appears lost, contact us at <a href="mailto:help.hoxobil@gmail.com">help.hoxobil@gmail.com</a> and we will investigate with Printful on your behalf.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Wrong Address</h2>
+            <p>Please double-check your shipping address before placing an order. Once an order is submitted to Printful, we cannot change the delivery address. HOXOBIL is not responsible for orders shipped to an incorrectly entered address.</p>
+        </div>
+    </div>
+</div>
+{% include 'shop/_legal_styles.html' %}
+{% endblock %}

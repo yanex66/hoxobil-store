@@ -1,0 +1,421 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="py-5" style="max-width: 940px; margin: 0 auto;">
+
+    <!-- PROGRESS STEPS (Step 4 active) -->
+    <div class="hox-steps mb-5">
+        <div class="hox-step done">
+            <span class="step-dot"><i class="bi bi-check"></i></span>
+            <span class="step-label">Details</span>
+        </div>
+        <div class="hox-step-line done"></div>
+        <div class="hox-step done">
+            <span class="step-dot"><i class="bi bi-check"></i></span>
+            <span class="step-label">Shipping</span>
+        </div>
+        <div class="hox-step-line done"></div>
+        <div class="hox-step active">
+            <span class="step-dot">3</span>
+            <span class="step-label">Payment</span>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <!-- LEFT: Payment Info -->
+        <div class="col-lg-7">
+            <h2 class="font-display mb-1" style="font-size:2.2rem;letter-spacing:0.06em;">PAYMENT</h2>
+            <p class="text-muted mb-4" style="font-size:0.82rem;">
+                Complete your order securely via Flutterwave.
+            </p>
+
+            <!-- Payment Method Card -->
+            <div class="hox-payment-card mb-4">
+                <div class="payment-badge">
+                    <i class="bi bi-shield-fill-check me-2"></i>Secured by Flutterwave & Paystack
+                </div>
+                <div class="payment-methods mt-3">
+                    <span class="method-tag"><i class="bi bi-credit-card me-1"></i>Visa</span>
+                    <span class="method-tag"><i class="bi bi-credit-card-2-front me-1"></i>Mastercard</span>
+                    <span class="method-tag"><i class="bi bi-phone me-1"></i>Bank Transfer</span>
+                    <span class="method-tag"><i class="bi bi-phone-fill me-1"></i>USSD</span>
+                    {% if currency == 'NGN' %}
+                    <span class="method-tag"><i class="bi bi-phone me-1"></i>Opay / Kuda</span>
+                    {% endif %}
+                </div>
+                <p class="mt-3 mb-0" style="font-size:0.8rem;color:var(--gray);">
+                    You will be redirected to Flutterwave's secure payment page to complete your purchase.
+                </p>
+            </div>
+
+            <!-- Delivery Address Summary -->
+            <div class="hox-address-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="font-mono text-muted" style="font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;">Delivering to</span>
+                    <a href="{% url 'shop:checkout_create' %}" class="font-mono text-crimson" style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;">
+                        Edit →
+                    </a>
+                </div>
+                <p class="mb-0" style="font-size:0.88rem;line-height:1.8;font-weight:500;">
+                    {{ order.first_name }} {{ order.last_name }}<br>
+                    {{ order.address }}<br>
+                    {{ order.city }}{% if order.state %}, {{ order.state }}{% endif %} {{ order.postal_code }}<br>
+                    {{ order.country }}
+                </p>
+            </div>
+
+            <!-- Currency Notice -->
+            <div class="hox-notice mt-3">
+                <i class="bi bi-info-circle me-2"></i>
+                {% if currency == 'NGN' %}
+                    You will be charged in <strong>Nigerian Naira (NGN)</strong> since your delivery address is in Nigeria.
+                {% else %}
+                    You will be charged in <strong>US Dollars (USD)</strong>. International cards accepted.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- RIGHT: Order Summary -->
+        <div class="col-lg-5">
+            <div class="hox-summary-card sticky-top" style="top: 88px;">
+                <div class="summary-header">
+                    <span class="font-mono" style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson-soft);">Order Summary</span>
+                </div>
+
+                <div class="summary-body">
+                    <!-- Order Items -->
+                    {% for item in order.items.all %}
+                    <div class="summary-item">
+                        <span class="item-name">{{ item.product.name }}
+                            {% if item.product_variant.size %}<small>({{ item.product_variant.size }}{% if item.product_variant.color %} / {{ item.product_variant.color }}{% endif %})</small>{% endif %}
+                            × {{ item.quantity }}
+                        </span>
+                        <span class="item-price">${{ item.get_cost.amount }}</span>
+                    </div>
+                    {% endfor %}
+
+                    <div class="summary-divider"></div>
+
+                    <div class="summary-row">
+                        <span>Subtotal</span>
+                        <span>{{ currency }} {{ items_total_display }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Shipping</span>
+                        <span>{{ currency }} {{ shipping_display }}</span>
+                    </div>
+
+                    <div class="summary-divider"></div>
+
+                    <div class="summary-total">
+                        <span>Total</span>
+                        <span class="text-crimson">
+                            {{ currency }} {{ amount }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Pay Now Button — triggers Flutterwave -->
+                <div style="padding: 0 1.75rem 1.75rem;">
+                    <button id="pay-btn" class="btn-hox w-100 justify-content-center" style="padding:1rem;">
+                        <i class="bi bi-lock-fill me-2"></i>Pay {{ currency }} {{ amount }} with Flutterwave
+                    </button>
+                    {% if paystack_currency %}
+                    <button id="paystack-pay-btn" class="btn-hox w-100 justify-content-center mt-3" style="padding:1rem; background:#0a2540;">
+                        <i class="bi bi-lock-fill me-2"></i>Pay {{ currency }} {{ amount }} with Paystack
+                    </button>
+                    {% endif %}
+                    <p class="text-center mt-3 mb-0" style="font-size:0.7rem;color:rgba(255,255,255,0.4);">
+                        <i class="bi bi-shield-check me-1"></i>256-bit encrypted · Secured by Flutterwave & Paystack
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* ── PROGRESS STEPS (same as shipping page) ── */
+    .hox-steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+    }
+    .hox-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .step-dot {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        background: #E5E5E5;
+        color: #aaa;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    .hox-step.active .step-dot {
+        background: var(--crimson);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(139,0,0,0.35);
+    }
+    .hox-step.done .step-dot {
+        background: #0a6b3a;
+        color: #fff;
+    }
+    .step-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--gray);
+    }
+    .hox-step.active .step-label { color: var(--crimson); font-weight: 700; }
+    .hox-step.done .step-label { color: #0a6b3a; }
+    .hox-step-line {
+        flex: 1;
+        height: 2px;
+        background: #E5E5E5;
+        max-width: 80px;
+        margin: 0 8px;
+        margin-bottom: 22px;
+        transition: background 0.3s;
+    }
+    .hox-step-line.done { background: #0a6b3a; }
+
+    /* ── PAYMENT CARD ── */
+    .hox-payment-card {
+        border: 1.5px solid #E2E2E8;
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem;
+        background: #fff;
+    }
+    .payment-badge {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #0a6b3a;
+        background: rgba(10,107,58,0.08);
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 20px;
+    }
+    .payment-methods {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .method-tag {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        padding: 0.3rem 0.65rem;
+        border: 1px solid #E2E2E8;
+        border-radius: 6px;
+        color: var(--charcoal);
+        background: #F8F8FA;
+    }
+
+    /* ── ADDRESS CARD ── */
+    .hox-address-card {
+        border: 1.5px dashed var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        background: #fff;
+    }
+
+    /* ── NOTICE ── */
+    .hox-notice {
+        font-size: 0.78rem;
+        color: #555;
+        background: #FFFBF0;
+        border: 1px solid #FFE8A1;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* ── SUMMARY CARD ── */
+    .hox-summary-card {
+        background: var(--charcoal);
+        border-radius: 20px;
+        overflow: hidden;
+        color: #fff;
+    }
+    .summary-header {
+        padding: 1.5rem 1.75rem 0;
+    }
+    .summary-body {
+        padding: 1.25rem 1.75rem 1rem;
+    }
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.5);
+        margin-bottom: 0.5rem;
+        gap: 1rem;
+    }
+    .summary-item .item-name { flex: 1; line-height: 1.4; }
+    .summary-item .item-price {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.75);
+        flex-shrink: 0;
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.55);
+        margin-bottom: 0.75rem;
+    }
+    .summary-row span:last-child {
+        font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        font-family: 'Space Mono', monospace;
+        font-size: 0.8rem;
+    }
+    .summary-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.08);
+        margin: 1rem 0;
+    }
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .summary-total span:first-child {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.08em;
+        color: #fff;
+    }
+    .summary-total span:last-child {
+        font-family: 'Space Mono', monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--crimson-soft);
+    }
+</style>
+
+<script id="flw-config" type="application/json">
+{
+    "publicKey":   "{{ flutterwave_public_key }}",
+    "txRef":       "{{ tx_ref }}",
+    "amount":      "{{ amount }}",
+    "currency":    "{{ currency }}",
+    "redirectUrl": "{{ callback_url }}",
+    "orderId":     "{{ order.id }}",
+    "country":     "{{ order.country }}",
+    "email":       "{{ order.email }}",
+    "phone":       "{{ order.phone|default:'' }}",
+    "name":        "{{ order.first_name }} {{ order.last_name }}",
+    "logo":        "{% static 'shop/logo.png' %}",
+    "btnLabel":    "Pay {{ currency }} {{ amount }}"
+}
+</script>
+
+{% if paystack_currency %}
+<script id="paystack-config" type="application/json">
+{
+    "publicKey":   "{{ paystack_public_key }}",
+    "reference":   "{{ tx_ref }}",
+    "amount":      "{{ amount }}",
+    "currency":    "{{ paystack_currency }}",
+    "redirectUrl": "{{ paystack_callback_url }}",
+    "email":       "{{ order.email }}"
+}
+</script>
+{% endif %}
+
+<!-- Flutterwave Inline JS SDK -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+{% if paystack_currency %}
+<!-- Paystack Inline JS SDK -->
+<script src="https://js.paystack.co/v1/inline.js"></script>
+{% endif %}
+<script>
+    // Read config from the JSON block — no Django tags in this script block,
+    // so VS Code linter is happy and the code works perfectly.
+    var flwConfig = JSON.parse(document.getElementById('flw-config').textContent);
+
+    document.getElementById('pay-btn').addEventListener('click', function () {
+        this.disabled = true;
+        this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Opening payment...';
+
+        FlutterwaveCheckout({
+            public_key:   flwConfig.publicKey,
+            tx_ref:       flwConfig.txRef,
+            amount:       parseFloat(flwConfig.amount),
+            currency:     flwConfig.currency,
+            redirect_url: flwConfig.redirectUrl,
+            meta: {
+                order_id:         flwConfig.orderId,
+                customer_country: flwConfig.country
+            },
+            customer: {
+                email:        flwConfig.email,
+                phone_number: flwConfig.phone,
+                name:         flwConfig.name,
+            },
+            customizations: {
+                title:       "HOXOBIL",
+                description: "Order #" + flwConfig.orderId,
+                logo:        flwConfig.logo,
+            },
+            callback: function(data) {
+                console.log("Flutterwave callback:", data);
+            },
+            onclose: function() {
+                var btn = document.getElementById('pay-btn');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>' + flwConfig.btnLabel;
+            }
+        });
+    });
+
+    var paystackConfigEl = document.getElementById('paystack-config');
+    if (paystackConfigEl) {
+        var paystackConfig = JSON.parse(paystackConfigEl.textContent);
+
+        document.getElementById('paystack-pay-btn').addEventListener('click', function () {
+            var btn = this;
+            var originalLabel = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Opening payment...';
+
+            var handler = PaystackPop.setup({
+                key:       paystackConfig.publicKey,
+                email:     paystackConfig.email,
+                amount:    Math.round(parseFloat(paystackConfig.amount) * 100), // kobo/subunit
+                currency:  paystackConfig.currency,
+                ref:       paystackConfig.reference,
+                callback: function(response) {
+                    window.location.href = paystackConfig.redirectUrl + '?reference=' + encodeURIComponent(response.reference);
+                },
+                onClose: function() {
+                    btn.disabled = false;
+                    btn.innerHTML = originalLabel;
+                }
+            });
+            handler.openIframe();
+        });
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,1350 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Oswald:wght@700&family=Bebas+Neue&family=Anton&family=Raleway:wght@700&family=Playfair+Display:wght@700&family=Lora:wght@700&family=Merriweather:wght@700&family=Roboto:wght@700&family=Roboto+Condensed:wght@700&family=Open+Sans:wght@700&family=Lato:wght@700&family=Poppins:wght@700&family=Nunito:wght@700&family=Dancing+Script:wght@700&family=Pacifico&family=Lobster&family=Great+Vibes&family=Sacramento&family=Caveat:wght@700&family=Permanent+Marker&family=Special+Elite&family=Creepster&family=Abril+Fatface&family=Alfa+Slab+One&family=Fjalla+One&family=Righteous&family=Fredoka+One&family=Boogaloo&family=Shrikhand&family=Work+Sans:wght@700&family=Inter:wght@700&family=Josefin+Sans:wght@700&family=Quicksand:wght@700&family=Teko:wght@700&family=Barlow+Condensed:wght@700&family=Cinzel:wght@700&family=Cormorant+Garamond:wght@700&family=EB+Garamond:wght@700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block title %}Chat Support | HOXOBIL{% endblock %}
+
+{% block content %}
+<div class="hoxo-fullpage">
+    <div class="chat-page-container">
+
+        <div class="chat-page-header">
+            <a href="javascript:history.back()" class="header-back-btn" title="Back" aria-label="Back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div class="hoxo-avatar-wrap">
+                <span class="hoxo-avatar-dot"></span>
+                <div class="hoxo-avatar">✦</div>
+            </div>
+            <div class="header-text-block">
+                <h1 class="chat-title font-display">HOXO Support</h1>
+                <p class="chat-subtitle font-mono">Automated Assistant · Online</p>
+            </div>
+            <button type="button" class="header-clear-btn font-mono" onclick="resetChatFunnel()" title="Restart conversation">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                <span class="d-none d-sm-inline">Restart</span>
+            </button>
+        </div>
+
+        <div id="hoxoPinnedProductDeck" class="pinned-product-deck font-mono" style="display: none;">
+            <div class="deck-inner">
+                <div class="deck-product-info">
+                    <div class="deck-icon-wrap">
+                        <i class="bi bi-pin-angle-fill text-crimson"></i>
+                    </div>
+                    <img id="deckProductThumb" src="" alt="" class="deck-product-thumb" style="display:none;">
+                    <div>
+                        <span class="deck-label">CUSTOM BLUEPRINT TARGET PINNED:</span>
+                        <strong id="deckProductName" class="deck-product-title">Loading Pinned Apparel Asset...</strong>
+                    </div>
+                </div>
+                <button type="button" class="btn-deck-clear" onclick="resetChatFunnel()" title="Clear item & restart menu">
+                    <i class="bi bi-x-lg"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="chat-window" id="hoxoMessages"></div>
+
+        <div id="hoxoEditorPanel" class="hoxo-editor-panel font-mono" style="display:none;">
+            <div class="editor-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-pencil-square text-crimson"></i>
+                    <strong>Adjust Your Design Position</strong>
+                </div>
+                <span class="editor-hint">Drag to reposition · Pinch or scroll to resize</span>
+            </div>
+            <div class="editor-canvas-wrap">
+                <canvas id="hoxoDesignCanvas" width="560" height="360"></canvas>
+            </div>
+            <div class="editor-controls">
+                <div class="editor-sliders">
+                    <div class="slider-row">
+                        <label class="editor-label">Size: <strong><span id="scaleVal">100</span>%</strong></label>
+                        <input type="range" id="scaleSlider" min="10" max="150" value="100" class="hoxo-slider">
+                    </div>
+                    <div class="slider-row mt-2">
+                        <label class="editor-label">Rotate: <strong><span id="rotateVal">0</span>°</strong></label>
+                        <input type="range" id="rotateSlider" min="-180" max="180" value="0" class="hoxo-slider">
+                    </div>
+                </div>
+                <div class="editor-actions">
+                    <button id="editorCancelBtn" class="btn-editor-secondary btn-editor-cancel">✕ Cancel</button>
+                    <button id="editorResetBtn" class="btn-editor-secondary">↺ Reset</button>
+                    <button id="editorConfirmBtn" class="btn-editor-confirm">✓ Confirm &amp; Generate Mockup</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="hoxoUploadWrapper" class="hoxo-upload-slide-panel font-mono" style="display: none;">
+            <div class="upload-panel-inner">
+                <div class="upload-prompt-text">
+                    <i class="bi bi-image-fill border-accent-icon"></i>
+                    <div>
+                        <strong>📸 Upload Your Custom Graphics Layer</strong>
+                        <span class="d-block text-muted small">Drop your PNG/JPG asset to lock in your official mockup proofing blueprint.</span>
+                    </div>
+                </div>
+                <input type="file" id="hoxoImageFile" class="form-control form-control-sm hoxo-file-field" accept="image/*">
+                <div id="hoxoUploadPreviewWrap" style="display:none; margin-top:8px;">
+                    <p class="upload-preview-label">Preview:</p>
+                    <img id="hoxoUploadPreview" src="" alt="Upload preview" class="upload-preview-img">
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="hoxoInput" class="hoxo-input font-mono" placeholder="Type an option letter (A, B, C) or general question..." autocomplete="off">
+            <button class="hoxo-send" id="hoxoSend" aria-label="Send">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<style>
+body { margin: 0 !important; padding: 0 !important; overflow-x: hidden; }
+
+/* ── FULL PAGE SHELL ──
+   Breaks out of any centered/max-width parent container (e.g. Bootstrap .container)
+   so the chat fills the true viewport edge-to-edge, regardless of surrounding markup. */
+.hoxo-fullpage {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0;
+    display: flex;
+    background: #0e0e0e;
+    box-sizing: border-box;
+}
+
+/* Hide the site footer on this page so the chat experience fills the screen */
+footer,
+.footer,
+.site-footer,
+.page-footer,
+#footer,
+[class*="footer"] {
+    display: none !important;
+}
+
+.chat-page-container {
+    flex: 1;
+    width: 100%;
+    margin: 0;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;        /* ← was 100vh */
+    min-height: 100dvh;    /* ← was 100vh */
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.chat-page-header {
+    background: linear-gradient(135deg, #1C1C1C 0%, #2a1414 100%);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 4px solid #8B0000;
+    flex-shrink: 0;
+}
+
+.header-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    color: #FAF7F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-decoration: none;
+    font-size: 1.05rem;
+    transition: background 0.2s;
+}
+.header-back-btn:hover { background: rgba(139,0,0,0.5); color: #fff; }
+
+.header-text-block { flex: 1; min-width: 0; }
+
+.header-clear-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(250,247,242,0.85);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+.header-clear-btn:hover { background: #8B0000; border-color: #8B0000; color: #fff; }
+
+.hoxo-avatar-wrap { position: relative; flex-shrink: 0; }
+.hoxo-avatar { width: 44px; height: 44px; background: #8B0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FAF7F2; font-size: 1.1rem; font-weight: 700; box-shadow: 0 0 0 3px rgba(139,0,0,0.18); }
+.hoxo-avatar-dot { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; background: #22C55E; border-radius: 50%; border: 2px solid #1C1C1C; }
+.chat-title { font-size: 1.3rem; color: #FAF7F2; margin: 0 0 2px 0; letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-subtitle { font-size: 0.76rem; color: rgba(250,247,242,0.6); margin: 0; letter-spacing: 0.05em; }
+
+/* ── PINNED DECK ── */
+.pinned-product-deck { background: #FAF7F2; border-bottom: 2px solid rgba(139,0,0,0.15); padding: 10px 20px; animation: deckSlideDown 0.35s cubic-bezier(0.16,1,0.3,1); flex-shrink: 0; }
+.deck-inner { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.deck-product-info { display: flex; align-items: center; gap: 12px; }
+.deck-icon-wrap { background: rgba(139,0,0,0.08); width: 34px; height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.deck-label { display: block; font-size: 0.62rem; color: #888; font-weight: 700; letter-spacing: 1px; margin-bottom: 1px; }
+.deck-product-title { font-size: 0.82rem; color: #1C1C1C; text-transform: uppercase; }
+.deck-product-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1.5px solid rgba(139,0,0,0.2);
+    background: #eee;
+    flex-shrink: 0;
+}
+.btn-deck-clear { background: transparent; border: 1px solid rgba(0,0,0,0.15); color: #555; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 5px; }
+.btn-deck-clear:hover { background: #8B0000; border-color: #8B0000; color: #FAF7F2; }
+
+.chat-window {
+    flex: 1;
+    overflow-y: auto;
+    padding: 26px clamp(16px, 6vw, 120px);
+    background:
+        radial-gradient(circle at 15% 0%, rgba(139,0,0,0.035) 0%, transparent 45%),
+        #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+}
+
+.hoxo-msg { display: flex; gap: 10px; align-items: flex-end; }
+.hoxo-msg.user { flex-direction: row-reverse; }
+.hoxo-bubble {
+    max-width: min(78%, 640px);
+    padding: 12px 18px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+.hoxo-msg.bot .hoxo-bubble { background: #fff; color: #1C1C1C; border-bottom-left-radius: 2px; border: 1px solid #eef0f2; }
+.hoxo-msg.user .hoxo-bubble { background: #8B0000; color: #FAF7F2; border-bottom-right-radius: 2px; }
+.hoxo-msg-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }
+.hoxo-msg.bot .hoxo-msg-av { background: #1C1C1C; color: #FAF7F2; }
+.hoxo-msg.user .hoxo-msg-av { background: rgba(139,0,0,0.1); color: #8B0000; }
+
+/* ── Auth prompt link styling inside chat bubble ── */
+.hoxo-bubble .auth-link {
+    display: inline-block;
+    margin-top: 8px;
+    background: #FAF7F2;
+    color: #8B0000;
+    border: 1.5px solid #8B0000;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.hoxo-bubble .auth-link:hover { background: #8B0000; color: #FAF7F2; }
+.hoxo-bubble .auth-link + .auth-link { margin-left: 8px; }
+
+.hoxo-chat-img-wrap {
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #1a1a1a;
+    border: 1.5px solid rgba(139,0,0,0.2);
+    text-align: center;
+}
+.hoxo-chat-img-wrap img {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    width: 100%;
+    object-fit: contain;
+    padding: 6px;
+    background: #faf9f6;
+}
+.hoxo-chat-img-wrap .img-caption {
+    font-size: 0.68rem;
+    color: #aaa;
+    font-family: monospace;
+    padding: 4px 8px;
+    background: #1a1a1a;
+    letter-spacing: 0.04em;
+    text-align: left;
+}
+.hoxo-msg.user .hoxo-chat-img-wrap {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(0,0,0,0.3);
+}
+.hoxo-msg.user .hoxo-chat-img-wrap img { background: rgba(255,255,255,0.08); }
+.hoxo-msg.user .hoxo-chat-img-wrap .img-caption { background: rgba(0,0,0,0.25); color: rgba(255,255,255,0.5); }
+
+.upload-preview-label { font-size: 0.72rem; color: #888; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
+.upload-preview-img {
+    max-width: 160px;
+    max-height: 120px;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1.5px dashed rgba(139,0,0,0.3);
+    background: #fff;
+    padding: 4px;
+    display: block;
+}
+
+.hoxo-editor-panel {
+    background: #FAF7F2;
+    border-top: 3px solid #8B0000;
+    padding: 16px clamp(16px, 6vw, 120px);
+    flex-shrink: 0;
+    animation: panelSlideIn 0.3s cubic-bezier(0.16,1,0.3,1);
+    max-height: 65vh;
+    overflow-y: auto;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.05);
+}
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1C1C1C;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.editor-hint { font-size: 0.72rem; color: #777; font-weight: 400; }
+.editor-canvas-wrap {
+    display: flex;
+    justify-content: center;
+    background: #222222;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(139,0,0,0.15);
+    margin-bottom: 16px;
+    box-shadow: inset 0 4px 20px rgba(0,0,0,0.4);
+}
+#hoxoDesignCanvas { display: block; max-width: 100%; height: auto; max-height: 280px; cursor: grab; touch-action: none; }
+#hoxoDesignCanvas:active { cursor: grabbing; }
+.editor-controls { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.editor-sliders { flex: 1; min-width: 240px; display: flex; flex-direction: column; gap: 8px; }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+.editor-label { font-size: 0.78rem; color: #444; font-weight: 700; width: 90px; flex-shrink: 0; }
+.hoxo-slider { flex: 1; accent-color: #8B0000; cursor: pointer; height: 6px; border-radius: 3px; }
+.editor-actions { display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap; align-items: center; }
+
+.btn-editor-secondary {
+    background: #fff;
+    border: 1.5px solid rgba(0,0,0,0.15);
+    color: #444;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-editor-secondary:hover { background: #f5f5f5; border-color: rgba(0,0,0,0.25); }
+.btn-editor-cancel { border-color: rgba(139,0,0,0.3); color: #8B0000; }
+.btn-editor-cancel:hover { background: rgba(139,0,0,0.05); border-color: #8B0000; }
+.btn-editor-confirm {
+    background: #8B0000;
+    border: none;
+    color: #FAF7F2;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 4px 12px rgba(139,0,0,0.2);
+}
+.btn-editor-confirm:hover { background: #A52020; }
+.btn-editor-confirm:active { transform: scale(0.98); }
+.btn-editor-confirm:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.hoxo-adjust-btn {
+    display: inline-block;
+    margin-top: 10px;
+    background: #1C1C1C;
+    color: #FAF7F2;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.2s;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.hoxo-adjust-btn:hover { background: #8B0000; }
+
+.hoxo-upload-slide-panel { background: #FAF7F2; padding: 16px clamp(16px, 6vw, 120px); border-top: 1px dashed rgba(139,0,0,0.2); border-bottom: 1px dashed rgba(139,0,0,0.2); animation: panelSlideIn 0.3s cubic-bezier(0.16,1,0.3,1); flex-shrink: 0; }
+.upload-panel-inner { display: flex; flex-direction: column; gap: 12px; }
+.upload-prompt-text { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #1C1C1C; }
+.border-accent-icon { font-size: 1.5rem; color: #8B0000; }
+.hoxo-file-field { border: 1.5px dashed rgba(139,0,0,0.3) !important; background: #fff !important; color: #1C1C1C !important; border-radius: 6px; padding: 8px 12px; }
+.hoxo-file-field:focus { border-color: #8B0000 !important; box-shadow: none !important; }
+
+.chat-input-area { display: flex; gap: 12px; padding: 16px clamp(16px, 6vw, 120px); background: #fff; border-top: 1px solid rgba(139,0,0,0.1); flex-shrink: 0; }
+.hoxo-input { flex: 1; border: 1.5px solid rgba(139,0,0,0.2); border-radius: 8px; padding: 12px 16px; font-size: 1rem; color: #1C1C1C; background: #faf9f7; outline: none; transition: border-color .2s; }
+.hoxo-input:focus { border-color: #8B0000; }
+.hoxo-send { background: #8B0000; border: none; border-radius: 8px; width: 52px; display: flex; align-items: center; justify-content: center; color: #FAF7F2; cursor: pointer; font-size: 1.2rem; transition: background .2s; flex-shrink: 0; }
+.hoxo-send:hover { background: #A52020; }
+.hoxo-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.hoxo-typing { display: flex; gap: 4px; align-items: center; height: 20px; }
+.hoxo-dot { width: 6px; height: 6px; border-radius: 50%; background: #ccc; animation: hBounce 1s infinite; }
+.hoxo-dot:nth-child(2) { animation-delay: 0.2s; }
+.hoxo-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes hBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+@keyframes panelSlideIn { from{transform:translateY(15px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes deckSlideDown { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* ── FONT PICKER ── */
+.hoxo-font-picker {
+    margin-top: 12px;
+    background: #FAF7F2;
+    border: 1.5px solid rgba(139,0,0,0.15);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.hoxo-font-picker-header {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px 6px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(139,0,0,0.1);
+    background: #fff;
+}
+.hoxo-font-filter {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.15);
+    background: transparent;
+    color: #555;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+}
+.hoxo-font-filter.active,
+.hoxo-font-filter:hover {
+    background: #8B0000;
+    border-color: #8B0000;
+    color: #FAF7F2;
+}
+.hoxo-font-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1px;
+    background: rgba(139,0,0,0.08);
+    max-height: 280px;
+    overflow-y: auto;
+}
+.hoxo-font-item {
+    background: #fff;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.hoxo-font-item:hover { background: #fff5f5; }
+.hoxo-font-item .font-preview {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    color: #1C1C1C;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hoxo-font-item .font-cat {
+    font-size: 0.6rem;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: monospace;
+}
+
+/* ── ADD TO CART WIDGET ── */
+.hoxo-cart-widget {
+    margin-top: 12px;
+    background: #fff;
+    border: 1.5px solid rgba(139,0,0,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.hoxo-cart-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(139,0,0,0.1);
+    background: #FAF7F2;
+}
+.hoxo-cart-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1C1C1C;
+    font-family: monospace;
+}
+.hoxo-cart-price {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: #8B0000;
+    font-family: monospace;
+}
+.hoxo-cart-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 14px;
+    background: #8B0000;
+    color: #FAF7F2;
+    border: none;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: monospace;
+}
+.hoxo-cart-btn:hover:not(:disabled) { background: #A52020; }
+.hoxo-cart-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.hoxo-go-cart {
+    display: block;
+    padding: 12px 14px;
+    text-align: center;
+    font-size: 0.82rem;
+    color: #1a7a4a;
+    text-decoration: none;
+    background: rgba(26,122,74,0.07);
+    font-family: monospace;
+}
+.hoxo-go-cart:hover { text-decoration: underline; color: #1a7a4a; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 576px) {
+    .chat-page-header { padding: 12px 14px; gap: 10px; }
+    .chat-title { font-size: 1.1rem; }
+    .chat-subtitle { font-size: 0.7rem; }
+    .header-clear-btn span { display: none; }
+    .chat-window { padding: 18px 12px; }
+    .hoxo-bubble { max-width: 86%; font-size: 0.9rem; }
+    .chat-input-area { padding: 12px; }
+    .hoxo-editor-panel, .hoxo-upload-slide-panel { padding: 14px 12px; }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const chatWindow      = document.getElementById('hoxoMessages');
+    const inputField      = document.getElementById('hoxoInput');
+    const sendBtn         = document.getElementById('hoxoSend');
+    const uploadWrapper   = document.getElementById('hoxoUploadWrapper');
+    const fileInputField  = document.getElementById('hoxoImageFile');
+    const productDeck     = document.getElementById('hoxoPinnedProductDeck');
+    const deckProductName = document.getElementById('deckProductName');
+    const deckProductThumb = document.getElementById('deckProductThumb');
+    const editorPanel     = document.getElementById('hoxoEditorPanel');
+    const canvas          = document.getElementById('hoxoDesignCanvas');
+    const ctx             = canvas.getContext('2d');
+    const scaleSlider     = document.getElementById('scaleSlider');
+    const rotateSlider    = document.getElementById('rotateSlider');
+    const scaleVal        = document.getElementById('scaleVal');
+    const rotateVal       = document.getElementById('rotateVal');
+    const confirmBtn      = document.getElementById('editorConfirmBtn');
+    const resetEditorBtn  = document.getElementById('editorResetBtn');
+    const cancelEditorBtn = document.getElementById('editorCancelBtn');
+
+    let isTyping = false;
+
+    // ── Footer safety net ──
+    (function hideEverythingAfterChat() {
+        let node = document.querySelector('.hoxo-fullpage');
+        while (node && node !== document.body) {
+            let sibling = node.nextElementSibling;
+            while (sibling) {
+                if (sibling.tagName !== 'SCRIPT' && sibling.tagName !== 'STYLE') {
+                    sibling.style.setProperty('display', 'none', 'important');
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            node = node.parentElement;
+        }
+    })();
+
+    // ── Track whether user is logged in ──
+    let userIsAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
+
+    // ── EDITOR STATE ──
+    let editorState = {
+        garmentImg: null,
+        designImg:  null,
+        garmentLoaded: false,
+        designLoaded:  false,
+        x: 280, y: 180,
+        scale: 1.0,
+        rotation: 0,
+        dragging: false,
+        dragOffX: 0, dragOffY: 0,
+        pfWidth:  1500,
+        pfHeight: 525,
+        fileUrl:  '',
+    };
+
+    fileInputField.addEventListener('change', function() {
+        const file = this.files[0];
+        const previewWrap = document.getElementById('hoxoUploadPreviewWrap');
+        const previewImg  = document.getElementById('hoxoUploadPreview');
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewWrap.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewWrap.style.display = 'none';
+            previewImg.src = '';
+        }
+    });
+
+    function drawGarmentPlaceholder(type) {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, w, h);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(139,0,0,0.5)';
+        ctx.fillStyle   = '#2d2d2d';
+        ctx.lineWidth   = 2;
+        const cx = w / 2;
+        const cy = h / 2;
+        if (type && (type.includes('cap') || type.includes('beanie') || type.includes('hat'))) {
+            ctx.beginPath(); ctx.ellipse(cx, cy + 40, 120, 30, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy - 10, 100, Math.PI, 0, false); ctx.lineTo(cx + 100, cy + 40); ctx.lineTo(cx - 100, cy + 40); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.ellipse(cx + 30, cy + 42, 100, 18, -0.15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        } else if (type && type.includes('hoodie')) {
+            ctx.beginPath(); ctx.rect(cx - 90, cy - 50, 180, 160); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy - 60, 55, Math.PI, 0, false); ctx.lineTo(cx + 55, cy - 50); ctx.lineTo(cx - 55, cy - 50); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.rect(cx - 130, cy - 50, 42, 100); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.rect(cx + 88, cy - 50, 42, 100); ctx.fill(); ctx.stroke();
+        } else {
+            ctx.beginPath(); ctx.rect(cx - 85, cy - 30, 170, 150); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy - 30, 30, Math.PI, 0, false); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx - 85, cy - 30); ctx.lineTo(cx - 135, cy + 10); ctx.lineTo(cx - 120, cy + 55); ctx.lineTo(cx - 85, cy + 30); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + 85, cy - 30); ctx.lineTo(cx + 135, cy + 10); ctx.lineTo(cx + 120, cy + 55); ctx.lineTo(cx + 85, cy + 30); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        ctx.restore();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.font      = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loading garment preview...', cx, h - 10);
+    }
+
+    function drawCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (editorState.garmentImg && editorState.garmentLoaded) {
+            ctx.drawImage(editorState.garmentImg, 0, 0, canvas.width, canvas.height);
+        } else {
+            drawGarmentPlaceholder(editorState.garmentType || '');
+        }
+        if (editorState.designImg && editorState.designLoaded) {
+            const baseW  = editorState.designImg.width  || 200;
+            const baseH  = editorState.designImg.height || 200;
+            const maxDim = Math.min(canvas.width, canvas.height) * 0.4;
+            const ratio  = Math.min(maxDim / baseW, maxDim / baseH);
+            const drawW  = baseW * ratio * editorState.scale;
+            const drawH  = baseH * ratio * editorState.scale;
+            ctx.save();
+            ctx.translate(editorState.x, editorState.y);
+            ctx.rotate(editorState.rotation * Math.PI / 180);
+            ctx.drawImage(editorState.designImg, -drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
+            ctx.save();
+            ctx.translate(editorState.x, editorState.y);
+            ctx.rotate(editorState.rotation * Math.PI / 180);
+            ctx.strokeStyle = 'rgba(139,0,0,0.8)';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([5, 4]);
+            ctx.strokeRect(-drawW / 2 - 4, -drawH / 2 - 4, drawW + 8, drawH + 8);
+            ctx.restore();
+        }
+    }
+
+    function loadImageSafe(url, onSuccess, onFail) {
+        const img = new Image();
+        if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            img.crossOrigin = 'anonymous';
+        }
+        img.onload = function() { onSuccess(img); };
+        img.onerror = function() {
+            const img2 = new Image();
+            img2.onload  = function() { onSuccess(img2); };
+            img2.onerror = function() { if (onFail) onFail(); };
+            img2.src = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        };
+        img.src = url;
+    }
+
+    window.openHoxoEditor = function(garmentUrl, designUrl, pfWidth, pfHeight, fileUrl, garmentType) {
+        editorState.pfWidth      = pfWidth  || 1500;
+        editorState.pfHeight     = pfHeight || 525;
+        editorState.fileUrl      = fileUrl  || '';
+        editorState.garmentType  = garmentType || '';
+        editorState.x            = canvas.width  / 2;
+        editorState.y            = canvas.height / 2;
+        editorState.scale        = 1.0;
+        editorState.rotation     = 0;
+        editorState.garmentLoaded = false;
+        editorState.designLoaded  = false;
+        scaleSlider.value        = 100;
+        rotateSlider.value       = 0;
+        scaleVal.textContent     = '100';
+        rotateVal.textContent    = '0';
+        drawCanvas();
+        editorPanel.style.display = 'block';
+        editorPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (garmentUrl && garmentUrl !== designUrl) {
+            loadImageSafe(garmentUrl, function(img) {
+                editorState.garmentImg    = img;
+                editorState.garmentLoaded = true;
+                drawCanvas();
+            }, function() {
+                editorState.garmentImg    = null;
+                editorState.garmentLoaded = false;
+                drawCanvas();
+            });
+        }
+        if (designUrl) {
+            loadImageSafe(designUrl, function(img) {
+                editorState.designImg    = img;
+                editorState.designLoaded = true;
+                drawCanvas();
+            }, function() {
+                editorState.designImg    = null;
+                editorState.designLoaded = false;
+                drawCanvas();
+            });
+        }
+    };
+
+    function closeEditor() {
+        editorPanel.style.display = 'none';
+        editorState.garmentImg    = null;
+        editorState.designImg     = null;
+        editorState.garmentLoaded = false;
+        editorState.designLoaded  = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    cancelEditorBtn.addEventListener('click', closeEditor);
+
+    resetEditorBtn.addEventListener('click', () => {
+        editorState.x         = canvas.width  / 2;
+        editorState.y         = canvas.height / 2;
+        editorState.scale     = 1.0;
+        editorState.rotation  = 0;
+        scaleSlider.value     = 100;
+        rotateSlider.value    = 0;
+        scaleVal.textContent  = '100';
+        rotateVal.textContent = '0';
+        drawCanvas();
+    });
+
+    scaleSlider.addEventListener('input', () => {
+        editorState.scale = parseFloat(scaleSlider.value) / 100;
+        scaleVal.textContent = scaleSlider.value;
+        drawCanvas();
+    });
+    rotateSlider.addEventListener('input', () => {
+        editorState.rotation = parseInt(rotateSlider.value);
+        rotateVal.textContent = rotateSlider.value;
+        drawCanvas();
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        editorState.dragging = true;
+        editorState.dragOffX = (e.clientX - rect.left) * (canvas.width  / rect.width)  - editorState.x;
+        editorState.dragOffY = (e.clientY - rect.top)  * (canvas.height / rect.height) - editorState.y;
+    });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!editorState.dragging) return;
+        const rect = canvas.getBoundingClientRect();
+        editorState.x = (e.clientX - rect.left) * (canvas.width  / rect.width)  - editorState.dragOffX;
+        editorState.y = (e.clientY - rect.top)  * (canvas.height / rect.height) - editorState.dragOffY;
+        drawCanvas();
+    });
+    canvas.addEventListener('mouseup',    () => { editorState.dragging = false; });
+    canvas.addEventListener('mouseleave', () => { editorState.dragging = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const t    = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        editorState.dragging = true;
+        editorState.dragOffX = (t.clientX - rect.left) * (canvas.width  / rect.width)  - editorState.x;
+        editorState.dragOffY = (t.clientY - rect.top)  * (canvas.height / rect.height) - editorState.y;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!editorState.dragging) return;
+        const t    = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        editorState.x = (t.clientX - rect.left) * (canvas.width  / rect.width)  - editorState.dragOffX;
+        editorState.y = (t.clientY - rect.top)  * (canvas.height / rect.height) - editorState.dragOffY;
+        drawCanvas();
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { editorState.dragging = false; });
+
+    confirmBtn.addEventListener('click', () => {
+        if (!editorState.fileUrl) return;
+        confirmBtn.disabled    = true;
+        confirmBtn.textContent = '⏳ Generating...';
+
+        const scaleX     = editorState.pfWidth  / canvas.width;
+        const scaleY     = editorState.pfHeight / canvas.height;
+        const baseMaxDim = Math.min(canvas.width, canvas.height) * 0.4;
+        const designW    = editorState.designImg ? (editorState.designImg.width  || 200) : 200;
+        const designH    = editorState.designImg ? (editorState.designImg.height || 200) : 200;
+        const ratio      = Math.min(baseMaxDim / designW, baseMaxDim / designH);
+        const drawW      = designW * ratio * editorState.scale;
+        const drawH      = designH * ratio * editorState.scale;
+
+        const payload = {
+            file_url:  editorState.fileUrl,
+            confirmed: true,
+            position: {
+                area_width:  editorState.pfWidth,
+                area_height: editorState.pfHeight,
+                width:       Math.round(drawW * scaleX),
+                height:      Math.round(drawH * scaleY),
+                top:         Math.round((editorState.y - drawH / 2) * scaleY),
+                left:        Math.round((editorState.x - drawW / 2) * scaleX),
+            },
+            rotation: editorState.rotation,
+        };
+
+        const typingDiv  = addTypingIndicator();
+        isTyping         = true;
+        sendBtn.disabled = true;
+        closeEditor();
+
+        fetch("{% url 'shop:adjust_mockup_position' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-CSRFToken':      '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+        })
+        .then(res => res.json())
+        .then(data => {
+            typingDiv.remove();
+            isTyping               = false;
+            sendBtn.disabled       = false;
+            confirmBtn.disabled    = false;
+            confirmBtn.textContent = '✓ Confirm & Generate Mockup';
+            if (data.status === 'success' && data.auto_reply) {
+                addBotMsg(data.auto_reply);
+            } else {
+                addBotMsg("Sorry, I couldn't regenerate the mockup. Try uploading again.");
+            }
+        })
+        .catch(() => {
+            typingDiv.remove();
+            isTyping               = false;
+            sendBtn.disabled       = false;
+            confirmBtn.disabled    = false;
+            confirmBtn.textContent = '✓ Confirm & Generate Mockup';
+            addBotMsg("Connection error. Please try again.");
+        });
+    });
+
+    // ── SERVER-RENDERED CONTEXT (replaces old URL-param-driven logic) ──
+    // pendingGreeting is populated ONLY immediately after a redirect from a
+    // pinned-product URL (chat_support_page pops it from session once, then
+    // it's gone). A plain refresh of the clean /support/chat/ URL will NOT
+    // have pendingGreeting set, so it correctly falls through to showing
+    // real chat history instead of resetting the conversation.
+    const pendingGreeting = {{ pending_greeting_json|safe }};
+    const currentGarment  = "{{ current_garment|default:''|escapejs }}";
+    const currentImage    = "{{ current_image|default:''|escapejs }}";
+
+    if (pendingGreeting || currentGarment) {
+        const deckName = pendingGreeting ? pendingGreeting.product : currentGarment;
+        deckProductName.innerText = deckName;
+        productDeck.style.display = 'block';
+        if (currentImage) {
+            deckProductThumb.src = currentImage;
+            deckProductThumb.alt = deckName;
+            deckProductThumb.style.display = 'block';
+            deckProductThumb.onerror = function() { this.style.display = 'none'; };
+        }
+    }
+
+    // ── INITIAL MESSAGE LOAD ──
+    if (!userIsAuthenticated) {
+        addBotMsg(
+            "👋 **Welcome to HOXOBIL!**\n\n" +
+            "To start your custom order, you'll need an account.\n\n" +
+            "__LOGIN_BUTTONS__"
+        , true);
+    } else if (pendingGreeting) {
+        // Fresh pinned-product start (one-time only, history already cleared server-side)
+        const pinnedItem  = pendingGreeting.product;
+        const pinnedSize  = pendingGreeting.size;
+        const pinnedColor = pendingGreeting.color;
+        let greeting = `Target Item Pinned: **${pinnedItem}** 🎯\n\n`;
+        if (pinnedSize && pinnedColor) {
+            greeting += `Awesome choice! We have loaded your specifications:\n• **Size:** ${pinnedSize}\n• **Colorway:** ${pinnedColor}\n\nWhere are we running your custom design placement?\n\n👉 **[A] High Contrast Front Centre**\n👉 **[B] Oversized Statement Full Back**\n👉 **[C] Low-Key Minimalist Left Chest**`;
+        } else if (pinnedSize) {
+            greeting += `Sizing preset loaded to **Size ${pinnedSize}**. Which fabric premium base colorway are we running with?\n\n👉 **[A] Jet Black**\n👉 **[B] Chalk White**\n👉 **[C] Classic Navy**\n👉 **[D] Charcoal Grey**`;
+        } else {
+            greeting += `Let's customize this piece! What sizing profile are we cutting this garment for?\n\n👉 **[A] Standard Medium (M)**\n👉 **[B] Streetwear Oversized Large (L)**\n👉 **[C] Boxy Heavyweight XL**\n👉 **[D] View Other Sizing Layouts** (XS, S, XXL, 3XL)`;
+        }
+        addBotMsg(greeting);
+    } else {
+        // Normal load / refresh: always show real chat history so nothing gets lost
+        fetch("{% url 'shop:fetch_support_messages' %}")
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        msg.sender_type === 'user' ? addUserMsg(msg.text) : addBotMsg(msg.text);
+                    });
+                } else {
+                    fetch("{% url 'shop:get_chat_greeting' %}")
+                        .then(res => res.json())
+                        .then(gdata => addBotMsg(gdata.greeting));
+                }
+            });
+    }
+
+    // ── MESSAGE RENDERING ──
+
+    function addUserMsg(text) {
+        const div = document.createElement('div');
+        div.className = 'hoxo-msg user';
+        div.innerHTML = `<div class="hoxo-msg-av">U</div><div class="hoxo-bubble">${escapeHtml(text)}</div>`;
+        chatWindow.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addUserMsgWithImage(text, dataUrl, fileName) {
+        const div = document.createElement('div');
+        div.className = 'hoxo-msg user';
+        const imgHtml = dataUrl
+            ? `<div class="hoxo-chat-img-wrap">
+                 <img src="${dataUrl}" alt="${escapeHtml(fileName)}" loading="lazy">
+                 <div class="img-caption">📎 ${escapeHtml(fileName)}</div>
+               </div>`
+            : '';
+        div.innerHTML = `<div class="hoxo-msg-av">U</div>
+                         <div class="hoxo-bubble">${escapeHtml(text)}${imgHtml}</div>`;
+        chatWindow.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addBotMsg(text, isAuthPrompt) {
+        const div = document.createElement('div');
+        div.className = 'hoxo-msg bot';
+
+        let rendered = parseMarkdown(text);
+
+        if (isAuthPrompt || text.includes('__LOGIN_BUTTONS__')) {
+            rendered = rendered.replace('__LOGIN_BUTTONS__',
+                `<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
+                    <a href="/accounts/login/?next=/support/chat/" class="auth-link">🔐 Login</a>
+                    <a href="/accounts/register/" class="auth-link">✨ Create Account</a>
+                </div>`
+            );
+        }
+
+        rendered = rendered.replace(/\[FONT_PICKER\]/g, '');
+        rendered = rendered.replace(/\[ADD_TO_CART:[^\]]+\]/g, '');
+
+        div.innerHTML = `<div class="hoxo-msg-av">✦</div><div class="hoxo-bubble">${rendered}</div>`;
+        chatWindow.appendChild(div);
+
+        if (text.includes('[FONT_PICKER]')) {
+            const bubble = div.querySelector('.hoxo-bubble');
+            bubble.appendChild(buildFontPicker());
+        }
+
+        // ── ADD TO CART widget ──
+        const cartMatch = text.match(/\[ADD_TO_CART:(\d+):([\d.]+)\]/);
+        if (cartMatch) {
+            const ticketId   = cartMatch[1];
+            const amount     = parseFloat(cartMatch[2]).toLocaleString('en-NG', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+            const bubble     = div.querySelector('.hoxo-bubble');
+            const cartWidget = document.createElement('div');
+            cartWidget.className = 'hoxo-cart-widget';
+            cartWidget.innerHTML = `
+                <div class="hoxo-cart-summary">
+                    <span class="hoxo-cart-label">Custom Design Order</span>
+                    <span class="hoxo-cart-price">₦${amount}</span>
+                </div>
+                <button type="button" class="hoxo-cart-btn" data-ticket="${ticketId}" data-amount="${cartMatch[2]}">
+                    🛒 Add to Cart
+                </button>
+                <a href="/cart/" class="hoxo-go-cart" style="display:none;">
+                    ✅ Added! <strong>View Cart →</strong>
+                </a>`;
+            cartWidget.querySelector('.hoxo-cart-btn').addEventListener('click', function() {
+                const btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Adding...';
+                fetch('/support/chat/add-to-cart/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1]
+                    },
+                    body: 'ticket_id=' + encodeURIComponent(ticketId)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        btn.style.display = 'none';
+                        cartWidget.querySelector('.hoxo-go-cart').style.display = 'block';
+                        const badge = document.querySelector('.cart-count, .cart-badge, #cart-count');
+                        if (badge) badge.textContent = data.cart_count;
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = '🛒 Add to Cart';
+                        alert(data.message || 'Could not add to cart. Please try again.');
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    btn.textContent = '🛒 Add to Cart';
+                });
+            });
+            bubble.appendChild(cartWidget);
+        }
+
+        // ── EDITOR widget ──
+        const editorMatch = text.match(/\[EDITOR:([^\]]+)\]/);
+        if (editorMatch) {
+            try {
+                const ed = JSON.parse(atob(editorMatch[1]));
+                let garmentUrl = ed.garment_url;
+                const designUrl = ed.design_url;
+                if (!garmentUrl || garmentUrl === designUrl) { garmentUrl = ''; }
+                setTimeout(() => {
+                    window.openHoxoEditor(garmentUrl, designUrl, ed.pf_width, ed.pf_height, ed.file_url, ed.garment_type || '');
+                }, 400);
+            } catch(e) { console.error('Editor token parse error:', e); }
+        }
+
+        scrollToBottom();
+    }
+
+    function addTypingIndicator() {
+        const div = document.createElement('div');
+        div.className = 'hoxo-msg bot typing-indicator';
+        div.innerHTML = `<div class="hoxo-msg-av">✦</div><div class="hoxo-bubble"><div class="hoxo-typing"><div class="hoxo-dot"></div><div class="hoxo-dot"></div><div class="hoxo-dot"></div></div></div>`;
+        chatWindow.appendChild(div);
+        scrollToBottom();
+        return div;
+    }
+
+    function scrollToBottom() { chatWindow.scrollTop = chatWindow.scrollHeight; }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── FONT PICKER DATA ──
+    const HOXO_FONTS = [
+        { name: 'Montserrat',          cat: 'sans-serif'  },
+        { name: 'Open Sans',           cat: 'sans-serif'  },
+        { name: 'Lato',                cat: 'sans-serif'  },
+        { name: 'Roboto',              cat: 'sans-serif'  },
+        { name: 'Poppins',             cat: 'sans-serif'  },
+        { name: 'Raleway',             cat: 'sans-serif'  },
+        { name: 'Work Sans',           cat: 'sans-serif'  },
+        { name: 'Inter',               cat: 'sans-serif'  },
+        { name: 'Josefin Sans',        cat: 'sans-serif'  },
+        { name: 'Quicksand',           cat: 'sans-serif'  },
+        { name: 'Nunito',              cat: 'sans-serif'  },
+        { name: 'Playfair Display',    cat: 'serif'       },
+        { name: 'Lora',                cat: 'serif'       },
+        { name: 'Merriweather',        cat: 'serif'       },
+        { name: 'EB Garamond',         cat: 'serif'       },
+        { name: 'Cormorant Garamond',  cat: 'serif'       },
+        { name: 'Cinzel',              cat: 'serif'       },
+        { name: 'Bebas Neue',          cat: 'display'     },
+        { name: 'Anton',               cat: 'display'     },
+        { name: 'Oswald',              cat: 'display'     },
+        { name: 'Roboto Condensed',    cat: 'display'     },
+        { name: 'Barlow Condensed',    cat: 'display'     },
+        { name: 'Teko',                cat: 'display'     },
+        { name: 'Fjalla One',          cat: 'display'     },
+        { name: 'Abril Fatface',       cat: 'display'     },
+        { name: 'Alfa Slab One',       cat: 'display'     },
+        { name: 'Righteous',           cat: 'display'     },
+        { name: 'Fredoka One',         cat: 'display'     },
+        { name: 'Boogaloo',            cat: 'display'     },
+        { name: 'Shrikhand',           cat: 'display'     },
+        { name: 'Special Elite',       cat: 'display'     },
+        { name: 'Creepster',           cat: 'display'     },
+        { name: 'Dancing Script',      cat: 'script'      },
+        { name: 'Pacifico',            cat: 'script'      },
+        { name: 'Lobster',             cat: 'script'      },
+        { name: 'Great Vibes',         cat: 'script'      },
+        { name: 'Sacramento',          cat: 'script'      },
+        { name: 'Permanent Marker',    cat: 'handwritten' },
+        { name: 'Caveat',              cat: 'handwritten' },
+    ];
+
+    const FONT_CAT_LABELS = {
+        'sans-serif':  'Sans-serif',
+        'serif':       'Serif',
+        'display':     'Display / Bold',
+        'script':      'Script',
+        'handwritten': 'Handwritten',
+    };
+
+    function buildFontPicker() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'hoxo-font-picker';
+
+        const header = document.createElement('div');
+        header.className = 'hoxo-font-picker-header';
+        const allCategories = ['all', 'sans-serif', 'serif', 'display', 'script', 'handwritten'];
+        let activeFilter = 'all';
+
+        allCategories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'hoxo-font-filter' + (cat === 'all' ? ' active' : '');
+            btn.textContent = cat === 'all' ? 'All' : FONT_CAT_LABELS[cat];
+            btn.dataset.cat = cat;
+            btn.addEventListener('click', () => {
+                activeFilter = cat;
+                header.querySelectorAll('.hoxo-font-filter').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderGrid();
+            });
+            header.appendChild(btn);
+        });
+        wrapper.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'hoxo-font-grid';
+        wrapper.appendChild(grid);
+
+        function renderGrid() {
+            grid.innerHTML = '';
+            const filtered = activeFilter === 'all'
+                ? HOXO_FONTS
+                : HOXO_FONTS.filter(f => f.cat === activeFilter);
+            filtered.forEach(font => {
+                const item = document.createElement('div');
+                item.className = 'hoxo-font-item';
+                item.innerHTML = `
+                    <span class="font-preview" style="font-family:'${font.name}',sans-serif">${font.name}</span>
+                    <span class="font-cat">${FONT_CAT_LABELS[font.cat]}</span>
+                `;
+                item.addEventListener('click', () => {
+                    addUserMsg(`[A] ${font.name}`);
+                    doFetch(`[A] ${font.name}`, null);
+                });
+                grid.appendChild(item);
+            });
+        }
+
+        renderGrid();
+        return wrapper;
+    }
+
+    function parseMarkdown(text) {
+        if (!text) return '';
+        let parsed = text;
+
+        parsed = parsed.replace(/\[EDITOR:[^\]]+\]/g, '');
+        parsed = parsed.replace(/\[FONT_PICKER\]/g, '');
+        parsed = parsed.replace(/\[ADD_TO_CART:[^\]]+\]/g, '');
+
+        // Raw <img> tags
+        parsed = parsed.replace(
+            /<img\b[^>]*src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'])?[^>]*\/?>/gi,
+            function(match, src, alt) {
+                alt = alt || 'Design image';
+                return `<div class="hoxo-chat-img-wrap">
+                          <img src="${src}" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.closest('.hoxo-chat-img-wrap').style.display='none'">
+                          <div class="img-caption">🖼 ${escapeHtml(alt)}</div>
+                        </div>`;
+            }
+        );
+
+        // Markdown image syntax
+        parsed = parsed.replace(
+            /!\[(.*?)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g,
+            function(match, alt, url) {
+                alt = alt || 'Design image';
+                return `<div class="hoxo-chat-img-wrap">
+                          <img src="${url}" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.closest('.hoxo-chat-img-wrap').style.display='none'">
+                          <div class="img-caption">🖼 ${escapeHtml(alt)}</div>
+                        </div>`;
+            }
+        );
+
+        // Markdown links
+        parsed = parsed.replace(
+            /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g,
+            '<a href="$2" style="color:#8B0000;font-weight:700;">$1</a>'
+        );
+
+        // <button> tags
+        parsed = parsed.replace(
+            /<button\b([^>]*)>([\s\S]*?)<\/button>/gi,
+            function(match, attrs, label) {
+                const onclickMatch = attrs.match(/onclick=(?:'([^']*)'|"([^"]*)")/i);
+                let safe = '';
+                if (onclickMatch) {
+                    safe = (onclickMatch[1] || onclickMatch[2] || '').replace(/&quot;/g, '"');
+                }
+                return `<button type="button" class="hoxo-adjust-btn" onclick="${safe.replace(/"/g, '&quot;')}">${label.trim()}</button>`;
+            }
+        );
+
+        // Bold
+        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Newlines
+        parsed = parsed.replace(/\n/g, '<br>');
+
+        return parsed;
+    }
+
+    function sendMessage() {
+        if (isTyping) return;
+
+        if (!userIsAuthenticated) {
+            addBotMsg(
+                "🔐 **Login required**\n\nPlease log in or create an account to start your custom order.\n\n__LOGIN_BUTTONS__",
+                true
+            );
+            return;
+        }
+
+        const text         = inputField.value.trim();
+        const uploadedFile = fileInputField.files[0];
+        if (!text && !uploadedFile) return;
+
+        inputField.value = '';
+
+        if (uploadedFile) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addUserMsgWithImage(
+                    text || `[Uploaded Design Layer Asset: ${uploadedFile.name}]`,
+                    e.target.result,
+                    uploadedFile.name
+                );
+                doFetch(text, uploadedFile);
+            };
+            reader.onerror = function() {
+                addUserMsg(text || `[Uploaded Design Layer Asset: ${uploadedFile.name}]`);
+                doFetch(text, uploadedFile);
+            };
+            reader.readAsDataURL(uploadedFile);
+        } else {
+            addUserMsg(text);
+            doFetch(text, null);
+        }
+    }
+
+    function doFetch(text, uploadedFile) {
+        const typingDiv  = addTypingIndicator();
+        isTyping         = true;
+        sendBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        formData.append('message', text || '');
+        if (uploadedFile) formData.append('image', uploadedFile);
+
+        fetch("{% url 'shop:send_support_message' %}", {
+            method:  'POST',
+            body:    formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        .then(res => res.json())
+        .then(data => {
+            typingDiv.remove();
+            isTyping         = false;
+            sendBtn.disabled = false;
+
+            if (data.status === 'auth_required') {
+                userIsAuthenticated = false;
+                addBotMsg(data.auto_reply, true);
+                return;
+            }
+
+            if (data.status === 'success' && data.auto_reply) {
+                addBotMsg(data.auto_reply);
+                uploadWrapper.style.display = data.trigger_upload ? 'block' : 'none';
+                if (!data.trigger_upload) {
+                    fileInputField.value = '';
+                    document.getElementById('hoxoUploadPreviewWrap').style.display = 'none';
+                    document.getElementById('hoxoUploadPreview').src = '';
+                }
+            }
+        })
+        .catch(err => {
+            typingDiv.remove();
+            isTyping         = false;
+            sendBtn.disabled = false;
+            addBotMsg("Sorry, I'm having trouble connecting to the server.");
+            console.error(err);
+        });
+    }
+
+    window.resetChatFunnel = function() {
+        if (confirm("Are you sure you want to drop this design configuration path?")) {
+            fetch("{% url 'shop:clear_chat_history' %}", {
+                method:  'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            }).then(() => { window.location.href = window.location.pathname; });
+        }
+    };
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputField.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+});
+</script>
+{% endblock %}

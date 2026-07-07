@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<div style="max-width:700px;margin:0 auto;font-family:sans-serif;">
+
+  <h2 style="color:#8e44ad;">🧠 Teach the Bot</h2>
+
+  <div style="background:#f9f0ff;border:1px solid #d6b4f5;border-radius:8px;padding:16px;margin-bottom:24px;">
+    <p style="margin:0 0 6px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.5px;">
+      Customer asked (Step: <strong>{{ question.session_step }}</strong>):
+    </p>
+    <p style="margin:0;font-size:15px;color:#333;font-weight:500;">"{{ question.message }}"</p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-weight:bold;margin-bottom:6px;color:#333;">
+        Trigger Keywords
+        <span style="font-weight:normal;color:#666;font-size:12px;">
+          — comma-separated words/phrases that should match similar questions
+        </span>
+      </label>
+      <input
+        type="text"
+        name="keywords"
+        value="{{ suggested_keywords }}"
+        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;box-sizing:border-box;"
+        placeholder="e.g. delivery, shipping, how long, when will"
+        required
+      >
+      <p style="font-size:12px;color:#888;margin-top:4px;">
+        Pre-filled from the customer's message. Edit as needed — shorter, broader keywords match more messages.
+      </p>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <label style="display:block;font-weight:bold;margin-bottom:6px;color:#333;">
+        Bot's Answer
+        <span style="font-weight:normal;color:#666;font-size:12px;">
+          — write in the bot's voice (friendly, brand-appropriate)
+        </span>
+      </label>
+      <textarea
+        name="answer"
+        rows="5"
+        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:14px;resize:vertical;box-sizing:border-box;font-family:sans-serif;"
+        placeholder="e.g. We typically deliver within 7–14 business days after production. You'll receive a tracking link by email once your order ships! 🚚"
+        required
+      ></textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <button type="submit"
+        style="background:#8e44ad;color:#fff;border:none;padding:12px 28px;
+               border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;">
+        ✅ Save &amp; Teach Bot
+      </button>
+      <a href="{% url 'admin:shop_unknownquestion_changelist' %}"
+        style="background:#eee;color:#333;padding:12px 20px;border-radius:6px;
+               text-decoration:none;font-size:14px;line-height:1;">
+        Cancel
+      </a>
+    </div>
+  </form>
+
+</div>
+
+{% endblock %}

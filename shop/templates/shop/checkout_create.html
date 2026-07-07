@@ -1,0 +1,139 @@
+{% extends 'shop/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 900px;">
+    
+    <div class="d-flex align-items-center justify-content-center mb-5 gap-2 flex-wrap">
+        <div class="px-4 py-2 rounded-pill bg-dark text-white font-mono fw-bold small shadow-sm">Products</div>
+        <i class="bi bi-chevron-right text-muted"></i>
+        <div class="px-4 py-2 rounded-pill bg-crimson text-white font-mono fw-bold small shadow-lg">Shipping</div>
+        <i class="bi bi-chevron-right text-muted"></i>
+        <div class="px-4 py-2 rounded-pill bg-light text-muted font-mono fw-bold small">Submit order</div>
+    </div>
+
+    <h2 class="fw-900 mb-4 font-display text-uppercase tracking-tight" style="letter-spacing: -1px; color: var(--charcoal);">Create order</h2>
+
+    {% if form.errors %}
+    <div class="alert alert-danger rounded-4 shadow-sm mb-4 p-4 border-0" style="background-color: #fff5f5;">
+        <h6 class="fw-bold text-danger mb-2 font-mono"><i class="bi bi-exclamation-circle-fill me-2"></i> Form Errors</h6>
+        <ul class="mb-0 small text-danger font-mono">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" id="hox-checkout-form">
+        {% csrf_token %}
+        
+        <div class="card border-0 bg-light rounded-5 p-4 p-md-5 mb-4 shadow-sm">
+            <h5 class="fw-900 font-mono text-uppercase small letter-spacing-1 mb-4" style="color: #666;">Recipient</h5>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">First name*</label>
+                    {% render_field form.first_name class="form-control hox-input font-mono" placeholder="Enter first name" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">Last name*</label>
+                    {% render_field form.last_name class="form-control hox-input font-mono" placeholder="Enter last name" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">Email (optional)</label>
+                    {% render_field form.email class="form-control hox-input font-mono" placeholder="Email for notifications" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">Phone nr.*</label>
+                    {% render_field form.phone class="form-control hox-input font-mono" placeholder="Required for delivery" %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 bg-light rounded-5 p-4 p-md-5 mb-5 shadow-sm">
+            <h5 class="fw-900 font-mono text-uppercase small letter-spacing-1 mb-4" style="color: #666;">Shipping address</h5>
+            <div class="row g-4">
+                <div class="col-12">
+                    <label class="form-label font-mono small fw-bold">Address*</label>
+                    {% render_field form.address class="form-control hox-input font-mono" placeholder="Street name and house number" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">Country*</label>
+                    {% render_field form.country class="form-select hox-input font-mono" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">State*</label>
+                    {% render_field form.state class="form-control hox-input font-mono" placeholder="Province/State" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">City*</label>
+                    {% render_field form.city class="form-control hox-input font-mono" placeholder="City" %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label font-mono small fw-bold">ZIP code*</label>
+                    {% render_field form.postal_code class="form-control hox-input font-mono" placeholder="Postal code" %}
+                </div>
+            </div>
+        </div>
+
+        <div class="checkout-summary-bar fixed-bottom bg-white border-top py-3 shadow-lg">
+            <div class="container d-flex flex-wrap align-items-center justify-content-between px-3 px-lg-5">
+                <div class="mb-2 mb-md-0">
+                    <span class="small text-muted text-uppercase fw-bold font-mono">Subtotal:</span>
+                    <span class="h4 fw-900 font-mono ms-2" id="cart-subtotal" style="color: var(--charcoal);">{{ cart.get_total_price }}</span>
+                </div>
+                <div class="d-flex gap-3 w-100 w-md-auto">
+                    <a href="{% url 'shop:cart_detail' %}" class="btn btn-outline-dark font-mono rounded-pill px-5 fw-bold text-uppercase small d-inline-flex align-items-center justify-content-center">Back</a>
+                    <button type="submit" class="btn btn-hox-primary font-display rounded-pill px-5 py-3 fw-900 text-uppercase flex-grow-1">
+                        Calculate shipping <i class="bi bi-chevron-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* 💎 HOXOBIL PREMIUM UI REVERSION */
+    :root { 
+        --h-crimson: #8B0000; 
+        --h-glossy: linear-gradient(135deg, #8B0000 0%, #A52020 100%);
+    }
+    .fw-900 { font-weight: 900; }
+    .letter-spacing-1 { letter-spacing: 1.5px; }
+    
+    .hox-input {
+        border: 2px solid #eef0f2;
+        border-radius: 12px !important;
+        padding: 12px 18px;
+        background-color: #fff !important;
+        transition: 0.3s;
+    }
+    .hox-input:focus { 
+        border-color: var(--h-crimson); 
+        box-shadow: 0 0 0 5px rgba(139, 0, 0, 0.1); 
+        outline: none;
+    }
+    
+    .btn-hox-primary {
+        background: var(--h-glossy);
+        color: #fff; 
+        border: none;
+        box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    .btn-hox-primary:hover {
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(139, 0, 0, 0.45);
+    }
+    .btn-hox-primary:active {
+        transform: translateY(0);
+    }
+    
+    body { padding-bottom: 120px; }
+</style>
+{% endblock %}

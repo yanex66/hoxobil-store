@@ -1,0 +1,66 @@
+{% extends 'shop/base.html' %}
+{% block title %}Returns & Refunds | HOXOBIL{% endblock %}
+{% block content %}
+<div class="legal-page">
+    <div class="legal-hero">
+        <p class="legal-eyebrow font-mono">Support</p>
+        <h1 class="legal-title font-display">Returns & Refunds</h1>
+        <p class="legal-meta font-mono">Powered by Printful's fulfillment guarantee</p>
+    </div>
+
+    <div class="legal-body">
+        <p class="legal-lead">Because every HOXOBIL piece is made to order just for you, our returns policy is specific. Please read carefully before purchasing.</p>
+
+        <div class="legal-section">
+            <h2>What We Accept</h2>
+            <p>We accept return or replacement requests for the following reasons only:</p>
+            <ul>
+                <li><strong>Defective product</strong> — printing errors, damaged fabric, or manufacturing defects.</li>
+                <li><strong>Wrong item received</strong> — you received a different product, size, or colour than what you ordered.</li>
+            </ul>
+            <p>Claims must be submitted within <strong>30 days</strong> of the delivery date.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>What We Do Not Accept</h2>
+            <ul>
+                <li>Change-of-mind returns — all items are printed on demand and cannot be restocked.</li>
+                <li>Size exchanges — please consult our <a href="{% url 'shop:size_guide' %}">Size Guide</a> carefully before ordering.</li>
+                <li>Returns for buyer's remorse or personal preference.</li>
+                <li>Items that have been worn, washed, or altered.</li>
+            </ul>
+        </div>
+
+        <div class="legal-section">
+            <h2>How to Submit a Claim</h2>
+            <ol>
+                <li>Email <a href="mailto:help.hoxobil@gmail.com">help.hoxobil@gmail.com</a> with the subject line: <strong>Return Request — Order #[your order number]</strong>.</li>
+                <li>Include clear photos of the defective or incorrect item.</li>
+                <li>We will review your claim within <strong>3–5 business days</strong>.</li>
+                <li>If approved, we will arrange a replacement or refund at no additional cost to you.</li>
+            </ol>
+        </div>
+
+        <div class="legal-section">
+            <h2>Refunds</h2>
+            <p>Approved refunds are issued to your original payment method within <strong>5–10 business days</strong> after approval. Processing times may vary depending on your bank or payment provider.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Replacements</h2>
+            <p>Where possible, we prefer to send a replacement item rather than a refund. Replacements follow the same production and shipping timeline as a new order.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Damaged in Transit</h2>
+            <p>If your order arrives damaged due to shipping, photograph the damage immediately and contact us at <a href="mailto:help.hoxobil@gmail.com">help.hoxobil@gmail.com</a> within 7 days of delivery. We will file a claim with the carrier on your behalf.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>Questions?</h2>
+            <p>We're here to help. Reach us at <a href="mailto:help.hoxobil@gmail.com">help.hoxobil@gmail.com</a> or visit our <a href="{% url 'shop:contact' %}">Contact</a> page.</p>
+        </div>
+    </div>
+</div>
+{% include 'shop/_legal_styles.html' %}
+{% endblock %}

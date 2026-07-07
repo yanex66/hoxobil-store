@@ -1,0 +1,75 @@
+{% extends 'shop/base.html' %}
+{% block title %}Terms of Service | HOXOBIL{% endblock %}
+{% block content %}
+<div class="legal-page">
+    <div class="legal-hero">
+        <p class="legal-eyebrow font-mono">Legal</p>
+        <h1 class="legal-title font-display">Terms of Service</h1>
+        <p class="legal-meta font-mono">Last updated: June 2025 &nbsp;·&nbsp; HOXOBIL, Nigeria</p>
+    </div>
+
+    <div class="legal-body">
+        <p class="legal-lead">By accessing or purchasing from HOXOBIL, you agree to be bound by these Terms of Service. Please read them carefully.</p>
+
+        <div class="legal-section">
+            <h2>1. Overview</h2>
+            <p>HOXOBIL is a print-on-demand streetwear brand operating from Nigeria. These terms govern your use of our website and purchase of our products. We reserve the right to update these terms at any time.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>2. Eligibility</h2>
+            <p>You must be at least 16 years old to use this website and place orders. By using HOXOBIL, you confirm that you meet this requirement.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>3. Products & Pricing</h2>
+            <ul>
+                <li>All products are print-on-demand and produced by Printful upon order placement.</li>
+                <li>Prices are displayed in your selected currency and are subject to change without notice.</li>
+                <li>We reserve the right to cancel orders with pricing errors.</li>
+                <li>Product colours may vary slightly from images due to screen calibration and print processes.</li>
+            </ul>
+        </div>
+
+        <div class="legal-section">
+            <h2>4. Orders & Payment</h2>
+            <ul>
+                <li>Orders are confirmed only after successful payment via Flutterwave.</li>
+                <li>Once an order is confirmed and sent to Printful, it cannot be modified or cancelled.</li>
+                <li>HOXOBIL reserves the right to refuse or cancel orders at our discretion.</li>
+            </ul>
+        </div>
+
+        <div class="legal-section">
+            <h2>5. Shipping</h2>
+            <p>Shipping is handled by Printful. Delivery times and costs vary by destination. See our <a href="{% url 'shop:shipping_info' %}">Shipping Info</a> page for details. HOXOBIL is not liable for delays caused by customs, carriers, or circumstances beyond our control.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>6. Returns & Refunds</h2>
+            <p>We accept returns for defective or incorrect items only. Change-of-mind returns are not accepted as all products are made to order. See our <a href="{% url 'shop:returns_policy' %}">Returns Policy</a> for full details.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>7. Intellectual Property</h2>
+            <p>All designs, graphics, logos, and content on this website are the property of HOXOBIL. You may not reproduce, distribute, or use any content without prior written permission.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>8. Limitation of Liability</h2>
+            <p>HOXOBIL's total liability for any claim arising from your use of our site or products shall not exceed the amount you paid for the relevant order. We are not liable for indirect, incidental, or consequential damages.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>9. Governing Law</h2>
+            <p>These terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be resolved in Nigerian courts.</p>
+        </div>
+
+        <div class="legal-section">
+            <h2>10. Contact</h2>
+            <p>For questions about these terms, email <a href="mailto:help.hoxobil@gmail.com">help.hoxobil@gmail.com</a>.</p>
+        </div>
+    </div>
+</div>
+{% include 'shop/_legal_styles.html' %}
+{% endblock %}

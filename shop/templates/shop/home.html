@@ -1,0 +1,1030 @@
+{% extends 'shop/base.html' %}
+{% load currency_filters %}
+{% load static %}
+
+{% block title %}Welcome to Hoxobil | Premium Store{% endblock %}
+
+{% block content %}
+
+<style>
+  /* ── Hero ── */
+  .hx-hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+  .hx-hero-bg {
+    position: absolute; inset: 0;
+    background-image: url('https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=2000&auto=format&fit=crop');
+    background-size: cover; background-position: center top;
+    opacity: 0.75;
+    transform: scale(1.05);
+    animation: heroZoom 12s ease-in-out infinite alternate;
+  }
+  @keyframes heroZoom { from { transform: scale(1.05); } to { transform: scale(1.12); } }
+  .hx-hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(160deg, rgba(139,0,0,0.1) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%);
+  }
+  .hx-hero-content {
+    position: relative; z-index: 2;
+    text-align: center; padding: 2rem 1rem;
+  }
+  .hx-hero-eyebrow {
+    display: inline-block;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.3em;
+    color: #c0392b; text-transform: uppercase;
+    border: 1px solid rgba(192,57,43,0.4);
+    padding: 6px 18px; border-radius: 2px;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.8s ease both;
+  }
+  .hx-hero-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 8rem);
+    font-weight: 700; line-height: 0.9;
+    color: #fff; text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.8s 0.15s ease both;
+  }
+  .hx-hero-title span {
+    color: #c0392b;
+    display: block;
+  }
+  .hx-hero-sub {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: rgba(255,255,255,0.6);
+    max-width: 500px; margin: 0 auto 2.5rem;
+    font-weight: 300; letter-spacing: 0.05em;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+  .hx-hero-actions {
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    animation: fadeUp 0.8s 0.45s ease both;
+  }
+  .hx-btn-primary {
+    padding: 14px 36px;
+    background: #c0392b; color: #fff;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; text-decoration: none;
+    border: none; cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .hx-btn-primary:hover { background: #a93226; transform: translateY(-2px); color: #fff; }
+  .hx-btn-ghost {
+    padding: 13px 36px;
+    background: transparent; color: #fff;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .hx-btn-ghost:hover { border-color: #fff; color: #fff; transform: translateY(-2px); }
+
+  /* Scroll indicator */
+  .hx-scroll-hint {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    animation: fadeUp 1s 1s ease both;
+  }
+  .hx-scroll-line {
+    width: 1px; height: 40px; background: rgba(255,255,255,0.2);
+    position: relative; overflow: hidden;
+  }
+  .hx-scroll-line::after {
+    content: ''; position: absolute; top: -100%; left: 0;
+    width: 100%; height: 100%; background: #c0392b;
+    animation: scrollLine 1.5s ease infinite;
+  }
+  @keyframes scrollLine { to { top: 100%; } }
+
+  /* ── Ticker ── */
+  .hx-ticker {
+    background: #c0392b; overflow: hidden;
+    padding: 10px 0; white-space: nowrap;
+  }
+  .hx-ticker-inner {
+    display: inline-block;
+    animation: ticker 25s linear infinite;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.15em;
+    color: #fff; text-transform: uppercase;
+  }
+  .hx-ticker-inner span { margin: 0 2.5rem; opacity: 0.7; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* ── Stats ── */
+  .hx-stats {
+    background: #1c1c1c;
+    padding: 4rem 1rem;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .hx-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0;
+    max-width: 900px; margin: 0 auto;
+  }
+  .hx-stat {
+    text-align: center; padding: 2rem 1rem;
+    border-right: 1px solid rgba(0,0,0,0.08);
+  }
+  .hx-stat:last-child { border-right: none; }
+  .hx-stat-num {
+    font-family: 'Oswald', sans-serif;
+    font-size: 3rem; font-weight: 700;
+    color: #c0392b; line-height: 1;
+    margin-bottom: 0.25rem;
+  }
+  .hx-stat-label {
+    font-size: 11px; color: #888; letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* ── Section titles ── */
+  .hx-section { padding: 5rem 1rem; }
+  .hx-section-header {
+    display: flex; align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(139,0,0,0.15);
+  }
+  .hx-section-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 600; color: #1c1c1c;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    margin: 0;
+  }
+  .hx-section-title em {
+    color: #c0392b; font-style: normal;
+  }
+  .hx-view-all {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+    color: #c0392b; text-decoration: none; text-transform: uppercase;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .hx-view-all:hover { opacity: 0.7; color: #c0392b; }
+
+  /* ── Product cards ── */
+  .hx-products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+  .hx-card {
+    background: #fff; border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 4px; overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s;
+    text-decoration: none; display: block;
+  }
+  .hx-card:hover {
+    border-color: #c0392b;
+    transform: translateY(-4px);
+    text-decoration: none;
+  }
+  .hx-card-img {
+    width: 100%; aspect-ratio: 1/1;
+    object-fit: cover; display: block;
+    background: #f0ede8;
+    transition: transform 0.4s;
+  }
+  .hx-card:hover .hx-card-img { transform: scale(1.04); }
+  .hx-card-img-placeholder {
+    width: 100%; aspect-ratio: 1/1;
+    background: #181818;
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 2rem;
+  }
+  .hx-card-body { padding: 1rem; }
+  .hx-card-name {
+    font-size: 13px; font-weight: 600;
+    color: #1c1c1c; margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: 0.02em;
+  }
+  .hx-card-price {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px; color: #c0392b; font-weight: 500;
+  }
+
+  /* ── Brand strip ── */
+  .hx-brand-strip {
+    background: #fff;
+    border-top: 1px solid rgba(139,0,0,0.1);
+    border-bottom: 1px solid rgba(139,0,0,0.1);
+    padding: 3rem 1rem;
+  }
+  .hx-brand-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 700px; margin: 0 auto;
+    text-align: center;
+  }
+  .hx-brand-item { padding: 1.5rem 1rem; }
+  .hx-brand-icon {
+    width: 48px; height: 48px;
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.25);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1rem;
+  }
+  .hx-brand-icon svg {
+    width: 22px; height: 22px;
+    stroke: #c0392b; fill: none;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .hx-brand-title {
+    font-size: 12px; font-weight: 700;
+    color: #1c1c1c; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .hx-brand-desc { font-size: 12px; color: #888; line-height: 1.5; }
+
+  /* ── CTA Banner ── */
+  .hx-cta {
+    position: relative; overflow: hidden;
+    background: #c0392b;
+    padding: 5rem 1rem;
+    text-align: center;
+  }
+  .hx-cta::before {
+    content: 'HOXOBIL';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(6rem, 20vw, 14rem);
+    font-weight: 900; color: rgba(0,0,0,0.12);
+    white-space: nowrap; pointer-events: none;
+    letter-spacing: -0.02em;
+  }
+  .hx-cta-content { position: relative; z-index: 1; }
+  .hx-cta-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 700; color: #fff;
+    text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .hx-cta-sub {
+    font-size: 15px; color: rgba(255,255,255,0.75);
+    margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;
+  }
+  .hx-btn-white {
+    display: inline-block;
+    padding: 14px 40px;
+    background: #fff; color: #c0392b;
+    font-size: 13px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; text-decoration: none;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .hx-btn-white:hover { transform: translateY(-2px); background: #f5f5f5; color: #c0392b; }
+
+  /* ── Custom order teaser ── */
+  .hx-custom {
+    background: #f0ede8;
+    padding: 5rem 1rem;
+  }
+  .hx-custom-inner {
+    max-width: 900px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;
+    align-items: center;
+  }
+  @media (max-width: 680px) {
+    .hx-custom-inner { grid-template-columns: 1fr; gap: 2rem; }
+    .hx-brand-grid { grid-template-columns: 1fr; }
+    .hx-stat { border-right: none; border-bottom: 1px solid #1e1e1e; }
+  }
+  .hx-custom-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.25em;
+    color: #c0392b; text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .hx-custom-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 600; color: #1c1c1c;
+    text-transform: uppercase; line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+  .hx-custom-body {
+    font-size: 14px; color: #555; line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+  .hx-custom-visual {
+    aspect-ratio: 1/1;
+    background: #1c1c1c; border: 1px solid #2a2a2a;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .hx-custom-visual-text {
+    font-family: 'Oswald', sans-serif;
+    font-size: 5rem; font-weight: 900;
+    color: #1a1a1a; letter-spacing: -0.04em;
+    line-height: 1; text-align: center; user-select: none;
+  }
+  .hx-custom-visual-badge {
+    position: absolute; bottom: 1.5rem; right: 1.5rem;
+    background: #c0392b; color: #fff;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.15em;
+    text-transform: uppercase; padding: 6px 14px;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hx-reveal {
+    opacity: 0; transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .hx-reveal.visible {
+    opacity: 1; transform: translateY(0);
+  }
+
+
+  /* ── Categories ── */
+  .hx-categories {
+    padding: 4rem 1rem;
+    background: #fff;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .hx-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  @media (max-width: 700px) { .hx-cat-grid { grid-template-columns: repeat(2, 1fr); } }
+  .hx-cat-card {
+    position: relative; overflow: hidden;
+    border-radius: 4px; aspect-ratio: 3/4;
+    display: block; text-decoration: none;
+    background: #1a1a1a;
+  }
+  .hx-cat-card img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.5s ease, opacity 0.3s;
+    opacity: 0.75;
+  }
+  .hx-cat-card:hover img { transform: scale(1.06); opacity: 0.6; }
+  .hx-cat-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%);
+  }
+  .hx-cat-label {
+    position: absolute; bottom: 1.25rem; left: 1.25rem; right: 1.25rem;
+  }
+  .hx-cat-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.2rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #fff; display: block; margin-bottom: 2px;
+  }
+  .hx-cat-count { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; }
+  .hx-cat-card::after {
+    content: ''; position: absolute; inset: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    transition: border-color 0.25s;
+  }
+  .hx-cat-card:hover::after { border-color: #c0392b; }
+
+  /* ── Lookbook ── */
+  .hx-lookbook {
+    padding: 5rem 1rem;
+    background: #f5f3ef;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .hx-lookbook-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0.75rem;
+  }
+  @media (max-width: 768px) { .hx-lookbook-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 500px) { .hx-lookbook-grid { grid-template-columns: 1fr; } }
+  .hx-look {
+    position: relative; overflow: hidden;
+    border-radius: 4px; background: #1a1a1a;
+    display: block; text-decoration: none;
+  }
+  .hx-look:first-child {
+    grid-row: span 2;
+    aspect-ratio: 2/3;
+  }
+  .hx-look:not(:first-child) { aspect-ratio: 4/3; }
+  .hx-look img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; display: block; }
+  .hx-look:hover img { transform: scale(1.04); }
+  .hx-look-tag {
+    position: absolute; top: 1rem; left: 1rem;
+    background: #c0392b; color: #fff;
+    font-size: 9px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; padding: 4px 10px;
+  }
+
+  /* ── How It Works ── */
+  .hx-how {
+    padding: 5rem 1rem;
+    background: #1a1a1a;
+  }
+  .hx-how-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    max-width: 1000px; margin: 0 auto;
+    position: relative;
+  }
+  .hx-how-grid::before {
+    content: '';
+    position: absolute;
+    top: 28px; left: calc(12.5% + 20px); right: calc(12.5% + 20px);
+    height: 1px; background: rgba(192,57,43,0.3);
+    z-index: 0;
+  }
+  @media (max-width: 700px) { .hx-how-grid { grid-template-columns: repeat(2, 1fr); } .hx-how-grid::before { display: none; } }
+  .hx-how-step {
+    text-align: center; padding: 0 1.5rem 2rem; position: relative; z-index: 1;
+  }
+  .hx-how-num {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #1a1a1a; border: 2px solid #c0392b;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-family: 'Oswald', sans-serif; font-size: 1.2rem; font-weight: 700; color: #c0392b;
+  }
+  .hx-how-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #f0f0f0; margin-bottom: 0.5rem;
+  }
+  .hx-how-desc { font-size: 12px; color: #666; line-height: 1.6; }
+
+  /* ── Testimonials ── */
+  .hx-testimonials {
+    padding: 5rem 1rem;
+    background: #fff;
+    overflow: hidden;
+  }
+  .hx-testi-track {
+    display: flex; gap: 1.5rem;
+    animation: testiScroll 30s linear infinite;
+    width: max-content;
+  }
+  .hx-testi-track:hover { animation-play-state: paused; }
+  @keyframes testiScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .hx-testi-card {
+    width: 300px; flex-shrink: 0;
+    background: #f5f3ef; border-radius: 8px;
+    padding: 1.5rem; border: 1px solid rgba(139,0,0,0.08);
+    border-left: 3px solid #c0392b;
+  }
+  .hx-testi-stars { color: #c9973a; font-size: 13px; margin-bottom: 0.75rem; letter-spacing: 2px; }
+  .hx-testi-text { font-size: 13px; color: #444; line-height: 1.6; margin-bottom: 1rem; font-style: italic; }
+  .hx-testi-author { display: flex; align-items: center; gap: 0.75rem; }
+  .hx-testi-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #c0392b; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .hx-testi-name { font-size: 12px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.04em; }
+  .hx-testi-loc { font-size: 11px; color: #aaa; }
+
+  /* ── Newsletter ── */
+  .hx-newsletter {
+    padding: 4rem 1rem;
+    background: #1a1a1a;
+    text-align: center;
+  }
+  .hx-newsletter-inner { max-width: 520px; margin: 0 auto; }
+  .hx-newsletter-label {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.3em;
+    text-transform: uppercase; color: #c0392b; margin-bottom: 0.75rem; display: block;
+  }
+  .hx-newsletter-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.5rem);
+    font-weight: 700; color: #fff;
+    text-transform: uppercase; margin-bottom: 0.5rem;
+  }
+  .hx-newsletter-sub { font-size: 13px; color: #666; margin-bottom: 1.75rem; }
+  .hx-newsletter-form {
+    display: flex; gap: 0; max-width: 420px; margin: 0 auto;
+    border: 1px solid rgba(192,57,43,0.3); border-radius: 3px; overflow: hidden;
+  }
+  .hx-newsletter-input {
+    flex: 1; padding: 0.85rem 1.1rem;
+    background: rgba(255,255,255,0.05); border: none;
+    color: #fff; font-size: 13px; font-family: inherit; outline: none;
+  }
+  .hx-newsletter-input::placeholder { color: #555; }
+  .hx-newsletter-btn {
+    padding: 0.85rem 1.5rem;
+    background: #c0392b; color: #fff; border: none; cursor: pointer;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.14em;
+    text-transform: uppercase; font-family: inherit;
+    transition: background 0.2s; white-space: nowrap;
+  }
+  .hx-newsletter-btn:hover { background: #a93226; }
+  .hx-newsletter-note { font-size: 11px; color: #444; margin-top: 0.75rem; }
+
+  /* Dark page background */
+  body { background: #f5f3ef !important; }
+
+  /* ── Floating Custom Design Tab ── */
+  .hx-float-custom {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #c0392b;
+    color: #fff;
+    text-decoration: none;
+    padding: 14px 18px 14px 16px;
+    border-radius: 8px 0 0 8px;
+    box-shadow: -4px 4px 16px rgba(0,0,0,0.25);
+    transition: padding 0.25s ease, background 0.2s ease, transform 0.2s ease;
+    overflow: hidden;
+  }
+  .hx-float-custom:hover {
+    background: #a93226;
+    color: #fff;
+    padding-right: 24px;
+    transform: translateY(-50%) translateX(-2px);
+  }
+  .hx-float-custom-icon {
+    width: 20px; height: 20px;
+    stroke: #fff; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+  .hx-float-custom-text {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  @media (max-width: 600px) {
+    .hx-float-custom {
+      padding: 10px 12px;
+      border-radius: 8px 0 0 8px;
+    }
+    .hx-float-custom-text { display: none; }
+    .hx-float-custom:hover { padding-right: 12px; }
+  }
+</style>
+
+<!-- ── FLOATING CUSTOM DESIGN TAB ── -->
+<a href="{% url 'shop:custom_order' %}" class="hx-float-custom" aria-label="Design Your Custom Piece">
+  <svg class="hx-float-custom-icon" viewBox="0 0 24 24">
+    <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+    <path d="M2 2l7.586 7.586"/>
+    <circle cx="11" cy="11" r="2"/>
+  </svg>
+  <span class="hx-float-custom-text">Design Your Custom</span>
+</a>
+
+<!-- ── HERO ── -->
+<section class="hx-hero">
+  {% if video_ads %}
+    <video autoplay loop muted playsinline
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.3;z-index:0;">
+      <source src="{{ video_ads.0.video_file.url }}" type="video/mp4">
+    </video>
+  {% else %}
+    <div class="hx-hero-bg"></div>
+  {% endif %}
+  <div class="hx-hero-overlay"></div>
+
+  <div class="hx-hero-content">
+    <div class="hx-hero-eyebrow">New Collection 2026</div>
+    <h1 class="hx-hero-title">
+      Wear The<span>Bold.</span>
+    </h1>
+    <p class="hx-hero-sub">Premium quality. Exclusive designs. Built for those who refuse to blend in.</p>
+    <div class="hx-hero-actions">
+      <a href="{% url 'shop:product_list' %}" class="hx-btn-primary">Shop Now</a>
+      <a href="{% url 'shop:custom_order' %}" class="hx-btn-ghost">Custom Order</a>
+    </div>
+  </div>
+
+  <div class="hx-scroll-hint">
+    <div class="hx-scroll-line"></div>
+    Scroll
+  </div>
+</section>
+
+<!-- ── TICKER ── -->
+<div class="hx-ticker">
+  <div class="hx-ticker-inner">
+    HOXOBIL ENTERPRISES <span>★</span> PREMIUM QUALITY <span>★</span> EXCLUSIVE DESIGNS <span>★</span>
+    WORLDWIDE SHIPPING <span>★</span> CUSTOM ORDERS <span>★</span> HOXOBIL ENTERPRISES <span>★</span>
+    PREMIUM QUALITY <span>★</span> EXCLUSIVE DESIGNS <span>★</span>
+    WORLDWIDE SHIPPING <span>★</span> CUSTOM ORDERS <span>★</span>
+  </div>
+</div>
+
+<!-- ── STATS ── -->
+<section class="hx-stats hx-reveal">
+  <div class="hx-stats-grid">
+    <div class="hx-stat">
+      <div class="hx-stat-num" data-count="500">0</div>
+      <div class="hx-stat-label">Products</div>
+    </div>
+    <div class="hx-stat">
+      <div class="hx-stat-num" data-count="120">0</div>
+      <div class="hx-stat-label">Countries Shipped</div>
+    </div>
+    <div class="hx-stat">
+      <div class="hx-stat-num" data-count="10000">0</div>
+      <div class="hx-stat-label">Happy Customers</div>
+    </div>
+    <div class="hx-stat">
+      <div class="hx-stat-num" data-count="100">0</div>
+      <div class="hx-stat-label">% Satisfaction</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURED PRODUCTS ── -->
+<section class="hx-section" style="background:#f5f3ef; max-width:1200px; margin:0 auto;">
+  <div class="hx-section-header hx-reveal">
+    <h2 class="hx-section-title">Featured <em>Arrivals</em></h2>
+    <a href="{% url 'shop:product_list' %}" class="hx-view-all">View All →</a>
+  </div>
+
+  <div class="hx-products-grid">
+    {% for product in featured_products %}
+    <a href="{% url 'shop:product_detail' product.slug %}" class="hx-card hx-reveal" data-delay="{{ forloop.counter0 }}">
+      {% if product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="hx-card-img">
+      {% else %}
+        <div class="hx-card-img-placeholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+      {% endif %}
+      <div class="hx-card-body">
+        <div class="hx-card-name">{{ product.name }}</div>
+        <div class="hx-card-price">{{ product.price|convert_manual:CURRENT_CURRENCY }}</div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="grid-column:1/-1; text-align:center; padding:4rem; color:#444; font-size:14px;">
+      No products yet — sync from Printify to get started.
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+
+<!-- ── CATEGORIES ── -->
+<section class="hx-categories hx-reveal">
+  <div class="hx-section-header" style="max-width:1200px;margin:0 auto 2rem;">
+    <h2 class="hx-section-title" style="color:#1c1c1c;">Shop by <em>Category</em></h2>
+    <a href="{% url 'shop:product_list' %}" class="hx-view-all">All Products →</a>
+  </div>
+  <div class="hx-cat-grid">
+    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+      <img src="https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop" alt="T-Shirts" loading="lazy">
+      <div class="hx-cat-overlay"></div>
+      <div class="hx-cat-label">
+        <span class="hx-cat-name">T-Shirts</span>
+        <span class="hx-cat-count">Premium Tees</span>
+      </div>
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+      <img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=800&auto=format&fit=crop" alt="Hoodies" loading="lazy">
+      <div class="hx-cat-overlay"></div>
+      <div class="hx-cat-label">
+        <span class="hx-cat-name">Hoodies</span>
+        <span class="hx-cat-count">Stay Warm, Stay Bold</span>
+      </div>
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+      <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop" alt="Jackets" loading="lazy">
+      <div class="hx-cat-overlay"></div>
+      <div class="hx-cat-label">
+        <span class="hx-cat-name">Jackets</span>
+        <span class="hx-cat-count">Statement Outerwear</span>
+      </div>
+    </a>
+    <a href="{% url 'shop:custom_order' %}" class="hx-cat-card">
+      <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop" alt="Custom" loading="lazy">
+      <div class="hx-cat-overlay"></div>
+      <div class="hx-cat-label">
+        <span class="hx-cat-name">Custom</span>
+        <span class="hx-cat-count">Your Design, Your Rules</span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ── LOOKBOOK ── -->
+<section class="hx-lookbook hx-reveal">
+  <div class="hx-section-header" style="margin-bottom:2rem;">
+    <h2 class="hx-section-title" style="color:#1c1c1c;">The <em>Lookbook</em></h2>
+    <a href="{% url 'shop:product_list' %}" class="hx-view-all">Shop Looks →</a>
+  </div>
+  <div class="hx-lookbook-grid">
+    <a href="{% url 'shop:product_list' %}" class="hx-look">
+      <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop" alt="Look 1" loading="lazy">
+      <span class="hx-look-tag">New Drop</span>
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-look">
+      <img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=800&auto=format&fit=crop" alt="Look 2" loading="lazy">
+      <span class="hx-look-tag">Trending</span>
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-look">
+      <img src="https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?q=80&w=800&auto=format&fit=crop" alt="Look 3" loading="lazy">
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-look">
+      <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop" alt="Look 4" loading="lazy">
+      <span class="hx-look-tag">Limited</span>
+    </a>
+    <a href="{% url 'shop:product_list' %}" class="hx-look">
+      <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=800&auto=format&fit=crop" alt="Look 5" loading="lazy">
+    </a>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="hx-how hx-reveal">
+  <div style="text-align:center;margin-bottom:3rem;">
+    <span style="font-size:10px;font-weight:800;letter-spacing:0.3em;text-transform:uppercase;color:#c0392b;display:block;margin-bottom:0.75rem;">Simple Process</span>
+    <h2 style="font-family:'Oswald',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;color:#f0f0f0;text-transform:uppercase;margin:0;">How It <span style="color:#c0392b;">Works</span></h2>
+  </div>
+  <div class="hx-how-grid">
+    <div class="hx-how-step">
+      <div class="hx-how-num">01</div>
+      <div class="hx-how-title">Browse the Drop</div>
+      <div class="hx-how-desc">Explore our full catalog of premium streetwear. New pieces added every week.</div>
+    </div>
+    <div class="hx-how-step">
+      <div class="hx-how-num">02</div>
+      <div class="hx-how-title">Pick Your Style</div>
+      <div class="hx-how-desc">Choose your size, colour, and quantity. Every item is made to order — no overstock.</div>
+    </div>
+    <div class="hx-how-step">
+      <div class="hx-how-num">03</div>
+      <div class="hx-how-title">We Print &amp; Pack</div>
+      <div class="hx-how-desc">Your order is printed with premium DTG technology and packed with care.</div>
+    </div>
+    <div class="hx-how-step">
+      <div class="hx-how-num">04</div>
+      <div class="hx-how-title">Delivered to You</div>
+      <div class="hx-how-desc">Fast worldwide shipping. Track your order every step of the way.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ── -->
+<section class="hx-testimonials hx-reveal">
+  <div class="hx-section-header" style="max-width:1200px;margin:0 auto 2.5rem;">
+    <h2 class="hx-section-title" style="color:#1c1c1c;">What Customers <em>Say</em></h2>
+  </div>
+  <div style="overflow:hidden;">
+    <div class="hx-testi-track">
+      <!-- Set 1 -->
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Quality is insane. The hoodie feels premium and the print is sharp. Will definitely order again."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">AO</div>
+          <div><div class="hx-testi-name">Adebayo O.</div><div class="hx-testi-loc">Lagos, Nigeria</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Got a custom tee for my team. The process was smooth and the result was exactly what I envisioned."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">KM</div>
+          <div><div class="hx-testi-name">Kofi M.</div><div class="hx-testi-loc">Accra, Ghana</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Shipped to the UK in under 10 days. Packaging was clean, garment was thick and premium."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">TE</div>
+          <div><div class="hx-testi-name">Temi E.</div><div class="hx-testi-loc">London, UK</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★☆</div>
+        <p class="hx-testi-text">"Great designs, the colour accuracy on the print is better than I expected. Already bought two."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">BN</div>
+          <div><div class="hx-testi-name">Blessing N.</div><div class="hx-testi-loc">Abuja, Nigeria</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Customer service responded within the hour when I had a sizing question. Rare these days."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">SF</div>
+          <div><div class="hx-testi-name">Sam F.</div><div class="hx-testi-loc">Toronto, Canada</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"The oversized fit is perfect. Exactly as described. HOXOBIL has become my go-to brand."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">IA</div>
+          <div><div class="hx-testi-name">Ifeoma A.</div><div class="hx-testi-loc">Port Harcourt, Nigeria</div></div>
+        </div>
+      </div>
+      <!-- Duplicate set for seamless loop -->
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Quality is insane. The hoodie feels premium and the print is sharp. Will definitely order again."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">AO</div>
+          <div><div class="hx-testi-name">Adebayo O.</div><div class="hx-testi-loc">Lagos, Nigeria</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Got a custom tee for my team. The process was smooth and the result was exactly what I envisioned."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">KM</div>
+          <div><div class="hx-testi-name">Kofi M.</div><div class="hx-testi-loc">Accra, Ghana</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Shipped to the UK in under 10 days. Packaging was clean, garment was thick and premium."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">TE</div>
+          <div><div class="hx-testi-name">Temi E.</div><div class="hx-testi-loc">London, UK</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★☆</div>
+        <p class="hx-testi-text">"Great designs, the colour accuracy on the print is better than I expected. Already bought two."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">BN</div>
+          <div><div class="hx-testi-name">Blessing N.</div><div class="hx-testi-loc">Abuja, Nigeria</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"Customer service responded within the hour when I had a sizing question. Rare these days."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">SF</div>
+          <div><div class="hx-testi-name">Sam F.</div><div class="hx-testi-loc">Toronto, Canada</div></div>
+        </div>
+      </div>
+      <div class="hx-testi-card">
+        <div class="hx-testi-stars">★★★★★</div>
+        <p class="hx-testi-text">"The oversized fit is perfect. Exactly as described. HOXOBIL has become my go-to brand."</p>
+        <div class="hx-testi-author">
+          <div class="hx-testi-avatar">IA</div>
+          <div><div class="hx-testi-name">Ifeoma A.</div><div class="hx-testi-loc">Port Harcourt, Nigeria</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── NEWSLETTER ── -->
+<section class="hx-newsletter hx-reveal">
+  <div class="hx-newsletter-inner">
+    <span class="hx-newsletter-label">Stay in the Loop</span>
+    <h2 class="hx-newsletter-title">Get Early Access to New Drops</h2>
+    <p class="hx-newsletter-sub">Join thousands of HOXOBIL members. Be first to know about new releases, exclusive deals, and behind-the-scenes content.</p>
+    <div class="hx-newsletter-form">
+      <input type="email" class="hx-newsletter-input" placeholder="your@email.com">
+      <button type="button" class="hx-newsletter-btn" onclick="handleNewsletterSignup(this)">Subscribe</button>
+    </div>
+    <p class="hx-newsletter-note">No spam. Unsubscribe anytime.</p>
+  </div>
+</section>
+
+<!-- ── BRAND PILLARS ── -->
+<section class="hx-brand-strip hx-reveal">
+  <div class="hx-brand-grid">
+    <div class="hx-brand-item">
+      <div class="hx-brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="hx-brand-title">Premium Quality</div>
+      <div class="hx-brand-desc">Every item crafted to the highest standard.</div>
+    </div>
+    <div class="hx-brand-item">
+      <div class="hx-brand-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div class="hx-brand-title">Worldwide Shipping</div>
+      <div class="hx-brand-desc">We deliver to over 120 countries globally.</div>
+    </div>
+    <div class="hx-brand-item">
+      <div class="hx-brand-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      </div>
+      <div class="hx-brand-title">Custom Orders</div>
+      <div class="hx-brand-desc">Your design, your way. Made to order.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BANNER ── -->
+<section class="hx-cta hx-reveal">
+  <div class="hx-cta-content">
+    <h2 class="hx-cta-title">New Drops Every Week</h2>
+    <p class="hx-cta-sub">Don't miss out on limited edition pieces. Browse the full collection and find your next statement piece.</p>
+    <a href="{% url 'shop:product_list' %}" class="hx-btn-white">Shop the Collection</a>
+  </div>
+</section>
+
+<!-- ── CUSTOM ORDER TEASER ── -->
+<section class="hx-custom hx-reveal">
+  <div class="hx-custom-inner">
+    <div>
+      <div class="hx-custom-label">Made For You</div>
+      <h2 class="hx-custom-title">Design Your Own Piece</h2>
+      <p class="hx-custom-body">
+        Have a vision? We bring it to life. Submit your custom order request — your design, your colors, your size — and our team will get back to you within 24 hours.
+      </p>
+      <a href="{% url 'shop:custom_order' %}" class="hx-btn-primary" style="display:inline-block; text-decoration:none;">
+        Start Custom Order
+      </a>
+    </div>
+    <div class="hx-custom-visual">
+      <div class="hx-custom-visual-text">YOUR<br>BRAND</div>
+      <div class="hx-custom-visual-badge">Custom Made</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  /* ── Apply staggered delay from data-delay attribute ── */
+  document.querySelectorAll('[data-delay]').forEach(function(el) {
+    el.style.transitionDelay = (parseInt(el.getAttribute('data-delay')) * 100) + 'ms';
+  });
+
+  /* ── Scroll reveal ── */
+  var reveals = document.querySelectorAll('.hx-reveal');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(function(el) { observer.observe(el); });
+
+
+  /* ── Newsletter signup ── */
+  function handleNewsletterSignup(btn) {
+    var input = btn.previousElementSibling;
+    var email = input.value.trim();
+    if (!email || !email.includes('@')) {
+      input.style.borderColor = '#c0392b';
+      input.focus(); return;
+    }
+    btn.textContent = 'Subscribed ✓';
+    btn.style.background = '#27ae60';
+    btn.disabled = true;
+    input.value = '';
+    input.placeholder = "You're on the list!";
+  }
+
+  /* ── Count-up animation ── */
+  var counters = document.querySelectorAll('[data-count]');
+  var countObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target;
+      var target = parseInt(el.getAttribute('data-count'));
+      var duration = 1800;
+      var start = performance.now();
+      function tick(now) {
+        var elapsed = now - start;
+        var progress = Math.min(elapsed / duration, 1);
+        var ease = 1 - Math.pow(1 - progress, 3);
+        var val = Math.round(ease * target);
+        el.textContent = val >= 1000 ? (val / 1000).toFixed(0) + 'K+' : val + (target === 100 ? '%' : '+');
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      countObserver.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(function(el) { countObserver.observe(el); });
+</script>
+
+{% endblock content %}

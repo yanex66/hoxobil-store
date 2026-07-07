@@ -1,0 +1,321 @@
+{% extends 'shop/base.html' %}
+{% load currency_filters %}
+{% load static %}
+
+{% block title %} {{ product.name }} | HOXOBIL{% endblock %}
+
+{% block content %}
+<div class="container py-4 mb-5">
+    <div class="row g-4 g-lg-5">
+        
+        <div class="col-lg-7">
+            <div class="hox-main-stage bg-light rounded-5 p-4 border text-center shadow-sm position-relative">
+                <img id="main-img" src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid" style="max-height: 500px; object-fit: contain;">
+                <div class="position-absolute top-0 end-0 m-4">
+                    <span class="badge rounded-pill bg-white text-crimson border px-3 py-2 fw-bold shadow-sm text-uppercase" style="letter-spacing: 1px;">Premium Drop</span>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2 mt-3 overflow-auto pb-2 no-scrollbar">
+                <img src="{{ product.image_url }}" class="hox-thumb active" onclick="updateImg(this)">
+                {% for img in product.secondary_images %}
+                    <img src="{{ img }}" class="hox-thumb" onclick="updateImg(this)">
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <h1 class="fw-900 text-uppercase mb-1 h3" style="letter-spacing: -1px; color: #000;">{{ product.name }}</h1>
+            <p class="text-muted small mb-4 tracking-widest text-uppercase">Official Hoxobil Selection</p>
+
+            <div class="mb-4 d-flex align-items-center gap-3">
+                <h2 class="fw-900 text-dark display-5 mb-0" id="price-tag">{{ product.price|convert_manual:CURRENT_CURRENCY }}</h2>
+                <div id="availability-symbol" class="d-none">
+                    <div class="d-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1">
+                        <span id="status-dot" class="hox-pulse-symbol"></span>
+                        <span id="status-text" class="fw-900 small" style="font-size: 0.65rem; letter-spacing: 1px;"></span>
+                    </div>
+                </div>
+            </div>
+
+            {% if review_count > 0 %}
+            <div class="mb-4 d-flex align-items-center gap-2">
+                <span class="text-warning" style="letter-spacing: 2px;">
+                    {% for i in "12345" %}{% if forloop.counter <= average_rating|floatformat:0|add:0 %}★{% else %}☆{% endif %}{% endfor %}
+                </span>
+                <span class="fw-bold small">{{ average_rating|floatformat:1 }}</span>
+                <a href="#reviews" class="small text-muted text-decoration-none">({{ review_count }} review{{ review_count|pluralize }})</a>
+            </div>
+            {% endif %}
+
+            <form id="order-form" action="{% url 'shop:cart_add' product.id %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="variant_id" id="v-id">
+                
+                <div class="mb-4">
+                    <label class="hox-step-label mb-2">1. Select Color</label>
+                    <div class="position-relative">
+                        <select id="color-select" class="form-select hox-select py-3 px-4 rounded-4 fw-bold" onchange="onColorChange(this.value)">
+                            <option value="" disabled selected>Choose a color...</option>
+                            {% for c in colors %}
+                            <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="hox-step-label mb-0">2. Select Size</label>
+                        <a href="{% url 'shop:size_guide' %}" target="_blank" class="small text-muted text-decoration-underline" style="font-size: 0.7rem;">Size Guide</a>
+                    </div>
+                    <div class="position-relative">
+                        <select id="size-select" class="form-select hox-select py-3 px-4 rounded-4 fw-bold" onchange="onSizeChange(this.value)" disabled>
+                            <option value="" disabled selected>Pick color first...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="hox-action-container mt-5">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-4 col-md-3">
+                            <div class="d-flex align-items-center justify-content-between bg-white rounded-pill p-1 border shadow-sm">
+                                <button type="button" class="btn btn-sm btn-link text-dark text-decoration-none fw-bold px-3" onclick="qty(-1)">-</button>
+                                <input type="number" name="quantity" id="q-val" value="1" readonly class="form-control border-0 bg-transparent text-center fw-bold p-0" style="width: 30px; font-size: 0.9rem;">
+                                <button type="button" class="btn btn-sm btn-link text-dark text-decoration-none fw-bold px-3" onclick="qty(1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-8 col-md-9">
+                            <button type="submit" id="add-btn" class="btn btn-hox-glossy w-100 fw-900 py-3 rounded-pill text-uppercase" disabled>Select Options</button>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <p class="text-muted small mb-0 px-2">Secure checkout powered by Hoxobil</p>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-5 pt-4 border-top">
+                <label class="hox-step-label">Product Details</label>
+                <div class="text-muted small mt-2 line-height-lg">
+                    {{ product.description|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5 pt-4 border-top" id="reviews">
+        <div class="col-lg-8">
+            <h3 class="fw-900 text-uppercase h5 mb-4">
+                Customer Reviews
+                {% if review_count > 0 %}
+                    <span class="text-muted fw-normal">({{ review_count }})</span>
+                {% endif %}
+            </h3>
+
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="mb-4 pb-4 border-bottom">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="text-warning" style="letter-spacing: 2px;">
+                            {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+                        </span>
+                        <span class="fw-bold small">{{ review.user.first_name|default:review.user.username }}</span>
+                        <span class="badge bg-light text-dark border small">Verified Purchase</span>
+                    </div>
+                    {% if review.title %}<p class="fw-bold mb-1">{{ review.title }}</p>{% endif %}
+                    {% if review.comment %}<p class="text-muted small mb-1">{{ review.comment }}</p>{% endif %}
+                    <p class="text-muted small mb-0" style="font-size: 0.75rem;">{{ review.created_at|date:"M d, Y" }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted small">No reviews yet — be the first to share your experience with this product.</p>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            {% if can_review %}
+                <div class="bg-light rounded-4 p-4 border">
+                    <h4 class="fw-900 text-uppercase h6 mb-3">Write a Review</h4>
+                    <form method="post" action="{% url 'shop:submit_review' product.slug %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="hox-step-label mb-2">Rating</label>
+                            {{ review_form.rating }}
+                        </div>
+                        <div class="mb-3">
+                            {{ review_form.title }}
+                        </div>
+                        <div class="mb-3">
+                            {{ review_form.comment }}
+                        </div>
+                        <button type="submit" class="btn btn-hox-glossy w-100 fw-900 py-2 rounded-pill text-uppercase">Submit Review</button>
+                    </form>
+                </div>
+            {% elif user_review %}
+                <div class="bg-light rounded-4 p-4 border text-center">
+                    <p class="small text-muted mb-0">You've already reviewed this product. Thanks for the feedback!</p>
+                </div>
+            {% elif user.is_authenticated %}
+                <div class="bg-light rounded-4 p-4 border text-center">
+                    <p class="small text-muted mb-0">Only customers who've purchased this product can leave a review.</p>
+                </div>
+            {% else %}
+                <div class="bg-light rounded-4 p-4 border text-center">
+                    <p class="small text-muted mb-2">Purchased this item?</p>
+                    <a href="{% url 'login' %}?next={{ request.path|urlencode }}" class="btn btn-outline-dark btn-sm rounded-pill fw-bold">Log in to leave a review</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 💎 HOXOBIL PREMIUM UI */
+    :root { 
+        --h-crimson: #8B0000; 
+        --h-black: #050505; 
+        --h-glossy: linear-gradient(135deg, #8B0000 0%, #A52020 100%);
+    }
+
+    .fw-900 { font-weight: 900; }
+    .hox-step-label { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #aaa; display: block; }
+    
+    /* 🔴🟢 PULSE SYMBOL */
+    .hox-pulse-symbol { width: 10px; height: 10px; border-radius: 50%; display: inline-block; position: relative; }
+    .hox-pulse-symbol.in-stock { background-color: #28a745; box-shadow: 0 0 0 rgba(40, 167, 69, 0.4); animation: pulse-green 2s infinite; }
+    .hox-pulse-symbol.out-of-stock { background-color: #dc3545; animation: none; opacity: 0.6; }
+
+    @keyframes pulse-green {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.2); }
+    }
+
+    /* Glossy Dropdown */
+    .hox-select {
+        border: 2px solid #f0f0f0; appearance: none; background-color: #fff;
+        cursor: pointer; transition: 0.3s all ease; font-size: 0.9rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat; background-position: right 1rem center; background-size: 16px 12px;
+    }
+    .hox-select:focus { border-color: var(--h-crimson); box-shadow: 0 0 0 0.25rem rgba(139, 0, 0, 0.1); outline: none; }
+    .hox-select:disabled { background-color: #f9f9f9; cursor: not-allowed; opacity: 0.6; }
+
+    /* Thumbs */
+    .hox-thumb { width: 75px; height: 75px; object-fit: cover; border-radius: 12px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; background: #f8f9fa; }
+    .hox-thumb.active { border-color: var(--h-crimson); transform: scale(1.05); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+
+    /* Button */
+    .btn-hox-glossy { 
+        background: var(--h-glossy); color: white; border: none; 
+        box-shadow: 0 8px 25px rgba(139, 0, 0, 0.3); transition: all 0.4s ease;
+    }
+    .btn-hox-glossy:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(139, 0, 0, 0.5); }
+    .btn-hox-glossy:disabled { opacity: 0.3; filter: grayscale(1); }
+
+    @media (max-width: 991px) {
+        .hox-action-container { 
+            position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); padding: 15px 25px 25px; border-top: 1px solid #eee; z-index: 1000;
+        }
+        body { padding-bottom: 140px; }
+    }
+</style>
+
+<script id="v-data" type="application/json">
+    [{% for v in product.variants.all %}{"id":"{{v.id}}","s":"{{v.size|default:'Default'|escapejs}}","c":"{{v.color|default:'Default'|escapejs}}","p":"{{v.price|convert_manual:CURRENT_CURRENCY|escapejs}}","a":{{v.available|yesno:"true,false"}},"img":"{% if v.variant_image_file %}{{v.variant_image_file.url|escapejs}}{% elif v.image_url %}{{v.image_url|escapejs}}{% endif %}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+
+<script>
+    const DATA = JSON.parse(document.getElementById('v-data').textContent);
+    let selColor = "";
+    let selSize = "";
+
+    const colorSelect = document.getElementById('color-select');
+    const sizeSelect = document.getElementById('size-select');
+    const btn = document.getElementById('add-btn');
+    const priceTag = document.getElementById('price-tag');
+    const symbolContainer = document.getElementById('availability-symbol');
+    const dot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+
+    function updateImg(el) {
+        document.getElementById('main-img').src = el.src;
+        document.querySelectorAll('.hox-thumb').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // 🎨 TRIGGERED WHEN COLOR IS CHOSEN
+    function onColorChange(color) {
+        selColor = color;
+        selSize = ""; // Reset size when color changes
+        
+        // 1. Filter variants for this color
+        const availableVariants = DATA.filter(v => v.c === color);
+        
+        // 2. Rebuild Size Dropdown
+        sizeSelect.innerHTML = '<option value="" disabled selected>Select size...</option>';
+        availableVariants.forEach(variant => {
+            const statusSymbol = variant.a ? "🟢" : "🔴";
+            const statusNote = variant.a ? " (In Stock)" : " (Out of Stock)";
+            const opt = document.createElement('option');
+            opt.value = variant.s;
+            opt.innerHTML = `${statusSymbol} ${variant.s}${statusNote}`;
+            sizeSelect.appendChild(opt);
+        });
+
+        // 3. Enable Size Dropdown
+        sizeSelect.disabled = false;
+        
+        // 4. Update UI
+        syncUI();
+    }
+
+    // 📏 TRIGGERED WHEN SIZE IS CHOSEN
+    function onSizeChange(size) {
+        selSize = size;
+        syncUI();
+    }
+
+    function syncUI() {
+        const match = DATA.find(v => v.c === selColor && v.s === selSize);
+        
+        if (match) {
+            document.getElementById('v-id').value = match.id;
+            priceTag.innerText = match.p;
+            symbolContainer.classList.remove('d-none');
+
+            if(match.a) {
+                dot.className = "hox-pulse-symbol in-stock";
+                statusText.innerText = "READY TO SHIP";
+                statusText.className = "fw-900 small text-success";
+                btn.disabled = false;
+                btn.innerText = "ADD TO COLLECTION";
+            } else {
+                dot.className = "hox-pulse-symbol out-of-stock";
+                statusText.innerText = "OUT OF STOCK";
+                statusText.className = "fw-900 small text-danger";
+                btn.disabled = true;
+                btn.innerText = "OUT OF STOCK";
+            }
+
+            if(match.img) {
+                document.getElementById('main-img').src = match.img;
+            }
+        } else {
+            symbolContainer.classList.add('d-none');
+            btn.disabled = true;
+            btn.innerText = (selColor && selSize) ? "NOT AVAILABLE" : "SELECT OPTIONS";
+        }
+    }
+
+    function qty(n) {
+        const q = document.getElementById('q-val');
+        q.value = Math.max(1, parseInt(q.value) + n);
+    }
+</script>
+{% endblock %}

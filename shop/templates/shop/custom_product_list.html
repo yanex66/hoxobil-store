@@ -1,0 +1,316 @@
+{% extends 'shop/base.html' %}
+{% load widget_tweaks %}
+{% load currency_filters %}
+{% load static %}
+
+{% block title %}Custom Products | HOXOBIL{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-md-5">
+
+    <div class="row mb-4 mt-2">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2 small fw-bold font-mono">
+                    <li class="breadcrumb-item"><a href="{% url 'shop:home' %}" class="text-muted text-decoration-none">HOXOBIL</a></li>
+                    <li class="breadcrumb-item active text-crimson">CUSTOM PRODUCTS</li>
+                </ol>
+            </nav>
+            <h1 class="fw-900 text-uppercase tracking-tight font-display" style="font-size: 2.5rem; color: var(--charcoal);">
+                Design <span class="text-crimson-gradient">Your Own</span>
+            </h1>
+            <p class="text-muted small font-mono">Pick a blank, then our design team builds your custom print with you in chat</p>
+
+            <!-- ── SEARCH BAR ── -->
+            <form method="get" action="{% url 'shop:custom_product_list' %}" class="hox-search-form mt-3">
+                {% if request.GET.category %}
+                    <input type="hidden" name="category" value="{{ request.GET.category }}">
+                {% endif %}
+                <div class="hox-search-wrap">
+                    <i class="bi bi-search hox-search-icon"></i>
+                    <input type="text" name="q" id="catalogSearchInput" class="hox-search-input"
+                           placeholder="Search blanks — tees, hoodies, joggers…"
+                           value="{{ request.GET.q }}" autocomplete="off">
+                    {% if request.GET.q %}
+                    <a href="{% url 'shop:custom_product_list' %}{% if request.GET.category %}?category={{ request.GET.category }}{% endif %}"
+                       class="hox-search-clear" title="Clear search">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    {% endif %}
+                    <button type="submit" class="hox-search-btn font-display">SEARCH</button>
+                </div>
+                {% if request.GET.q %}
+                <p class="hox-search-results font-mono">
+                    {{ products|length }} result{{ products|length|pluralize }} for "<strong>{{ request.GET.q }}</strong>"
+                </p>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ── SIDEBAR ── -->
+        <div class="col-lg-3 col-xl-2 d-none d-lg-block">
+            <div class="sticky-top" style="top: 100px; z-index: 10;">
+                <div class="filter-group mb-4">
+                    <label class="hox-label font-mono">Categories</label>
+                    <ul class="list-unstyled mt-2">
+                        <li>
+                            <a href="{% url 'shop:custom_product_list' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}"
+                               class="filter-link {% if not request.GET.category %}active{% endif %}">
+                                All Blanks
+                            </a>
+                        </li>
+                        {% for cat in categories %}
+                        <li>
+                            <a href="{% url 'shop:custom_product_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                               class="filter-link {% if request.GET.category == cat.slug %}active{% endif %}">
+                                {{ cat.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── MAIN CONTENT ── -->
+        <div class="col-lg-9 col-xl-10">
+
+            <!-- Mobile category pills -->
+            <div class="d-lg-none hox-pill-scroll-wrap mb-3">
+                <div class="hox-pill-track d-flex gap-2 overflow-auto pb-3 no-scrollbar" id="pillTrack">
+                    <a href="{% url 'shop:custom_product_list' %}{% if request.GET.q %}?q={{ request.GET.q }}{% endif %}"
+                       class="btn btn-sm {% if not request.GET.category %}btn-hox-catalog{% else %}btn-light text-dark border{% endif %} rounded-pill px-4 font-mono">
+                        All
+                    </a>
+                    {% for cat in categories %}
+                    <a href="{% url 'shop:custom_product_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                       class="btn btn-sm {% if request.GET.category == cat.slug %}btn-hox-catalog{% else %}btn-light text-dark border{% endif %} rounded-pill px-4 text-nowrap font-mono">
+                        {{ cat.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                <div class="hox-pill-fade" id="pillFade"></div>
+                <button type="button" class="hox-pill-arrow" id="pillArrow" aria-label="Show more categories">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- ── Product Grid ── -->
+            <div class="row g-3 g-md-4" id="productGrid">
+                {% if products %}
+                    {% for product in products %}
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <div class="p-card">
+                            <div class="p-img-box">
+                                {% if product.image_url %}
+                                <img src="{{ product.image_url }}"
+                                     alt="{{ product.name }}"
+                                     class="p-img"
+                                     loading="lazy"
+                                     decoding="async"
+                                     width="400"
+                                     height="400">
+                                {% else %}
+                                <div class="d-flex align-items-center justify-content-center h-100 bg-light text-muted font-mono small">NO IMAGE</div>
+                                {% endif %}
+                                <div class="p-tag font-mono">BLANK</div>
+                            </div>
+                            <div class="p-info">
+                                <h3 class="p-title font-display">{{ product.name }}</h3>
+                                <div class="p-footer">
+                                    <span class="p-price font-mono">From {{ product.price|convert_manual:CURRENT_CURRENCY }}</span>
+                                </div>
+                                <a href="{% url 'shop:custom_order_slug' product.slug %}" class="btn btn-hox-catalog w-100 btn-sm mt-2 font-display">
+                                    Customize This
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center py-5">
+                        <h2 class="display-6 fw-900 opacity-25 font-display text-uppercase">NO BLANKS YET</h2>
+                        <p class="text-muted small font-mono">No customizable products found for this selection.</p>
+                        <a href="{% url 'shop:custom_product_list' %}" class="btn btn-outline-dark mt-2 btn-sm rounded-pill px-4 font-mono">Reset</a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- ── Pagination ── -->
+            {% if is_paginated %}
+            <nav class="mt-5 d-flex justify-content-center" aria-label="Custom products pagination">
+                <ul class="pagination pagination-sm font-mono">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.category %}category={{ request.GET.category }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        </div><!-- /col main -->
+    </div><!-- /row -->
+</div><!-- /container -->
+
+<style>
+    :root { --hox-crimson-grad: linear-gradient(135deg, #8B0000 0%, #C43030 100%); }
+    .fw-900 { font-weight: 900; }
+    .tracking-tight { letter-spacing: -0.04em; }
+    .text-crimson-gradient {
+        background: var(--hox-crimson-grad);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .btn-hox-catalog {
+        background: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2);
+        border: 1px solid var(--charcoal, #1C1C1C); font-weight: 600;
+        letter-spacing: 0.1em; transition: all 0.2s ease;
+    }
+    .btn-hox-catalog:hover { background: var(--crimson, #8B0000); border-color: var(--crimson, #8B0000); color: var(--ivory, #FAF7F2); }
+
+    .hox-search-form { max-width: 600px; }
+    .hox-search-wrap {
+        display: flex; align-items: center; background: #fff;
+        border: 1.5px solid rgba(139,0,0,0.2); border-radius: 6px;
+        overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .hox-search-wrap:focus-within { border-color: var(--crimson, #8B0000); box-shadow: 0 0 0 3px rgba(139,0,0,0.08); }
+    .hox-search-icon { font-size: 0.9rem; color: rgba(28,28,28,0.3); padding: 0 0.65rem 0 1rem; pointer-events: none; flex-shrink: 0; }
+    .hox-search-input {
+        flex: 1; border: none; outline: none; background: transparent;
+        font-family: 'Raleway', sans-serif; font-size: 0.9rem; font-weight: 500;
+        color: var(--charcoal, #1C1C1C); padding: 0.72rem 0.4rem; min-width: 0;
+    }
+    .hox-search-input::placeholder { color: rgba(28,28,28,0.28); }
+    .hox-search-clear {
+        display: flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px; color: rgba(28,28,28,0.3);
+        text-decoration: none; font-size: 0.7rem; flex-shrink: 0; transition: color 0.2s;
+    }
+    .hox-search-clear:hover { color: var(--crimson, #8B0000); }
+    .hox-search-btn {
+        background: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2);
+        border: none; padding: 0 1.2rem; align-self: stretch;
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em;
+        cursor: pointer; transition: background 0.2s; white-space: nowrap;
+    }
+    .hox-search-btn:hover { background: var(--crimson, #8B0000); }
+    .hox-search-results { font-size: 0.72rem; color: rgba(28,28,28,0.4); margin-top: 0.45rem; letter-spacing: 0.04em; }
+    .hox-search-results strong { color: var(--crimson, #8B0000); }
+
+    .hox-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.15em; }
+    .filter-link { display: block; padding: 6px 0; color: rgba(28,28,28,0.7); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: color 0.2s; }
+    .filter-link:hover, .filter-link.active { color: var(--crimson, #8B0000); }
+
+    .pagination .page-link { color: var(--charcoal, #1C1C1C); border-color: rgba(28,28,28,0.15); font-size: 0.75rem; letter-spacing: 0.05em; }
+    .pagination .page-item.active .page-link { background: var(--charcoal, #1C1C1C); border-color: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2); }
+    .pagination .page-link:hover { background: var(--crimson, #8B0000); border-color: var(--crimson, #8B0000); color: var(--ivory, #FAF7F2); }
+
+    .hox-pill-scroll-wrap { position: relative; }
+    .hox-pill-track { scroll-behavior: smooth; }
+    .hox-pill-fade {
+        position: absolute; top: 0; right: 0; bottom: 12px; width: 44px;
+        background: linear-gradient(to right, rgba(250,247,242,0), var(--ivory, #FAF7F2) 75%);
+        pointer-events: none; opacity: 0; transition: opacity 0.2s ease;
+    }
+    .hox-pill-fade.show { opacity: 1; }
+    .hox-pill-arrow {
+        position: absolute; top: 0; right: 4px; bottom: 12px;
+        width: 30px; height: 30px; margin: auto 0;
+        background: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2);
+        border: none; border-radius: 50%; display: none;
+        align-items: center; justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25); font-size: 0.9rem;
+    }
+    .hox-pill-arrow.show { display: flex; }
+
+    .p-card { background: transparent; border-radius: 12px; transition: all 0.3s ease; }
+    .p-img-box {
+        display: block; aspect-ratio: 1/1; background: var(--ivory-dark, #EDE8DF);
+        border-radius: 12px; position: relative; overflow: hidden;
+        border: 1px solid rgba(139,0,0,0.06);
+    }
+    .p-img {
+        width: 100%; height: 100%; object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        background: linear-gradient(90deg, #EDE8DF 25%, #E0DAD0 50%, #EDE8DF 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+    }
+    .p-img.loaded { animation: none; background: none; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .p-card:hover .p-img { transform: scale(1.05); }
+    .p-tag {
+        position: absolute; bottom: 10px; left: 10px;
+        background: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2);
+        font-size: 0.58rem; font-weight: 700; padding: 3px 8px;
+        border-radius: 4px; letter-spacing: 0.05em; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .p-info { padding: 12px 2px; }
+    .p-title {
+        color: var(--charcoal, #1C1C1C); font-size: 1rem;
+        font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
+        display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1;
+        -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .p-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+    .p-price { font-weight: 700; font-size: 0.85rem; color: var(--charcoal, #1C1C1C); }
+
+    @media (max-width: 768px) {
+        .p-title { font-size: 0.9rem; }
+        .p-price { font-size: 0.78rem; }
+        .hox-search-btn { padding: 0 0.8rem; font-size: 0.65rem; }
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+</style>
+
+<script>
+    document.querySelectorAll('.p-img').forEach(function(img) {
+        if (img.complete) {
+            img.classList.add('loaded');
+        } else {
+            img.addEventListener('load', function() { img.classList.add('loaded'); });
+        }
+    });
+
+    (function () {
+        const track = document.getElementById('pillTrack');
+        const fade = document.getElementById('pillFade');
+        const arrow = document.getElementById('pillArrow');
+        if (!track || !fade || !arrow) return;
+
+        function updatePillScrollUI() {
+            const hasOverflow = track.scrollWidth > track.clientWidth + 4;
+            const atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+            fade.classList.toggle('show', hasOverflow && !atEnd);
+            arrow.classList.toggle('show', hasOverflow && !atEnd);
+        }
+
+        arrow.addEventListener('click', function () {
+            track.scrollBy({ left: 140, behavior: 'smooth' });
+        });
+        track.addEventListener('scroll', updatePillScrollUI);
+        window.addEventListener('resize', updatePillScrollUI);
+        updatePillScrollUI();
+    })();
+</script>
+{% endblock %}

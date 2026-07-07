@@ -1,0 +1,382 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOXOBIL — Launching September 5</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --crimson: #8B0000;
+        --gold: #C9973A;
+        --charcoal: #1C1C1C;
+        --ivory: #FAF7F2;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+        background: var(--charcoal);
+        color: var(--ivory);
+        font-family: 'Roboto Mono', monospace;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .wrap {
+        max-width: 560px;
+        width: 100%;
+        text-align: center;
+    }
+
+    h1 {
+        font-family: 'Oswald', sans-serif;
+        font-size: 2.6rem;
+        letter-spacing: 2px;
+        color: var(--gold);
+        text-transform: uppercase;
+    }
+
+    .tagline {
+        margin-top: 8px;
+        color: var(--ivory);
+        opacity: 0.75;
+        font-size: 0.95rem;
+    }
+
+    .countdown {
+        margin: 32px 0 8px;
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.1rem;
+        color: var(--ivory);
+    }
+
+    .countdown span {
+        color: var(--gold);
+        font-weight: 600;
+    }
+
+    /* ── Progress line ── */
+    .progress-block { margin: 36px 0 28px; }
+
+    .progress-line {
+        position: relative;
+        width: 100%;
+        height: 6px;
+        background: rgba(250, 247, 242, 0.12);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 0%;
+        background: linear-gradient(90deg, var(--crimson), var(--gold));
+        border-radius: 3px;
+        transition: width 0.6s ease;
+    }
+
+    .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: var(--ivory);
+        opacity: 0.85;
+    }
+
+    .progress-labels .amount { color: var(--gold); font-weight: 500; }
+
+    /* ── Donation form ── */
+    .donate-box {
+        background: rgba(250, 247, 242, 0.04);
+        border: 1px solid rgba(201, 151, 58, 0.35);
+        border-radius: 10px;
+        padding: 24px;
+        text-align: left;
+    }
+
+    .donate-box h2 {
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.1rem;
+        color: var(--ivory);
+        margin-bottom: 14px;
+        text-align: center;
+    }
+
+    label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--gold);
+        margin: 12px 0 4px;
+    }
+
+    input[type="text"], input[type="email"], input[type="number"] {
+        width: 100%;
+        padding: 10px 12px;
+        background: rgba(250, 247, 242, 0.06);
+        border: 1px solid rgba(250, 247, 242, 0.2);
+        border-radius: 6px;
+        color: var(--ivory);
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.9rem;
+    }
+
+    input:focus { outline: none; border-color: var(--gold); }
+
+    .quick-amounts {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .quick-amounts button {
+        flex: 1;
+        padding: 8px 0;
+        background: transparent;
+        border: 1px solid rgba(201, 151, 58, 0.4);
+        color: var(--gold);
+        border-radius: 6px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .quick-amounts button:hover { background: rgba(201, 151, 58, 0.15); }
+
+    .pay-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .pay-buttons button {
+        flex: 1;
+        padding: 13px 0;
+        border: none;
+        border-radius: 6px;
+        font-family: 'Oswald', sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .pay-buttons button:hover { opacity: 0.88; }
+    .pay-buttons button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #btn-flutterwave { background: var(--crimson); color: var(--ivory); }
+    #btn-paystack { background: var(--gold); color: var(--charcoal); }
+
+    #donate-message {
+        margin-top: 14px;
+        font-size: 0.85rem;
+        text-align: center;
+        min-height: 20px;
+    }
+
+    #donate-message.error { color: #ff8a8a; }
+    #donate-message.success { color: #9be29b; }
+
+    footer {
+        margin-top: 28px;
+        font-size: 0.75rem;
+        opacity: 0.5;
+    }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <h1>HOXOBIL</h1>
+    <p class="tagline">Print-on-demand fashion, made yours. Launching soon.</p>
+
+    <div class="countdown">Launching <span id="launch-date-display">September 5</span></div>
+
+    <div class="progress-block">
+        <div class="progress-line">
+            <div class="progress-fill" id="progress-fill" style="width: {{ percent }}%;"></div>
+        </div>
+        <div class="progress-labels">
+            <span class="amount" id="raised-label">₦{{ total_raised|floatformat:0 }} raised</span>
+            <span id="goal-label">of ₦{{ goal|floatformat:0 }} goal</span>
+        </div>
+    </div>
+
+    <div class="donate-box">
+        <h2>Help us reach launch day 🚀</h2>
+
+        <label for="donor-name">Name (optional)</label>
+        <input type="text" id="donor-name" placeholder="Anonymous">
+
+        <label for="donor-email">Email (optional — for a receipt)</label>
+        <input type="email" id="donor-email" placeholder="you@example.com">
+
+        <label for="donor-amount">Amount (₦)</label>
+        <input type="number" id="donor-amount" min="100" step="100" placeholder="5000">
+
+        <div class="quick-amounts">
+            <button type="button" data-amt="1000">₦1,000</button>
+            <button type="button" data-amt="5000">₦5,000</button>
+            <button type="button" data-amt="10000">₦10,000</button>
+            <button type="button" data-amt="25000">₦25,000</button>
+        </div>
+
+        <div class="pay-buttons">
+            <button id="btn-flutterwave" type="button">Pay with Flutterwave</button>
+            <button id="btn-paystack" type="button">Pay with Paystack</button>
+        </div>
+
+        <div id="donate-message"></div>
+    </div>
+
+    <footer>© HOXOBIL {{ launch_date|date:"Y" }}. All rights reserved.</footer>
+</div>
+
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+const csrfToken = "{{ csrf_token }}";
+const flutterwavePublicKey = "{{ flutterwave_public_key }}";
+const paystackPublicKey = "{{ paystack_public_key }}";
+
+const msgEl = document.getElementById('donate-message');
+const amountInput = document.getElementById('donor-amount');
+const nameInput = document.getElementById('donor-name');
+const emailInput = document.getElementById('donor-email');
+
+document.querySelectorAll('.quick-amounts button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        amountInput.value = btn.dataset.amt;
+    });
+});
+
+function showMessage(text, type) {
+    msgEl.textContent = text;
+    msgEl.className = type;
+}
+
+function getAmount() {
+    const val = parseFloat(amountInput.value);
+    if (!val || val <= 0) {
+        showMessage('Please enter a donation amount.', 'error');
+        return null;
+    }
+    return val;
+}
+
+function refreshProgress() {
+    fetch('/donate/progress/')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('progress-fill').style.width = data.percent + '%';
+            document.getElementById('raised-label').textContent =
+                '₦' + Math.round(parseFloat(data.total_raised)).toLocaleString() + ' raised';
+            document.getElementById('goal-label').textContent =
+                'of ₦' + Math.round(parseFloat(data.goal)).toLocaleString() + ' goal';
+        })
+        .catch(() => {});
+}
+
+// ── FLUTTERWAVE ──
+document.getElementById('btn-flutterwave').addEventListener('click', () => {
+    const amount = getAmount();
+    if (!amount) return;
+
+    const body = new URLSearchParams({
+        amount: amount,
+        name: nameInput.value,
+        email: emailInput.value,
+    });
+
+    fetch('/donate/flutterwave/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+        },
+        body: body,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status !== 'ok') {
+            showMessage(data.message || 'Something went wrong.', 'error');
+            return;
+        }
+
+        FlutterwaveCheckout({
+            public_key: flutterwavePublicKey,
+            tx_ref: data.reference,
+            amount: data.amount,
+            currency: data.currency,
+            redirect_url: data.callback_url,
+            customer: {
+                email: data.email,
+                name: data.name,
+            },
+            customizations: {
+                title: "HOXOBIL Launch Donation",
+                description: "Support the HOXOBIL launch",
+            },
+        });
+    })
+    .catch(() => showMessage('Network error — please try again.', 'error'));
+});
+
+// ── PAYSTACK ──
+document.getElementById('btn-paystack').addEventListener('click', () => {
+    const amount = getAmount();
+    if (!amount) return;
+
+    const body = new URLSearchParams({
+        amount: amount,
+        name: nameInput.value,
+        email: emailInput.value,
+    });
+
+    fetch('/donate/paystack/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+        },
+        body: body,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status !== 'ok') {
+            showMessage(data.message || 'Something went wrong.', 'error');
+            return;
+        }
+
+        const handler = PaystackPop.setup({
+            key: paystackPublicKey,
+            email: data.email,
+            amount: data.amount_kobo,
+            currency: data.currency,
+            ref: data.reference,
+            callback: function(response) {
+                window.location.href = data.callback_url + '?reference=' + response.reference;
+            },
+            onClose: function() {
+                showMessage('Donation window closed.', 'error');
+            },
+        });
+        handler.openIframe();
+    })
+    .catch(() => showMessage('Network error — please try again.', 'error'));
+});
+
+// Poll progress every 20s so the line updates as others donate.
+setInterval(refreshProgress, 20000);
+</script>
+
+</body>
+</html>

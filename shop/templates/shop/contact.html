@@ -1,0 +1,128 @@
+{% extends 'shop/base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Contact Us | HOXOBIL{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 900px;">
+    
+    <header class="text-center mb-5 mt-2">
+        <h1 class="font-display display-4 mb-2 fw-900 text-uppercase tracking-tight" style="color: var(--charcoal);">
+            Contact <span class="text-crimson-gradient">HQ</span>
+        </h1>
+        <p class="font-mono text-muted small text-uppercase tracking-widest mt-3">
+            Drop transmission below for orders, media, or brand inquiries.
+        </p>
+        <hr class="w-25 mx-auto opacity-100 mt-4" style="border-color: var(--crimson); border-width: 3px;">
+    </header>
+
+    <div class="row g-5 mt-2">
+        
+        <div class="col-lg-4 font-mono">
+            <h5 class="fw-900 text-uppercase small letter-spacing-1 mb-4" style="color: #666;">Channels</h5>
+            
+            <div class="mb-4">
+                <span class="d-block text-uppercase text-muted fw-bold p-0 mb-1" style="font-size: 0.65rem; letter-spacing: 0.1em;">Global Support</span>
+                <a href="mailto:help.hoxobil@gmail.com" class="text-decoration-none text-dark fw-bold small">help.hoxobil@gmail.com</a>
+            </div>
+
+            <div class="mb-4">
+                <span class="d-block text-uppercase text-muted fw-bold p-0 mb-1" style="font-size: 0.65rem; letter-spacing: 0.1em;">Distribution Frequency</span>
+                <p class="small text-muted mb-0" style="line-height: 1.6;">Mon – Fri: 09:00 – 17:00<br>Fulfillment Status: Operational</p>
+            </div>
+
+            <div class="pt-3 border-top border-light">
+                <p class="text-muted mb-0" style="font-size: 0.68rem; line-height: 1.6;">
+                    * All drop selections are managed via cloud print loops. Response matrix latency is typically under 24 hours.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 bg-light rounded-5 p-4 p-md-5 shadow-sm">
+                <h5 class="fw-900 font-mono text-uppercase small letter-spacing-1 mb-4" style="color: #666;">New Message</h5>
+                
+                <form method="post" id="hox-contact-form">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger rounded-3 p-3 mb-4 border-0 font-mono small" style="background-color: #fff5f5; color: var(--crimson);">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> Ensure all parameters are correctly specified.
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label font-mono small fw-bold">Identification Name*</label>
+                            <input type="text" name="name" required class="form-control hox-input font-mono" placeholder="Enter your name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label font-mono small fw-bold">Return Email Address*</label>
+                            <input type="email" name="email" required class="form-control hox-input font-mono" placeholder="name@domain.com">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-mono small fw-bold">Subject Matrix*</label>
+                            <input type="text" name="subject" required class="form-control hox-input font-mono" placeholder="Order reference or topic">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label font-mono small fw-bold">Message Content*</label>
+                            <textarea name="message" rows="5" required class="form-control hox-input font-mono" placeholder="Type your transmission details..."></textarea>
+                        </div>
+                        <div class="col-12 pt-2">
+                            <button type="submit" class="btn btn-hox-primary font-display rounded-pill px-5 py-3 fw-900 text-uppercase w-100 w-md-auto">
+                                Send Transmission <i class="bi bi-send ms-2" style="font-size: 0.85rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* 💎 HOXOBIL PREMIUM CONTACT CORE */
+    .fw-900 { font-weight: 900; }
+    .letter-spacing-1 { letter-spacing: 1.5px; }
+    
+    .text-crimson-gradient { 
+        background: linear-gradient(135deg, #8B0000 0%, #C43030 100%); 
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent; 
+    }
+
+    .hox-input {
+        border: 2px solid #eef0f2;
+        border-radius: 12px !important;
+        padding: 12px 18px;
+        background-color: #fff !important;
+        transition: 0.3s;
+        font-size: 0.9rem;
+    }
+    .hox-input:focus { 
+        border-color: var(--crimson, #8B0000); 
+        box-shadow: 0 0 0 5px rgba(139, 0, 0, 0.1); 
+        outline: none;
+    }
+    
+    .btn-hox-primary {
+        background: linear-gradient(135deg, #8B0000 0%, #A52020 100%);
+        color: #fff; 
+        border: none;
+        box-shadow: 0 8px 20px rgba(139, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+    }
+    .btn-hox-primary:hover {
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(139, 0, 0, 0.45);
+    }
+    .btn-hox-primary:active {
+        transform: translateY(0);
+    }
+</style>
+{% endblock %}

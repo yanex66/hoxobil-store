@@ -1,0 +1,268 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Track Order #{{ order.id }} — HOXOBIL{% endblock %}
+
+{% block content %}
+<style>
+    .track-hero {
+        background: var(--charcoal);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: #fff;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .track-hero::before {
+        content: '#{{ order.id }}';
+        position: absolute;
+        right: 2rem; top: 50%;
+        transform: translateY(-50%);
+        font-family: 'Oswald', sans-serif;
+        font-size: clamp(4rem, 12vw, 8rem);
+        font-weight: 700;
+        color: rgba(255,255,255,0.04);
+        letter-spacing: 0.06em;
+        pointer-events: none;
+    }
+    .track-hero .order-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--crimson-soft);
+        margin-bottom: 0.5rem;
+    }
+    .track-hero h2 {
+        font-family: 'Oswald', sans-serif;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #fff;
+        margin-bottom: 0.25rem;
+    }
+    .track-hero .sub { font-size: 0.82rem; color: rgba(255,255,255,0.4); }
+
+    .track-steps {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        position: relative;
+        margin-bottom: 2.5rem;
+        padding: 0 0.5rem;
+    }
+    .track-steps::before {
+        content: '';
+        position: absolute;
+        top: 18px; left: 5%; right: 5%;
+        height: 2px; background: #E5E5E5; z-index: 0;
+    }
+    .track-step {
+        display: flex; flex-direction: column;
+        align-items: center; gap: 8px;
+        position: relative; z-index: 1; flex: 1;
+    }
+    .track-step-dot {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: #E5E5E5; display: flex;
+        align-items: center; justify-content: center;
+        font-size: 1rem; color: #aaa;
+    }
+    .track-step.done .track-step-dot  { background: #0a6b3a; color: #fff; }
+    .track-step.active .track-step-dot {
+        background: var(--crimson); color: #fff;
+        box-shadow: 0 4px 12px rgba(139,0,0,0.3);
+    }
+    .track-step-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.55rem; letter-spacing: 0.1em;
+        text-transform: uppercase; color: #aaa; text-align: center;
+    }
+    .track-step.done .track-step-label  { color: #0a6b3a; }
+    .track-step.active .track-step-label { color: var(--crimson); font-weight: 700; }
+
+    .track-card {
+        background: #fff; border-radius: 16px;
+        border: 1.5px solid #E8E8EE;
+        padding: 1.75rem; margin-bottom: 1.5rem;
+    }
+    .track-card-title {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem; letter-spacing: 0.2em;
+        text-transform: uppercase; color: var(--crimson-soft);
+        margin-bottom: 1.25rem;
+    }
+    .tracking-row {
+        display: flex; align-items: center; gap: 1rem;
+        background: #F8F8FA; border-radius: 10px;
+        padding: 1rem 1.25rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .carrier-badge {
+        font-family: 'Space Mono', monospace; font-size: 0.65rem;
+        font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+        background: var(--charcoal); color: #fff;
+        padding: 0.3rem 0.7rem; border-radius: 6px; flex-shrink: 0;
+    }
+    .tracking-number {
+        font-family: 'Space Mono', monospace; font-size: 0.88rem;
+        font-weight: 700; color: var(--charcoal); flex: 1; word-break: break-all;
+    }
+    .btn-copy {
+        background: none; border: 1.5px solid #E0E0E8; border-radius: 6px;
+        padding: 0.3rem 0.7rem; font-size: 0.7rem; cursor: pointer;
+        color: #888; transition: border-color 0.2s, color 0.2s; flex-shrink: 0;
+    }
+    .btn-copy:hover { border-color: var(--crimson); color: var(--crimson); }
+
+    .track-notice {
+        background: #FFFBF0; border: 1px solid #FFE8A1; border-radius: 12px;
+        padding: 2rem; text-align: center; color: #7A4F00;
+        font-size: 0.88rem; margin-bottom: 1.5rem;
+    }
+    .track-notice i { font-size: 2rem; margin-bottom: 0.75rem; display: block; color: #C9973A; }
+
+    .summary-mini-row {
+        display: flex; justify-content: space-between;
+        font-size: 0.82rem; color: #888;
+        padding: 0.45rem 0; border-bottom: 1px solid #F0F0F5;
+    }
+    .summary-mini-row:last-child { border-bottom: none; }
+    .summary-mini-row span:last-child {
+        font-weight: 600; color: var(--charcoal);
+        font-family: 'Space Mono', monospace; font-size: 0.78rem;
+    }
+
+    @media (max-width: 576px) {
+        .track-hero { padding: 1.5rem; }
+        .track-steps::before { display: none; }
+        .track-steps { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+        .track-step { flex-direction: row; gap: 1rem; }
+        .track-step-label { text-align: left; }
+    }
+</style>
+
+<div class="py-4" style="max-width: 760px; margin: 0 auto;">
+
+    <a href="{% url 'shop:order_history' %}"
+       class="font-mono text-crimson mb-3 d-inline-flex align-items-center gap-1"
+       style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;">
+        <i class="bi bi-arrow-left"></i> Back to Orders
+    </a>
+
+    <div class="track-hero">
+        <p class="order-label">Tracking Order</p>
+        <h2>Order #{{ order.id }}</h2>
+        <p class="sub">
+            Placed {{ order.created|date:"F j, Y" }} &middot;
+            {{ order.items.count }} item{{ order.items.count|pluralize }}
+        </p>
+    </div>
+
+    <div class="track-steps">
+        <div class="track-step {% if order.paid %}done{% else %}active{% endif %}">
+            <div class="track-step-dot"><i class="bi bi-bag-check"></i></div>
+            <span class="track-step-label">Order<br>Placed</span>
+        </div>
+        <div class="track-step
+            {% if order.status == 'POD_SENT' %}active
+            {% elif order.status == 'FULFILLED' or order.status == 'SHIPPED' %}done{% endif %}">
+            <div class="track-step-dot"><i class="bi bi-gear"></i></div>
+            <span class="track-step-label">Processing</span>
+        </div>
+        <div class="track-step
+            {% if order.status == 'FULFILLED' %}active
+            {% elif order.status == 'SHIPPED' %}done{% endif %}">
+            <div class="track-step-dot"><i class="bi bi-box-seam"></i></div>
+            <span class="track-step-label">Fulfilled</span>
+        </div>
+        <div class="track-step {% if order.status == 'SHIPPED' %}active{% endif %}">
+            <div class="track-step-dot"><i class="bi bi-truck"></i></div>
+            <span class="track-step-label">Shipped</span>
+        </div>
+        <div class="track-step">
+            <div class="track-step-dot"><i class="bi bi-house-check"></i></div>
+            <span class="track-step-label">Delivered</span>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="track-notice">
+        <i class="bi bi-info-circle"></i>
+        {{ error }}
+    </div>
+    {% else %}
+        {% for shipment in tracking_events %}
+        <div class="track-card">
+            <p class="track-card-title">
+                Shipment {{ forloop.counter }}
+                {% if shipment.shipped_at %}
+                    <span style="color:#aaa;font-weight:400;"> · Shipped {{ shipment.shipped_at }}</span>
+                {% endif %}
+            </p>
+            <div class="tracking-row">
+                <span class="carrier-badge">{{ shipment.carrier|default:"Carrier" }}</span>
+                <span class="tracking-number">{{ shipment.tracking_number }}</span>
+                <button class="btn-copy" onclick="copyTracking('{{ shipment.tracking_number }}', this)">
+                    <i class="bi bi-clipboard"></i> Copy
+                </button>
+            </div>
+            {% if shipment.tracking_url %}
+            <a href="{{ shipment.tracking_url }}" target="_blank" rel="noopener"
+               class="btn-hox w-100 justify-content-center">
+                <i class="bi bi-box-arrow-up-right"></i>
+                Track on {{ shipment.carrier|default:"Carrier" }} Website
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="track-card">
+        <p class="track-card-title">Order Summary</p>
+        {% for item in order.items.all %}
+        <div class="summary-mini-row">
+            <span>
+                {{ item.product.name|truncatechars:30 }}
+                {% if item.product_variant.size %}({{ item.product_variant.size }}){% endif %}
+                × {{ item.quantity }}
+            </span>
+            <span>${{ item.get_cost.amount }}</span>
+        </div>
+        {% endfor %}
+        <div class="summary-mini-row">
+            <span>Shipping</span>
+            <span>${{ order.shipping_cost.amount }}</span>
+        </div>
+        <div class="summary-mini-row" style="border-top:2px solid #E8E8EE;margin-top:0.5rem;padding-top:0.75rem;">
+            <span style="font-weight:700;color:var(--charcoal);">Total</span>
+            <span style="color:var(--crimson);font-size:0.9rem;">${{ order.get_total_cost.amount }}</span>
+        </div>
+    </div>
+
+    <div class="track-card">
+        <p class="track-card-title">Delivering To</p>
+        <p style="font-size:0.88rem;line-height:1.9;margin:0;font-weight:500;">
+            {{ order.first_name }} {{ order.last_name }}<br>
+            {{ order.address }}<br>
+            {{ order.city }}{% if order.state %}, {{ order.state }}{% endif %} {{ order.postal_code }}<br>
+            {{ order.country }}
+        </p>
+    </div>
+
+</div>
+
+<script>
+function copyTracking(number, btn) {
+    navigator.clipboard.writeText(number).then(function() {
+        btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+        btn.style.color = '#0a6b3a';
+        btn.style.borderColor = '#0a6b3a';
+        setTimeout(function() {
+            btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

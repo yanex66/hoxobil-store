@@ -1,0 +1,370 @@
+{% extends 'shop/base.html' %}
+{% load currency_filters %}
+{% load static %}
+
+{% block content %}
+<div class="py-5" style="max-width: 940px; margin: 0 auto;">
+
+    <div class="hox-steps mb-5">
+        <div class="hox-step done">
+            <span class="step-dot"><i class="bi bi-check"></i></span>
+            <span class="step-label">Details</span>
+        </div>
+        <div class="hox-step-line done"></div>
+        <div class="hox-step active">
+            <span class="step-dot">2</span>
+            <span class="step-label">Shipping</span>
+        </div>
+        <div class="hox-step-line"></div>
+        <div class="hox-step">
+            <span class="step-dot">3</span>
+            <span class="step-label">Confirm</span>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'shop:checkout_final' order.id %}" id="shipping-form">
+        {% csrf_token %}
+        <input type="hidden" name="shipping_cost" id="hidden-shipping-cost" value="0">
+
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-7">
+                <h2 class="font-display mb-1" style="font-size:2.2rem;letter-spacing:0.06em;">SHIPPING METHOD</h2>
+                <p class="text-muted mb-4" style="font-size:0.82rem;">Select how you'd like your order delivered.</p>
+
+                {% if shipping_rates %}
+                    {% for rate in shipping_rates %}
+                    <div class="hox-rate-card mb-3">
+                        <input type="radio"
+                               name="shipping_id"
+                               id="rate-{{ forloop.counter }}"
+                               value="{{ rate.id }}"
+                               data-cost="{{ rate.price }}"
+                               data-label="{{ rate.name }}"
+                               {% if forloop.first %}checked{% endif %}
+                               class="hox-radio-input">
+                        <label for="rate-{{ forloop.counter }}" class="hox-rate-label">
+                            <div class="rate-icon">
+                                <i class="bi bi-truck"></i>
+                            </div>
+                            <div class="rate-info">
+                                <div class="rate-name">{{ rate.name }}</div>
+                                <div class="rate-eta">{{ rate.eta|default:"7–14 business days" }}</div>
+                            </div>
+                            <div class="rate-price">
+                                {{ rate.price|convert_manual:CURRENT_CURRENCY }}
+                            </div>
+                            <div class="rate-check">
+                                <i class="bi bi-check2"></i>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="hox-empty-state text-center py-5">
+                        <i class="bi bi-wifi-off" style="font-size:2.5rem;color:var(--gray);"></i>
+                        <p class="mt-3 mb-1 fw-bold">Could not load shipping rates</p>
+                        <p class="text-muted small mb-4">Could not load shipping rates. Please try again.</p>
+                        <a href="{% url 'shop:checkout_shipping_methods' order.id %}" class="btn-hox">
+                            <i class="bi bi-arrow-clockwise"></i> Retry
+                        </a>
+                    </div>
+                {% endif %}
+
+                <div class="hox-address-card mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="font-mono text-muted" style="font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;">Delivering to</span>
+                        <a href="{% url 'shop:checkout_create' %}" class="font-mono text-crimson" style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;">
+                            Edit →
+                        </a>
+                    </div>
+                    <p class="mb-0" style="font-size:0.88rem;line-height:1.8;font-weight:500;">
+                        {{ order.first_name }} {{ order.last_name }}<br>
+                        {{ order.address }}<br>
+                        {{ order.city }}{% if order.state %}, {{ order.state }}{% endif %} {{ order.postal_code }}<br>
+                        {{ order.country }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="hox-summary-card sticky-top" style="top: 88px;">
+                    <div class="summary-header">
+                        <span class="font-mono" style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson-soft);">Order Summary</span>
+                    </div>
+
+                    <div class="summary-body">
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="summary-subtotal">$0.00</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span id="summary-shipping">—</span>
+                        </div>
+
+                        <div class="summary-divider"></div>
+
+                        <div class="summary-total">
+                            <span>Total</span>
+                            <span id="summary-total" class="text-crimson">$0.00</span>
+                        </div>
+                    </div>
+
+                    {% if shipping_rates %}
+                    <button type="submit" class="btn-hox w-100 justify-content-center mt-4" style="padding:1rem;">
+                        <i class="bi bi-lock-fill"></i>
+                        Submit Order
+                    </button>
+                    <p class="text-center mt-3 mb-0" style="font-size:0.7rem;color:var(--gray);">
+                        <i class="bi bi-shield-check me-1"></i>Secure encrypted transaction
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<style>
+    /* ── PROGRESS STEPS ── */
+    .hox-steps {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+    }
+    .hox-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .step-dot {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        background: #E5E5E5;
+        color: #aaa;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    .hox-step.active .step-dot {
+        background: var(--crimson);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(139,0,0,0.35);
+    }
+    .hox-step.done .step-dot {
+        background: #0a6b3a;
+        color: #fff;
+    }
+    .step-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--gray);
+    }
+    .hox-step.active .step-label { color: var(--crimson); font-weight: 700; }
+    .hox-step.done .step-label { color: #0a6b3a; }
+    .hox-step-line {
+        flex: 1;
+        height: 2px;
+        background: #E5E5E5;
+        max-width: 80px;
+        margin: 0 8px;
+        margin-bottom: 22px;
+        transition: background 0.3s;
+    }
+    .hox-step-line.done { background: #0a6b3a; }
+
+    /* ── RATE CARDS ── */
+    .hox-radio-input { display: none; }
+
+    .hox-rate-label {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.1rem 1.25rem;
+        border: 1.5px solid #E2E2E8;
+        border-radius: 14px;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        user-select: none;
+    }
+    .hox-rate-label:hover {
+        border-color: var(--crimson);
+        background: rgba(139,0,0,0.03);
+    }
+    .hox-radio-input:checked + .hox-rate-label {
+        border-color: var(--crimson);
+        background: rgba(139,0,0,0.03);
+        box-shadow: 0 4px 16px rgba(139,0,0,0.12);
+    }
+    .rate-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        background: #F0F0F5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: var(--gray);
+        flex-shrink: 0;
+        transition: background 0.2s, color 0.2s;
+    }
+    .hox-radio-input:checked + .hox-rate-label .rate-icon {
+        background: var(--crimson);
+        color: #fff;
+    }
+    .rate-info { flex: 1; }
+    .rate-name {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--charcoal);
+    }
+    .rate-eta {
+        font-size: 0.78rem;
+        color: var(--gray);
+        margin-top: 2px;
+    }
+    .rate-price {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--crimson);
+        flex-shrink: 0;
+    }
+    .rate-check {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        border: 1.5px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        color: transparent;
+        flex-shrink: 0;
+        transition: all 0.2s;
+    }
+    .hox-radio-input:checked + .hox-rate-label .rate-check {
+        background: var(--crimson);
+        border-color: var(--crimson);
+        color: #fff;
+    }
+
+    /* ── ADDRESS CARD ── */
+    .hox-address-card {
+        border: 1.5px dashed var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        background: #fff;
+    }
+
+    /* ── SUMMARY CARD ── */
+    .hox-summary-card {
+        background: var(--charcoal);
+        border-radius: 20px;
+        overflow: hidden;
+        color: #fff;
+    }
+    .summary-header {
+        padding: 1.5rem 1.75rem 0;
+    }
+    .summary-body {
+        padding: 1.25rem 1.75rem 1.5rem;
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.55);
+        margin-bottom: 0.75rem;
+    }
+    .summary-row span:last-child {
+        font-weight: 600;
+        color: rgba(255,255,255,0.85);
+        font-family: 'Space Mono', monospace;
+        font-size: 0.8rem;
+    }
+    .summary-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.08);
+        margin: 1rem 0;
+    }
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .summary-total span:first-child {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.08em;
+        color: #fff;
+    }
+    .summary-total span:last-child {
+        font-family: 'Space Mono', monospace;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    .hox-summary-card .btn-hox {
+        border-radius: 0;
+        margin: 0;
+        padding: 1rem 1.75rem;
+        border-radius: 0 0 20px 20px;
+        font-size: 0.72rem;
+    }
+    .hox-summary-card > p { padding: 0 1.75rem 1.5rem; }
+
+    /* ── EMPTY STATE ── */
+    .hox-empty-state {
+        border: 1.5px dashed var(--border);
+        border-radius: 16px;
+        padding: 3rem;
+        background: #fff;
+    }
+</style>
+
+<script>
+    // Strip any non-numeric chars from the Money object string (e.g. "16.99 USD" → 16.99)
+   var subtotal = parseFloat("{{ items_total }}") || 0;
+   
+    function updateSummary(cost) {
+        var costFloat = parseFloat(cost) || 0;
+        var total = subtotal + costFloat;
+        document.getElementById('hidden-shipping-cost').value = cost;
+        document.getElementById('summary-subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('summary-shipping').textContent = '$' + costFloat.toFixed(2);
+        document.getElementById('summary-total').textContent = '$' + total.toFixed(2);
+    }
+
+    // Update summary when a rate is selected
+    document.querySelectorAll('.hox-radio-input').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            updateSummary(this.dataset.cost || '0');
+        });
+    });
+
+    // Set initial values from first checked option on page load
+    var firstChecked = document.querySelector('.hox-radio-input:checked');
+    if (firstChecked) {
+        updateSummary(firstChecked.dataset.cost || '0');
+    } else {
+        // No shipping rates — still show subtotal correctly
+        document.getElementById('summary-subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('summary-total').textContent = '$' + subtotal.toFixed(2);
+    }
+</script>
+
+{% endblock %}

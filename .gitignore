@@ -1,0 +1,38 @@
+﻿# Environment & secrets
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+hoxobil_debug.log
+*.log
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local tunnel / dev artifacts
+*.ngrok*
+
+# Large data files
+apliiq_output.txt
+apliiq_raw_products.json
+cloudflared.exe

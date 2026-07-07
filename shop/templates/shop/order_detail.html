@@ -1,0 +1,464 @@
+{% extends 'shop/base.html' %}
+{% load currency_filters %}
+
+{% block title %}Order #{{ order.id }} — HOXOBIL{% endblock %}
+
+{% block content %}
+<style>
+    /* ── HERO ── */
+    .order-hero {
+        background: var(--charcoal);
+        border-radius: 20px;
+        padding: 2.5rem;
+        color: #fff;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .order-hero::before {
+        content: '#{{ order.id }}';
+        position: absolute;
+        right: 2rem; top: 50%;
+        transform: translateY(-50%);
+        font-family: 'Oswald', sans-serif;
+        font-size: clamp(4rem, 12vw, 8rem);
+        font-weight: 700;
+        color: rgba(255,255,255,0.04);
+        letter-spacing: 0.06em;
+        pointer-events: none;
+    }
+    .order-hero .hero-label {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--crimson-soft);
+        margin-bottom: 0.5rem;
+    }
+    .order-hero h2 {
+        font-family: 'Oswald', sans-serif;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #fff;
+        margin-bottom: 0.25rem;
+    }
+    .order-hero .sub {
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.4);
+    }
+
+    /* ── PAID / UNPAID PILL ── */
+    .paid-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 20px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-top: 0.75rem;
+    }
+    .paid-pill.paid     { background: rgba(10,107,58,0.2); color: #4cde8f; }
+    .paid-pill.unpaid   { background: rgba(139,0,0,0.25); color: #ff8080; }
+
+    /* ── CARDS ── */
+    .hox-detail-card {
+        background: #fff;
+        border-radius: 16px;
+        border: 1.5px solid #E8E8EE;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .hox-detail-card-header {
+        background: var(--charcoal);
+        padding: 0.9rem 1.5rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--crimson-soft);
+    }
+    .hox-detail-card-body {
+        padding: 1.5rem;
+    }
+
+    /* ── STATUS BADGES ── */
+    .hox-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3em 0.75em;
+        border-radius: 20px;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .badge-pending   { background: #FFF3CD; color: #856404; }
+    .badge-sent      { background: #CCE5FF; color: #004085; }
+    .badge-fulfilled { background: #D4EDDA; color: #155724; }
+    .badge-shipped   { background: #D1ECF1; color: #0C5460; }
+    .badge-cancelled { background: #F8D7DA; color: #721C24; }
+
+    /* ── ITEMS TABLE ── */
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table thead tr {
+        border-bottom: 2px solid #F0F0F5;
+    }
+    .items-table thead th {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #aaa;
+        padding: 0 0 0.75rem;
+        font-weight: 700;
+    }
+    .items-table tbody tr {
+        border-bottom: 1px solid #F5F5F8;
+    }
+    .items-table tbody tr:last-child { border-bottom: none; }
+    .items-table td {
+        padding: 1rem 0;
+        font-size: 0.85rem;
+        vertical-align: middle;
+        color: var(--charcoal);
+    }
+    .item-thumb {
+        width: 64px; height: 64px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1.5px solid #E8E8EE;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        display: block;
+    }
+    .item-thumb-placeholder {
+        width: 64px; height: 64px;
+        border-radius: 10px;
+        background: #F0F0F5;
+        display: flex; align-items: center;
+        justify-content: center;
+        color: #ccc; font-size: 1.3rem;
+    }
+    .item-name {
+        font-weight: 600;
+        font-size: 0.83rem;
+        color: var(--charcoal);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .item-name:hover { color: var(--crimson); }
+    .item-name.no-link { cursor: default; }
+    .item-name.no-link:hover { color: var(--charcoal); }
+    .item-variant {
+        font-size: 0.72rem;
+        color: #aaa;
+        margin-top: 2px;
+    }
+    .item-custom-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.58rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--crimson);
+        background: rgba(139,0,0,0.08);
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        margin-top: 4px;
+    }
+
+    /* ── TOTALS ── */
+    .totals-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: #888;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #F0F0F5;
+    }
+    .totals-row:last-child { border-bottom: none; }
+    .totals-row span:last-child {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--charcoal);
+    }
+    .totals-row.grand-total {
+        border-top: 2px solid #E8E8EE;
+        margin-top: 0.5rem;
+        padding-top: 0.85rem;
+    }
+    .totals-row.grand-total span:first-child {
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        color: var(--charcoal);
+    }
+    .totals-row.grand-total span:last-child {
+        font-size: 1rem;
+        color: var(--crimson);
+    }
+
+    /* ── INFO ROWS ── */
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #F5F5F8;
+        font-size: 0.84rem;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label {
+        color: #aaa;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+    .info-row .value {
+        font-weight: 600;
+        color: var(--charcoal);
+        text-align: right;
+    }
+
+    /* ── ACTION BUTTONS ── */
+    .btn-track {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Space Mono', monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        background: var(--crimson);
+        color: #fff;
+        text-decoration: none;
+        transition: background 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-track:hover { background: var(--crimson-mid); color: #fff; }
+
+    @media (max-width: 576px) {
+        .order-hero { padding: 1.5rem; }
+        .items-table thead th:nth-child(3),
+        .items-table td:nth-child(3) { display: none; }
+        .item-thumb, .item-thumb-placeholder { width: 52px; height: 52px; }
+    }
+</style>
+
+<div class="py-4" style="max-width: 940px; margin: 0 auto;">
+
+    <!-- Back -->
+    <a href="{% url 'shop:order_history' %}"
+       class="font-mono text-crimson mb-3 d-inline-flex align-items-center gap-1"
+       style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;">
+        <i class="bi bi-arrow-left"></i> Back to Orders
+    </a>
+
+    <!-- Hero -->
+    <div class="order-hero">
+        <p class="hero-label">Order Details</p>
+        <h2>Order #{{ order.id }}</h2>
+        <p class="sub">Placed {{ order.created|date:"F j, Y, P" }}</p>
+        {% if order.paid %}
+            <span class="paid-pill paid"><i class="bi bi-check-circle-fill"></i> Payment Confirmed</span>
+        {% else %}
+            <span class="paid-pill unpaid"><i class="bi bi-clock"></i> Awaiting Payment</span>
+        {% endif %}
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <!-- LEFT: Items + Totals -->
+        <div class="col-lg-7">
+
+            <!-- Items -->
+            <div class="hox-detail-card">
+                <div class="hox-detail-card-header">Items Ordered</div>
+                <div class="hox-detail-card-body">
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th colspan="2">Product</th>
+                                <th>Qty</th>
+                                <th style="text-align:right;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td style="width:76px;padding-right:0.9rem;">
+                                    {% if item.product and item.product.image_url %}
+                                        <img src="{{ item.product.image_url }}"
+                                             alt="{{ item.product.name }}"
+                                             class="item-thumb"
+                                             onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'item-thumb-placeholder',innerHTML:'<i class=\'bi bi-image\'></i>'}));">
+                                    {% elif order.custom_ticket and order.custom_ticket.design_team_mockup %}
+                                        {# Fallback for custom design orders where the placeholder product has no image yet #}
+                                        <img src="{{ order.custom_ticket.design_team_mockup.url }}"
+                                             alt="Custom design"
+                                             class="item-thumb"
+                                             onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement('div'),{className:'item-thumb-placeholder',innerHTML:'<i class=\'bi bi-image\'></i>'}));">
+                                    {% else %}
+                                        <div class="item-thumb-placeholder">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.product %}
+                                        {% if item.product.slug == 'custom-design-order' %}
+                                            <span class="item-name no-link">{{ item.product.name|truncatechars:28 }}</span>
+                                            {% if order.custom_ticket %}
+                                            <div class="item-custom-tag">
+                                                <i class="bi bi-stars"></i>
+                                                {{ order.custom_ticket.garment_item|default:"Custom Piece" }}
+                                            </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <a href="{% url 'shop:product_detail' item.product.slug %}"
+                                               class="item-name">
+                                                {{ item.product.name|truncatechars:28 }}
+                                            </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="item-name no-link" style="color:#aaa;">Product unavailable</span>
+                                        <div class="item-variant" style="color:#ccc;">This item was removed from the catalog</div>
+                                    {% endif %}
+                                    {% if item.product_variant.size or item.product_variant.color %}
+                                    <div class="item-variant">
+                                        {% if item.product_variant.size %}{{ item.product_variant.size }}{% endif %}
+                                        {% if item.product_variant.color %} / {{ item.product_variant.color }}{% endif %}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td style="color:#aaa;">× {{ item.quantity }}</td>
+                                <td style="text-align:right;font-family:'Space Mono',monospace;font-weight:700;color:var(--crimson);font-size:0.82rem;">
+                                    {{ item.get_cost|convert_manual:CURRENT_CURRENCY }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Totals -->
+            <div class="hox-detail-card">
+                <div class="hox-detail-card-header">Order Total</div>
+                <div class="hox-detail-card-body">
+                    <div class="totals-row">
+                        <span>Items subtotal</span>
+                        <span>{{ order.get_total_cost|convert_manual:CURRENT_CURRENCY }}</span>
+                    </div>
+                    <div class="totals-row">
+                        <span>Shipping</span>
+                        <span>{{ order.shipping_cost|convert_manual:CURRENT_CURRENCY }}</span>
+                    </div>
+                    <div class="totals-row grand-total">
+                        <span>Total</span>
+                        <span>{{ order.get_total_cost|convert_manual:CURRENT_CURRENCY }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT: Info + Actions -->
+        <div class="col-lg-5">
+
+            <!-- Order Status -->
+            <div class="hox-detail-card">
+                <div class="hox-detail-card-header">Order Status</div>
+                <div class="hox-detail-card-body">
+                    <div class="info-row">
+                        <span class="label">Payment</span>
+                        <span class="value">
+                            {% if order.paid %}
+                                <span style="color:#0a6b3a;"><i class="bi bi-check-circle-fill"></i> Paid</span>
+                            {% else %}
+                                <span style="color:var(--crimson);"><i class="bi bi-clock"></i> Pending</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Fulfillment</span>
+                        <span class="value">
+                            {% if order.status == 'PENDING' %}
+                                <span class="hox-badge badge-pending"><i class="bi bi-clock"></i> Pending</span>
+                            {% elif order.status == 'POD_SENT' %}
+                                <span class="hox-badge badge-sent"><i class="bi bi-arrow-up-circle"></i> Processing</span>
+                            {% elif order.status == 'FULFILLED' %}
+                                <span class="hox-badge badge-fulfilled"><i class="bi bi-check-circle"></i> Fulfilled</span>
+                            {% elif order.status == 'SHIPPED' %}
+                                <span class="hox-badge badge-shipped"><i class="bi bi-truck"></i> Shipped</span>
+                            {% elif order.status == 'CANCELLED' %}
+                                <span class="hox-badge badge-cancelled"><i class="bi bi-x-circle"></i> Cancelled</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if order.pod_order_id %}
+                    <div class="info-row">
+                        <span class="label">Fulfillment ID</span>
+                        <span class="value" style="font-family:'Space Mono',monospace;font-size:0.72rem;">
+                            {{ order.pod_order_id }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% if order.tracking_number %}
+                    <div class="info-row">
+                        <span class="label">Tracking</span>
+                        <span class="value" style="font-family:'Space Mono',monospace;font-size:0.72rem;">
+                            {{ order.tracking_number }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Shipping Address -->
+            <div class="hox-detail-card">
+                <div class="hox-detail-card-header">Shipping Address</div>
+                <div class="hox-detail-card-body">
+                    <p style="font-size:0.88rem;line-height:1.9;margin:0;font-weight:500;">
+                        {{ order.first_name }} {{ order.last_name }}<br>
+                        {{ order.address }}<br>
+                        {{ order.city }}{% if order.state %}, {{ order.state }}{% endif %} {{ order.postal_code }}<br>
+                        {{ order.country }}<br>
+                        <span style="color:#aaa;font-size:0.82rem;">{{ order.email }}</span>
+                        {% if order.phone %}<br>
+                        <span style="color:#aaa;font-size:0.82rem;">{{ order.phone }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            {% if order.pod_order_id %}
+            <a href="{% url 'shop:order_tracking' order_id=order.id %}" class="btn-track w-100 justify-content-center">
+                <i class="bi bi-geo-alt-fill"></i> Track This Order
+            </a>
+            {% endif %}
+
+            {% if not order.paid %}
+            <a href="{% url 'shop:checkout_payment' order_id=order.id %}" class="btn-hox w-100 justify-content-center mt-2">
+                <i class="bi bi-lock-fill"></i> Complete Payment
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

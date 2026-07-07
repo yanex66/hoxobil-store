@@ -1,0 +1,1003 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HOXOBIL{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --crimson:     #8B0000;
+            --crimson-mid: #A52020;
+            --crimson-soft:#C43030;
+            --ivory:       #FAF7F2;
+            --ivory-dark:  #EDE8DF;
+            --charcoal:    #1C1C1C;
+            --gold:        #C9973A;
+            --border:      rgba(139,0,0,0.18);
+            --nav-h:       68px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background: var(--ivory);
+            color: var(--charcoal);
+            padding-top: var(--nav-h);
+            min-height: 100vh;
+            overflow-x: hidden;
+            font-size: 17px;
+        }
+
+        /* ── GRAIN OVERLAY ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* ── NAVBAR ── */
+        .hox-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: var(--nav-h);
+            background: var(--charcoal);
+            border-bottom: 3px solid var(--crimson);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        .hox-nav .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        /* ── LOGO + BRAND NAME ── */
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            text-decoration: none;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .nav-logo-img {
+            height: 42px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+            mix-blend-mode: lighten;
+            transition: opacity 0.2s;
+        }
+        @media (hover: hover) {
+            .nav-brand:hover .nav-logo-img { opacity: 0.82; }
+        }
+
+        /* Brand text — always visible alongside the logo */
+        .nav-brand-text {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: var(--ivory);
+            text-transform: uppercase;
+            display: block;
+            transition: color 0.2s;
+        }
+        .nav-brand-text span { color: var(--crimson-soft); }
+        @media (hover: hover) {
+            .nav-brand:hover .nav-brand-text span { color: var(--gold); }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        .nav-links a {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(250,247,242,0.55);
+            text-decoration: none;
+            transition: color 0.2s;
+            position: relative;
+            padding-bottom: 3px;
+        }
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 0; height: 2px;
+            background: var(--crimson-soft);
+            transition: width 0.3s ease;
+        }
+        @media (hover: hover) {
+            .nav-links a:hover { color: var(--ivory); }
+            .nav-links a:hover::after { width: 100%; }
+        }
+
+        /* Currency select */
+        .currency-select {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            background: transparent;
+            border: 1px solid rgba(250,247,242,0.15);
+            border-radius: 3px;
+            padding: 5px 10px;
+            color: rgba(250,247,242,0.5);
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+            appearance: none;
+        }
+        @media (hover: hover) {
+            .currency-select:hover { border-color: var(--crimson-soft); color: var(--ivory); }
+        }
+        .currency-select:focus {
+            border-color: var(--crimson-soft);
+            color: var(--ivory);
+            outline: none;
+        }
+        .currency-select option { background: var(--charcoal); color: var(--ivory); }
+
+        /* Nav icon buttons */
+        .nav-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; height: 40px;
+            color: rgba(250,247,242,0.5);
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: color 0.2s, background 0.2s;
+            position: relative;
+            border-radius: 4px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        @media (hover: hover) {
+            .nav-icon-btn:hover {
+                color: var(--ivory);
+                background: rgba(139,0,0,0.3);
+            }
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: 2px; right: 2px;
+            width: 17px; height: 17px;
+            background: var(--crimson-soft);
+            color: var(--ivory);
+            font-size: 0.55rem;
+            font-weight: 700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Roboto Mono', monospace;
+            border: 2px solid var(--charcoal);
+        }
+
+        /* Hamburger */
+        .hox-hamburger {
+            background: none;
+            border: 1px solid rgba(250,247,242,0.2);
+            border-radius: 4px;
+            width: 40px; height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: rgba(250,247,242,0.6);
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        @media (hover: hover) {
+            .hox-hamburger:hover {
+                border-color: var(--crimson-soft);
+                color: var(--ivory);
+            }
+        }
+
+        /* ── ACCOUNT DROPDOWN ── */
+        .account-dropdown-wrapper { position: static; }
+
+        .account-dropdown {
+            position: fixed;
+            width: 240px;
+            background: var(--charcoal);
+            border: 1px solid rgba(139,0,0,0.35);
+            border-top: 3px solid var(--crimson);
+            border-radius: 6px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+            z-index: 9990;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+            overflow: hidden;
+        }
+
+        .account-dropdown-wrapper.open .account-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .account-dropdown .dd-arrow {
+            position: absolute;
+            right: 13px;
+            width: 14px;
+            height: 8px;
+            overflow: visible;
+        }
+        .account-dropdown .dd-arrow.arrow-top  { top: -8px; }
+        .account-dropdown .dd-arrow.arrow-bottom { bottom: -8px; transform: rotate(180deg); }
+        .account-dropdown .dd-arrow svg { display: block; }
+
+        .acc-dd-header {
+            padding: 1rem 1.1rem 0.85rem;
+            border-bottom: 1px solid rgba(250,247,242,0.07);
+        }
+        .acc-dd-header .acc-label {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--crimson-soft);
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+        .acc-dd-header .acc-username {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            color: var(--ivory);
+            text-transform: uppercase;
+        }
+
+        .acc-dd-section {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.56rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(250,247,242,0.25);
+            padding: 0.75rem 1.1rem 0.3rem;
+        }
+
+        .acc-dd-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.62rem 1.1rem;
+            font-family: 'Raleway', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: rgba(250,247,242,0.55);
+            text-decoration: none;
+            transition: background 0.15s, color 0.15s, padding-left 0.2s;
+            letter-spacing: 0.02em;
+        }
+        .acc-dd-link i {
+            font-size: 0.95rem;
+            width: 18px;
+            text-align: center;
+            color: rgba(250,247,242,0.3);
+            transition: color 0.15s;
+            flex-shrink: 0;
+        }
+        @media (hover: hover) {
+            .acc-dd-link:hover { background: rgba(139,0,0,0.2); color: var(--ivory); padding-left: 1.4rem; }
+            .acc-dd-link:hover i { color: var(--crimson-soft); }
+        }
+
+        .acc-dd-divider { height: 1px; background: rgba(250,247,242,0.07); margin: 0.35rem 0; }
+
+        .acc-dd-link.signout { color: rgba(196,48,48,0.65); }
+        .acc-dd-link.signout i { color: rgba(196,48,48,0.45); }
+        @media (hover: hover) {
+            .acc-dd-link.signout:hover { background: rgba(139,0,0,0.25); color: var(--crimson-soft); }
+            .acc-dd-link.signout:hover i { color: var(--crimson-soft); }
+        }
+
+        .acc-dd-cta { padding: 1rem 1.1rem; }
+        .acc-dd-cta a {
+            display: block;
+            text-align: center;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            padding: 0.65rem 1rem;
+            border-radius: 3px;
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+            margin-bottom: 0.5rem;
+        }
+        .acc-dd-cta .cta-signin { background: var(--crimson); color: var(--ivory); border: 2px solid var(--crimson); }
+        .acc-dd-cta .cta-register { background: transparent; color: rgba(250,247,242,0.45); border: 1px solid rgba(250,247,242,0.12); }
+        @media (hover: hover) {
+            .acc-dd-cta .cta-signin:hover { background: var(--crimson-mid); border-color: var(--crimson-mid); }
+            .acc-dd-cta .cta-register:hover { color: var(--ivory); border-color: rgba(250,247,242,0.3); }
+        }
+
+        /* ── TICKER TAPE ── */
+        .hox-ticker {
+            background: var(--crimson);
+            color: var(--ivory);
+            height: 34px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        .ticker-inner {
+            display: flex;
+            white-space: nowrap;
+            animation: ticker 22s linear infinite;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            gap: 3rem;
+            opacity: 0.92;
+        }
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+        @media (hover: hover) {
+            .ticker-inner:hover { animation-play-state: paused; }
+        }
+        .ticker-sep { opacity: 0.4; margin: 0 0.5rem; }
+
+        /* ── OFFCANVAS ── */
+        .hox-offcanvas {
+            width: 300px !important;
+            background: var(--charcoal) !important;
+            border-right: 3px solid var(--crimson) !important;
+        }
+        .hox-offcanvas .offcanvas-header {
+            border-bottom: 1px solid rgba(250,247,242,0.08);
+            padding: 1.5rem;
+        }
+        .hox-offcanvas .btn-close { filter: invert(1); opacity: 0.4; }
+        @media (hover: hover) {
+            .hox-offcanvas .btn-close:hover { opacity: 1; }
+        }
+
+        .offcanvas-body { padding: 2rem 1.5rem; }
+
+        .offcanvas-section-label {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--crimson-soft);
+            margin-bottom: 1.4rem;
+        }
+
+        .offcanvas-nav-link {
+            display: block;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: rgba(250,247,242,0.65);
+            text-decoration: none;
+            line-height: 1.35;
+            transition: color 0.18s, padding-left 0.2s;
+            padding: 0.35rem 0;
+            text-transform: uppercase;
+        }
+        @media (hover: hover) {
+            .offcanvas-nav-link:hover { color: var(--ivory); padding-left: 10px; }
+        }
+
+        .offcanvas-currency select {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 4px;
+            color: var(--ivory);
+            padding: 0.75rem 1rem;
+            width: 100%;
+            appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .offcanvas-currency select:focus { outline: none; border-color: var(--crimson-soft); }
+        .offcanvas-currency option { background: var(--charcoal); }
+
+        /* ── ALERT MESSAGES ── */
+        .hox-alert {
+            border-radius: 4px;
+            border: none;
+            padding: 1rem 1.4rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+            animation: slideDown 0.28s ease;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .alert-success  { background: #EAF5EE; color: #1B5E35; border-left: 4px solid #2E8B57; }
+        .alert-error,
+        .alert-danger   { background: #FDF0EE; color: var(--crimson); border-left: 4px solid var(--crimson-soft); }
+        .alert-warning  { background: #FDF6EA; color: #7A4F00; border-left: 4px solid var(--gold); }
+        .alert-info     { background: #EEF3FA; color: #1A3A6B; border-left: 4px solid #3A6BC4; }
+
+        /* ── MAIN CONTENT ── */
+        main { position: relative; z-index: 1; padding-top: 2.8rem; padding-bottom: 5rem; }
+
+        /* ── GLOBAL BUTTON STYLES ── */
+        .btn-hox {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            background: var(--crimson);
+            color: var(--ivory);
+            border: 2px solid var(--crimson);
+            border-radius: 3px;
+            padding: 0.8rem 2rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+            box-shadow: 0 3px 12px rgba(139,0,0,0.2);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        @media (hover: hover) {
+            .btn-hox:hover {
+                background: var(--crimson-mid);
+                color: var(--ivory);
+                border-color: var(--crimson-mid);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(139,0,0,0.3);
+            }
+        }
+        .btn-hox:active { transform: translateY(0); }
+
+        .btn-hox-outline {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            background: transparent;
+            color: var(--crimson);
+            border: 2px solid var(--crimson);
+            border-radius: 3px;
+            padding: 0.8rem 2rem;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, transform 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        @media (hover: hover) {
+            .btn-hox-outline:hover { background: var(--crimson); color: var(--ivory); transform: translateY(-2px); }
+        }
+
+        .btn-primary, .btn-accent {
+            font-family: 'Oswald', sans-serif !important;
+            font-size: 0.88rem !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.18em !important;
+            text-transform: uppercase !important;
+            background: var(--crimson) !important;
+            color: var(--ivory) !important;
+            border: 2px solid var(--crimson) !important;
+            border-radius: 3px !important;
+            box-shadow: 0 3px 12px rgba(139,0,0,0.2) !important;
+            transition: all 0.2s !important;
+        }
+        @media (hover: hover) {
+            .btn-primary:hover, .btn-accent:hover {
+                background: var(--crimson-mid) !important;
+                border-color: var(--crimson-mid) !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(139,0,0,0.3) !important;
+            }
+        }
+
+        /* ── FOOTER ── */
+        .hox-footer {
+            background: var(--charcoal);
+            color: rgba(250,247,242,0.4);
+            padding: 4.5rem 0 2.5rem;
+            margin-top: 7rem;
+            position: relative;
+            z-index: 1;
+            border-top: 3px solid var(--crimson);
+        }
+        .hox-footer .footer-brand {
+            font-family: 'Oswald', sans-serif;
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: var(--ivory);
+            display: block;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        .hox-footer .footer-tagline {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--crimson-soft);
+        }
+        .hox-footer .footer-slogan {
+            font-family: 'Raleway', sans-serif;
+            font-size: 0.82rem;
+            font-style: italic;
+            color: var(--gold);
+            margin-top: 0.5rem;
+            letter-spacing: 0.06em;
+        }
+        .hox-footer .footer-desc {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: rgba(250,247,242,0.25);
+            margin-top: 1.25rem;
+            max-width: 300px;
+        }
+        .hox-footer .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+        .hox-footer .footer-links a {
+            font-size: 0.92rem;
+            font-weight: 400;
+            color: rgba(250,247,242,0.35);
+            text-decoration: none;
+            transition: color 0.2s;
+            letter-spacing: 0.02em;
+        }
+        @media (hover: hover) {
+            .hox-footer .footer-links a:hover { color: var(--ivory); }
+        }
+        .hox-footer .footer-heading {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--crimson-soft);
+            margin-bottom: 1.3rem;
+        }
+        .hox-footer .footer-bottom {
+            border-top: 1px solid rgba(250,247,242,0.07);
+            margin-top: 3.5rem;
+            padding-top: 1.75rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .hox-footer .footer-bottom .powered { color: var(--gold); }
+
+        /* ── PAGE ENTRANCE ANIMATION ── */
+        .page-fade { animation: pageFade 0.4s ease both; }
+        @keyframes pageFade {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--ivory-dark, #EDE8DF); }
+        ::-webkit-scrollbar-thumb { background: var(--crimson); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--crimson-mid); }
+
+        /* ── SELECTION ── */
+        ::selection { background: var(--crimson); color: var(--ivory); }
+
+        /* ── UTILITIES ── */
+        .font-mono    { font-family: 'Roboto Mono', monospace; }
+        .font-display { font-family: 'Oswald', sans-serif; }
+        .text-crimson { color: var(--crimson) !important; }
+        .text-gold    { color: var(--gold) !important; }
+        .bg-crimson   { background: var(--crimson) !important; }
+        .text-accent  { color: var(--crimson-soft) !important; }
+        .text-blue    { color: var(--crimson) !important; }
+        .bg-blue      { background: var(--crimson) !important; }
+        .text-primary-base { color: var(--charcoal) !important; }
+
+        hr { border-color: var(--border); margin: 2rem 0; }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- ═══ NAVBAR ═══ -->
+    <nav class="hox-nav">
+        <div class="container">
+
+            <!-- Hamburger (mobile) -->
+            <button class="hox-hamburger d-lg-none" type="button"
+                    data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <!-- ── BRAND / LOGO ── -->
+            <a class="nav-brand" href="{% url 'shop:home' %}">
+                <img
+                    src="{% static 'images/image.png' %}"
+                    alt="HOXOBIL"
+                    class="nav-logo-img"
+                    onerror="this.style.display='none';">
+                <span class="nav-brand-text">HOX<span>OBIL</span></span>
+            </a>
+
+            <!-- Desktop nav links -->
+            <ul class="nav-links d-none d-lg-flex">
+                <li><a href="{% url 'shop:home' %}">Home</a></li>
+                <li><a href="{% url 'shop:product_list' %}">Drops</a></li>
+                <li><a href="{% url 'shop:custom_product_list' %}">Design Your Own</a></li>
+                <li><a href="{% url 'shop:about' %}">About</a></li>
+                <li><a href="{% url 'shop:contact' %}">Contact</a></li>
+                <li><a href="{% url 'shop:custom_order' %}">Custom</a></li>
+            </ul>
+
+            <!-- Right actions -->
+            <div class="d-flex align-items-center gap-2">
+
+                <!-- Currency (desktop) -->
+                <form action="{% url 'shop:set_currency' %}" method="post" class="d-none d-md-block">
+                    {% csrf_token %}
+                    <select name="currency_code" onchange="this.form.submit()" class="currency-select">
+                        <option value="NGN" {% if request.session.currency_code == 'NGN' %}selected{% endif %}>₦ NGN</option>
+                        <option value="USD" {% if request.session.currency_code == 'USD' %}selected{% endif %}>$ USD</option>
+                        <option value="GBP" {% if request.session.currency_code == 'GBP' %}selected{% endif %}>£ GBP</option>
+                        <option value="EUR" {% if request.session.currency_code == 'EUR' %}selected{% endif %}>€ EUR</option>
+                        <option value="CAD" {% if request.session.currency_code == 'CAD' %}selected{% endif %}>$ CAD</option>
+                        <option value="AUD" {% if request.session.currency_code == 'AUD' %}selected{% endif %}>$ AUD</option>
+                        <option value="JPY" {% if request.session.currency_code == 'JPY' %}selected{% endif %}>¥ JPY</option>
+                    </select>
+                </form>
+
+                <!-- Search -->
+                <a href="{% url 'shop:product_list' %}" class="nav-icon-btn d-none d-md-flex">
+                    <i class="bi bi-search"></i>
+                </a>
+
+                <!-- ── ACCOUNT DROPDOWN ── -->
+                <div class="account-dropdown-wrapper" id="accountDropdownWrapper">
+                    <button class="nav-icon-btn" id="accountBtn" aria-label="Account menu">
+                        {% if user.is_authenticated %}
+                            <i class="bi bi-person-fill"></i>
+                        {% else %}
+                            <i class="bi bi-person"></i>
+                        {% endif %}
+                    </button>
+
+                    <div class="account-dropdown" id="accountDropdown">
+                        <span class="dd-arrow arrow-top" id="ddArrow">
+                            <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 0L14 8H0L7 0Z" fill="#8B0000"/>
+                            </svg>
+                        </span>
+
+                        {% if user.is_authenticated %}
+                            <div class="acc-dd-header">
+                                <span class="acc-label">Signed in as</span>
+                                <span class="acc-username">{{ user.username }}</span>
+                            </div>
+
+                            <div class="acc-dd-section">Orders</div>
+                            <a href="{% url 'shop:order_history' %}" class="acc-dd-link">
+                                <i class="bi bi-clock-history"></i> Order History
+                            </a>
+                            <a href="{% url 'shop:order_history' %}" class="acc-dd-link">
+                                <i class="bi bi-truck"></i> Track Order
+                            </a>
+
+                            <div class="acc-dd-divider"></div>
+
+                            <div class="acc-dd-section">Account</div>
+                            <a href="{% url 'shop:cart_detail' %}" class="acc-dd-link">
+                                <i class="bi bi-bag"></i> My Cart
+                            </a>
+                            <a href="{% url 'shop:password_change' %}" class="acc-dd-link">
+                                <i class="bi bi-shield-lock"></i> Change Password
+                            </a>
+
+                            <div class="acc-dd-divider"></div>
+
+                            <a href="{% url 'logout' %}" class="acc-dd-link signout">
+                                <i class="bi bi-box-arrow-right"></i> Sign Out
+                            </a>
+
+                        {% else %}
+                            <div class="acc-dd-header">
+                                <span class="acc-label">Welcome to</span>
+                                <span class="acc-username">Hoxobil</span>
+                            </div>
+                            <div class="acc-dd-cta">
+                                <a href="{% url 'login' %}" class="cta-signin">Sign In</a>
+                                <a href="{% url 'shop:product_list' %}" class="cta-register">Browse Drops →</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- ── END ACCOUNT DROPDOWN ── -->
+
+                <!-- Cart -->
+                <a href="{% url 'shop:cart_detail' %}" class="nav-icon-btn">
+                    <i class="bi bi-bag-fill"></i>
+                    {% if cart|length > 0 %}
+                        <span class="cart-badge">{{ cart|length }}</span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══ TICKER TAPE ═══ -->
+    <div class="hox-ticker">
+        <div class="ticker-inner">
+            <span>Unleashing Perfection</span>
+            <span class="ticker-sep">◆</span>
+            <span>Free shipping on orders over $75</span>
+            <span class="ticker-sep">◆</span>
+            <span>New drops every week</span>
+            <span class="ticker-sep">◆</span>
+            <span>Premium print-on-demand streetwear</span>
+            <span class="ticker-sep">◆</span>
+            <span>No restocks — move fast</span>
+            <span class="ticker-sep">◆</span>
+            <span>Worldwide shipping</span>
+            <span class="ticker-sep">◆</span>
+            <!-- Duplicate for seamless loop -->
+            <span>Unleashing Perfection</span>
+            <span class="ticker-sep">◆</span>
+            <span>Free shipping on orders over $75</span>
+            <span class="ticker-sep">◆</span>
+            <span>New drops every week</span>
+            <span class="ticker-sep">◆</span>
+            <span>Premium print-on-demand streetwear</span>
+            <span class="ticker-sep">◆</span>
+            <span>No restocks — move fast</span>
+            <span class="ticker-sep">◆</span>
+            <span>Worldwide shipping</span>
+            <span class="ticker-sep">◆</span>
+        </div>
+    </div>
+
+    <!-- ═══ OFFCANVAS MENU ═══ -->
+    <div class="offcanvas offcanvas-start hox-offcanvas" tabindex="-1" id="offcanvasMenu">
+        <div class="offcanvas-header">
+            <!-- Logo in offcanvas too -->
+            <img src="{% static 'images/image.png' %}"
+                 alt="HOXOBIL"
+                 style="height:36px;width:auto;object-fit:contain;mix-blend-mode:lighten;"
+                 onerror="this.style.display='none';document.getElementById('offcanvasLogoFallback').style.display='block';">
+            <span id="offcanvasLogoFallback"
+                  style="display:none;font-family:'Oswald',sans-serif;font-size:1.7rem;letter-spacing:0.14em;color:var(--ivory);text-transform:uppercase;">
+                HOXOBIL
+            </span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <p class="offcanvas-section-label">Navigate</p>
+            <nav class="mb-5">
+                <a href="{% url 'shop:home' %}" class="offcanvas-nav-link">Home</a>
+                <a href="{% url 'shop:product_list' %}" class="offcanvas-nav-link">Drops</a>
+                <a href="{% url 'shop:custom_product_list' %}" class="offcanvas-nav-link">Design Your Own</a>
+                <a href="{% url 'shop:order_history' %}" class="offcanvas-nav-link">Orders</a>
+                <a href="{% url 'shop:about' %}" class="offcanvas-nav-link">About</a>
+                <a href="{% url 'shop:contact' %}" class="offcanvas-nav-link">Contact</a>
+            </nav>
+
+            {% if user.is_authenticated %}
+            <p class="offcanvas-section-label">My Account</p>
+            <nav class="mb-5" style="display:flex;flex-direction:column;gap:0.15rem;">
+                <a href="{% url 'shop:order_history' %}" class="acc-dd-link" style="padding-left:0;font-size:1rem;">
+                    <i class="bi bi-clock-history"></i> Order History
+                </a>
+                <a href="{% url 'shop:order_history' %}" class="acc-dd-link" style="padding-left:0;font-size:1rem;">
+                    <i class="bi bi-truck"></i> Track Order
+                </a>
+                <a href="{% url 'shop:password_change' %}" class="acc-dd-link" style="padding-left:0;font-size:1rem;">
+                    <i class="bi bi-shield-lock"></i> Change Password
+                </a>
+            </nav>
+            {% endif %}
+
+            <div class="offcanvas-currency d-md-none">
+                <p class="offcanvas-section-label">Currency</p>
+                <form action="{% url 'shop:set_currency' %}" method="post">
+                    {% csrf_token %}
+                    <select name="currency_code" onchange="this.form.submit()">
+                        <option value="NGN" {% if request.session.currency_code == 'NGN' %}selected{% endif %}>₦ NGN — Nigerian Naira</option>
+                        <option value="USD" {% if request.session.currency_code == 'USD' %}selected{% endif %}>$ USD — US Dollar</option>
+                        <option value="GBP" {% if request.session.currency_code == 'GBP' %}selected{% endif %}>£ GBP — British Pound</option>
+                        <option value="EUR" {% if request.session.currency_code == 'EUR' %}selected{% endif %}>€ EUR — Euro</option>
+                        <option value="CAD" {% if request.session.currency_code == 'CAD' %}selected{% endif %}>$ CAD — Canadian Dollar</option>
+                        <option value="AUD" {% if request.session.currency_code == 'AUD' %}selected{% endif %}>$ AUD — Australian Dollar</option>
+                        <option value="JPY" {% if request.session.currency_code == 'JPY' %}selected{% endif %}>¥ JPY — Japanese Yen</option>
+                    </select>
+                </form>
+            </div>
+
+            <div style="position:absolute;bottom:2rem;left:1.5rem;right:1.5rem;border-top:1px solid rgba(250,247,242,0.08);padding-top:1.5rem;">
+                <p style="font-family:'Roboto Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson-soft);margin-bottom:0.5rem;">Unleashing Perfection</p>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'logout' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(250,247,242,0.3);text-decoration:none;">Sign Out →</a>
+                {% else %}
+                    <a href="{% url 'login' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(250,247,242,0.3);text-decoration:none;">Sign In →</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="container page-fade">
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="hox-alert alert-{{ message.tags }}">
+                        {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+                        {% elif message.tags == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
+                        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="hox-footer">
+        <div class="container">
+            <div class="row g-5 align-items-start">
+                <div class="col-12 col-md-4">
+                    <!-- Logo in footer -->
+                    <img src="{% static 'images/image.png' %}"
+                         alt="HOXOBIL"
+                         style="height:56px;width:auto;object-fit:contain;mix-blend-mode:lighten;margin-bottom:0.5rem;display:block;"
+                         onerror="this.style.display='none';document.getElementById('footerLogoFallback').style.display='block';">
+                    <span id="footerLogoFallback" class="footer-brand" style="display:none;">HOXOBIL</span>
+                    <span class="footer-tagline">Wear the Future</span>
+                    <p class="footer-slogan">— Unleashing Perfection</p>
+                    <p class="footer-desc">Premium print-on-demand streetwear. New drops. No restocks. Move fast.</p>
+                    <a href="mailto:help.hoxobil@gmail.com"
+                       style="font-family:'Roboto Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:rgba(250,247,242,0.3);text-decoration:none;display:block;margin-top:1rem;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.3)'">
+                        help.hoxobil@gmail.com
+                    </a>
+                </div>
+                <div class="col-6 col-md-2">
+                    <p class="footer-heading">Shop</p>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'shop:product_list' %}">All Drops</a></li>
+                        <li><a href="{% url 'shop:custom_product_list' %}">Design Your Own</a></li>
+                        <li><a href="{% url 'shop:cart_detail' %}">Cart</a></li>
+                        <li><a href="{% url 'shop:order_history' %}">My Orders</a></li>
+                        <li><a href="{% url 'shop:size_guide' %}">Size Guide</a></li>
+                        <li><a href="{% url 'shop:custom_order' %}">Custom Order</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md-3">
+                    <p class="footer-heading">Support</p>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'shop:faq' %}">FAQ</a></li>
+                        <li><a href="{% url 'shop:shipping_info' %}">Shipping Info</a></li>
+                        <li><a href="{% url 'shop:returns_policy' %}">Returns &amp; Refunds</a></li>
+                        <li><a href="{% url 'shop:about' %}">About</a></li>
+                        <li><a href="{% url 'shop:contact' %}">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md-2">
+                    <p class="footer-heading">Legal</p>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'shop:privacy_policy' %}">Privacy Policy</a></li>
+                        <li><a href="{% url 'shop:terms_of_service' %}">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom d-flex flex-wrap justify-content-between gap-2">
+                <span>© {% now "Y" %} HOXOBIL. All rights reserved.</span>
+                <span class="d-flex gap-3 align-items-center">
+                    <a href="{% url 'shop:privacy_policy' %}"
+                       style="color:rgba(250,247,242,0.25);text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.25)'">Privacy</a>
+                    <a href="{% url 'shop:terms_of_service' %}"
+                       style="color:rgba(250,247,242,0.25);text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.25)'">Terms</a>
+                    <span class="powered">Powered by Printful</span>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ── Account Dropdown — smart fixed positioning ──
+        const wrapper  = document.getElementById('accountDropdownWrapper');
+        const accountBtnEl = document.getElementById('accountBtn');
+        const dropdown = document.getElementById('accountDropdown');
+        const arrow    = document.getElementById('ddArrow');
+
+        function positionDropdown() {
+            if (!accountBtnEl || !dropdown) return;
+            const r   = accountBtnEl.getBoundingClientRect();
+            const ddH = dropdown.offsetHeight || 320;
+            const vp  = window.innerHeight;
+            const gap = 10;
+
+            const spaceBelow = vp - r.bottom;
+            const spaceAbove = r.top;
+
+            if (spaceBelow >= ddH + gap || spaceBelow >= spaceAbove) {
+                dropdown.style.top    = (r.bottom + gap) + 'px';
+                dropdown.style.bottom = 'auto';
+                if (arrow) arrow.className = 'dd-arrow arrow-top';
+            } else {
+                dropdown.style.bottom = (vp - r.top + gap) + 'px';
+                dropdown.style.top    = 'auto';
+                if (arrow) arrow.className = 'dd-arrow arrow-bottom';
+            }
+            dropdown.style.right = (window.innerWidth - r.right) + 'px';
+            dropdown.style.left  = 'auto';
+        }
+
+        if (wrapper && accountBtnEl && dropdown) {
+            accountBtnEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = wrapper.classList.toggle('open');
+                if (isOpen) positionDropdown();
+            });
+            document.addEventListener('click', function(e) {
+                if (!wrapper.contains(e.target) && !dropdown.contains(e.target))
+                    wrapper.classList.remove('open');
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') wrapper.classList.remove('open');
+            });
+            window.addEventListener('resize', function() {
+                if (wrapper.classList.contains('open')) positionDropdown();
+            });
+            window.addEventListener('scroll', function() {
+                if (wrapper.classList.contains('open')) positionDropdown();
+            }, { passive: true });
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
