@@ -1,6 +1,7 @@
 from pathlib import Path
 from decouple import config
 import os
+import dj_database_url
 from decimal import Decimal
 import datetime
 from zoneinfo import ZoneInfo   # stdlib on Python 3.9+, no extra install needed
@@ -15,23 +16,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #  CORE SETTINGS
 # ─────────────────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-18cqg*t%&c=g(te(-z6n=qr*(*-4d+3ig6&pb*f+#0@71otk^j')
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='')
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '.ngrok-free.dev',
     '.ngrok.io',
-    '.loca.lt', 
+    '.loca.lt',
     '.pinggy.link',
     '.trycloudflare.com',
+    '.onrender.com',
 ]
+
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 CSRF_TRUSTED_ORIGINS = [
     'https://*.loca.lt',
     'https://*.ngrok-free.dev',
     'https://*.pinggy.link',
     'https://*.trycloudflare.com',
+    'https://*.onrender.com',
 ]
 
 
@@ -66,6 +74,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,12 +119,21 @@ TEMPLATES = [
 # ─────────────────────────────────────────────────────────
 #  DATABASE
 # ─────────────────────────────────────────────────────────
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Uses PostgreSQL when DATABASE_URL is set (Render / production).
+# Falls back to local SQLite when DATABASE_URL is not set (local dev).
+DATABASE_URL = config('DATABASE_URL', default='')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # ─────────────────────────────────────────────────────────
@@ -146,6 +164,15 @@ STATICFILES_DIRS = [
     BASE_DIR / 'shop' / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -237,7 +264,7 @@ PRINTFUL_STORE_ID = config('PRINTFUL_STORE_ID', default='')
 #            → PUBLIC_BASE_URL=https://your-subdomain.loca.lt
 #
 # ── Production ───────────────────────────────────────────────────────────────
-#   PUBLIC_BASE_URL=https://www.hoxobil.com
+#   PUBLIC_BASE_URL=https://www.hoxobil.com  (or your onrender.com URL)
 #
 # Leave empty to fall back to request.build_absolute_uri() (safe in production,
 # broken for local dev with Printful mockup generation).
@@ -272,21 +299,15 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'hoxobil_debug.log'),
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
         'shop': {  
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
         },
