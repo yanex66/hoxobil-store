@@ -939,9 +939,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         msg.sender_type === 'user' ? addUserMsg(msg.text) : addBotMsg(msg.text);
                     });
                 } else {
-                    fetch("{% url 'shop:get_chat_greeting' %}")
-                        .then(res => res.json())
-                        .then(gdata => addBotMsg(gdata.greeting));
+                    addBotMsg("Hey! ?? I'm HOXO, your HOXOBIL assistant. Ask me anything about our products, or tell me what you'd like to customize!");
                 }
             });
     }

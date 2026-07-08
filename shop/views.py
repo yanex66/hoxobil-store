@@ -27,12 +27,8 @@ from .filters import ProductFilter
 from .pod_api import PodApiClient
 from .cart import Cart
 from .forms import CheckoutForm, ReviewForm
-
 from .ai_bot import bot
-
 from PIL import Image
-from rembg import remove
-
 logger = logging.getLogger(__name__)
 
 
