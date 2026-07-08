@@ -31,6 +31,25 @@
         max-width: 560px;
         width: 100%;
         text-align: center;
+        position: relative;
+    }
+
+    .staff-login-link {
+        position: fixed;
+        top: 20px;
+        right: 24px;
+        color: var(--gold);
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.8rem;
+        text-decoration: none;
+        border: 1px solid rgba(201, 151, 58, 0.4);
+        border-radius: 6px;
+        padding: 6px 14px;
+        transition: background 0.2s;
+    }
+
+    .staff-login-link:hover {
+        background: rgba(201, 151, 58, 0.15);
     }
 
     h1 {
@@ -195,6 +214,8 @@
 <body>
 
 <div class="wrap">
+    <a href="{% url 'login' %}" class="staff-login-link">Staff Login</a>
+
     <h1>HOXOBIL</h1>
     <p class="tagline">Print-on-demand fashion, made yours. Launching soon.</p>
 

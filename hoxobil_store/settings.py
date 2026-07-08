@@ -321,7 +321,9 @@ DONATION_GOAL_NGN = Decimal('500000.00')
 # Path *prefixes* always reachable pre-launch (on top of the launch page
 # itself and the donation endpoints, which the middleware allows by name).
 LAUNCH_ALLOWED_PATH_PREFIXES = [
+
     '/admin',
     '/static',
     '/media',
+    '/accounts',
 ]
