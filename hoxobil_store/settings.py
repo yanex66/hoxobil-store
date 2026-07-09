@@ -314,7 +314,7 @@ LOGGING = {
     },
 }
 
-LAUNCH_DATE = datetime.datetime(2026, 9, 5, 0, 0, 0, tzinfo=ZoneInfo("Africa/Lagos"))
+LAUNCH_DATE = datetime.datetime(2026, 7, 9, 0, 0, 0, tzinfo=ZoneInfo("Africa/Lagos"))
  
 DONATION_GOAL_NGN = Decimal('500000.00')
  
