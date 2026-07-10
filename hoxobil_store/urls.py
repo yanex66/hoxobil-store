@@ -3,6 +3,13 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
+from django.contrib.sitemaps.views import sitemap
+from shop.sitemaps import ProductSitemap, StaticViewSitemap
+
+sitemaps = {
+    'products': ProductSitemap,
+    'static': StaticViewSitemap,
+}
 
 urlpatterns = [
     # Custom Password Reset Routes
@@ -48,7 +55,10 @@ urlpatterns = [
 
     # Admin Site
     path('admin/', admin.site.urls),
-    
+
+    # SEO Sitemap
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+
     # Shop app
     path('', include('shop.urls')), 
     

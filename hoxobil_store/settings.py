@@ -31,6 +31,7 @@ ALLOWED_HOSTS = [
     '.onrender.com',
     'hoxobil.store',
     'www.hoxobil.store',
+    
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -57,7 +58,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    'django.contrib.sitemaps',
     # Third-party Security Engine
     'corsheaders',
 
