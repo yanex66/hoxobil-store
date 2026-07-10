@@ -29,6 +29,8 @@ ALLOWED_HOSTS = [
     '.pinggy.link',
     '.trycloudflare.com',
     '.onrender.com',
+    'hoxobil.store',
+    'www.hoxobil.store',
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -40,6 +42,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.pinggy.link',
     'https://*.trycloudflare.com',
     'https://*.onrender.com',
+    'https://hoxobil.store',
+    'https://www.hoxobil.store',
 ]
 
 
