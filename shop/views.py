@@ -3,6 +3,8 @@ import base64
 import json as _json
 import io
 from decimal import Decimal, InvalidOperation
+from datetime import timedelta
+from django.utils import timezone
 
 from django.views.generic import ListView, DetailView, TemplateView
 from django.shortcuts import render, redirect, get_object_or_404
@@ -812,29 +814,17 @@ def flutterwave_callback(request, order_id):
         return redirect('shop:checkout_payment', order_id=order.id)
 
     order.paid = True
-    order.status = 'POD_SENT'
+    order.status = 'PENDING_SETTLEMENT'
+    order.settlement_release_at = timezone.now() + timedelta(
+        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
+    )
     order.save()
 
-    try:
-        api_client = PodApiClient('PFT')
-        pod_result = api_client.create_order(order)
-        if 'error' in pod_result:
-            logger.error("flutterwave_callback | Printful order failed for order %s: %s", order.id, pod_result)
-            messages.warning(
-                request,
-                f"Payment received! However, there was an issue submitting your order to fulfillment. "
-                f"Our team will resolve this. Order #{order.id}"
-            )
-        else:
-            pod_order_id = pod_result.get('result', {}).get('id') or pod_result.get('id')
-            if pod_order_id:
-                order.pod_order_id = str(pod_order_id)
-                order.status = 'FULFILLED'
-                order.save()
-            messages.success(request, f"Order #{order.id} confirmed and sent for fulfillment!")
-    except Exception as e:
-        logger.error("flutterwave_callback | Printful exception for order %s: %s", order.id, e)
-        messages.warning(request, f"Payment received! Order #{order.id} is being processed.")
+    messages.success(
+        request,
+        f"Payment confirmed! Order #{order.id} is being processed and will move to "
+        f"production shortly."
+    )
 
     cart = Cart(request)
     cart.clear()
@@ -907,29 +897,17 @@ def paystack_callback(request, order_id):
         return redirect('shop:checkout_payment', order_id=order.id)
 
     order.paid = True
-    order.status = 'POD_SENT'
+    order.status = 'PENDING_SETTLEMENT'
+    order.settlement_release_at = timezone.now() + timedelta(
+        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
+    )
     order.save()
 
-    try:
-        api_client = PodApiClient('PFT')
-        pod_result = api_client.create_order(order)
-        if 'error' in pod_result:
-            logger.error("paystack_callback | Printful order failed for order %s: %s", order.id, pod_result)
-            messages.warning(
-                request,
-                f"Payment received! However, there was an issue submitting your order to fulfillment. "
-                f"Our team will resolve this. Order #{order.id}"
-            )
-        else:
-            pod_order_id = pod_result.get('result', {}).get('id') or pod_result.get('id')
-            if pod_order_id:
-                order.pod_order_id = str(pod_order_id)
-                order.status = 'FULFILLED'
-                order.save()
-            messages.success(request, f"Order #{order.id} confirmed and sent for fulfillment!")
-    except Exception as e:
-        logger.error("paystack_callback | Printful exception for order %s: %s", order.id, e)
-        messages.warning(request, f"Payment received! Order #{order.id} is being processed.")
+    messages.success(
+        request,
+        f"Payment confirmed! Order #{order.id} is being processed and will move to "
+        f"production shortly."
+    )
 
     cart = Cart(request)
     cart.clear()
@@ -1684,102 +1662,30 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
     Paystack custom-order payment callbacks so the ~180 line flow isn't
     duplicated. Sets request messages and returns nothing.
     """
-    # ── 2. MARK ORDER AS PAID ─────────────────────────────────────────────────
+    # ── 2. MARK ORDER AS PAID, HOLD FOR SETTLEMENT ────────────────────────────
+    # We no longer push to Printful here. Printful charges our card the
+    # instant an order is submitted, but Paystack/Flutterwave typically take
+    # ~24h (sometimes longer) to actually settle the customer's payment into
+    # our bank account. Pushing instantly risks the card being declined for
+    # insufficient funds. Instead we hold the order at PENDING_SETTLEMENT and
+    # let the release_settled_orders management command submit it to
+    # Printful once the settlement window has passed. See shop/fulfillment.py.
     order.paid   = True
-    order.status = 'POD_SENT'
+    order.status = 'PENDING_SETTLEMENT'
+    order.settlement_release_at = timezone.now() + timedelta(
+        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
+    )
     order.save()
 
-    ticket.status = 'Approved & Ready for Production'
-    ticket.save(update_fields=['status'])
-
-    # ── 3. SUBMIT TO PRINTFUL ─────────────────────────────────────────────────
-    pod_order_id   = None
-    printful_error = None
-
-    if ticket.printful_product_id:
-        try:
-            printful_headers = {
-                'Authorization': f'Bearer {settings.PRINTFUL_ACCESS_TOKEN}',
-                'X-PF-Store-Id': str(settings.PRINTFUL_STORE_ID),
-                'Content-Type':  'application/json',
-            }
-
-            product_resp = http_requests.get(
-                f'https://api.printful.com/store/products/{ticket.printful_product_id}',
-                headers=printful_headers,
-                timeout=15,
-            )
-            product_data = product_resp.json()
-            variants     = product_data.get('result', {}).get('sync_variants', [])
-
-            if not variants:
-                raise ValueError("No variants found for Printful product.")
-
-            sync_variant_id = variants[0].get('id')
-
-            printful_order_payload = {
-                "recipient": {
-                    "name":         f"{order.first_name} {order.last_name}",
-                    "address1":     order.address,
-                    "city":         order.city,
-                    "state_code":   order.state or '',
-                    "country_code": order.country,
-                    "zip":          order.postal_code,
-                    "email":        order.email,
-                    "phone":        order.phone or '',
-                },
-                "items": [{"sync_variant_id": sync_variant_id, "quantity": 1}],
-                "retail_costs": {
-                    "currency": "USD",
-                    "subtotal": str(invoice_amount),
-                },
-                "gift": {
-                    "subject": f"HOXOBIL Custom Order #{order.id}",
-                    "message": f"Custom {ticket.garment_item} — Order #{order.id}",
-                },
-            }
-
-            pf_resp = http_requests.post(
-                'https://api.printful.com/orders',
-                headers=printful_headers,
-                json=printful_order_payload,
-                timeout=20,
-            )
-            pf_data = pf_resp.json()
-
-            if pf_resp.status_code in (200, 201) and pf_data.get('code') in (200, 201):
-                pod_order_id       = str(pf_data.get('result', {}).get('id', ''))
-                order.pod_order_id = pod_order_id
-                order.status       = 'FULFILLED'
-                order.save(update_fields=['pod_order_id', 'status'])
-            else:
-                printful_error = pf_data.get('error', {}).get('message', 'Unknown Printful error')
-                logger.error("_fulfill_custom_design_order | Printful failed for order %s: %s", order.id, printful_error)
-
-        except Exception as e:
-            printful_error = str(e)
-            logger.error("_fulfill_custom_design_order | Printful exception for order %s: %s", order.id, e)
-    else:
-        printful_error = "No Printful product ID on ticket."
-
-    # ── 4. NOTIFY CUSTOMER IN CHAT ────────────────────────────────────────────
+    # ── 3. NOTIFY CUSTOMER IN CHAT ────────────────────────────────────────────
     chat = SupportChat.objects.filter(user=request.user).first()
     if chat:
-        if printful_error:
-            chat_text = (
-                f"✅ **Payment Confirmed!**\n\n"
-                f"We've received your payment for your custom **{ticket.garment_item}**. "
-                "Our team has been alerted and will manually submit your order to production shortly. "
-                f"Order reference: **#{order.id}**. Thank you! 🙏"
-            )
-        else:
-            chat_text = (
-                f"✅ **Payment Confirmed & Order Submitted!**\n\n"
-                f"We've received your payment for your custom **{ticket.garment_item}**. "
-                f"Your order has been sent directly to production. 🚀\n\n"
-                f"Order reference: **#{order.id}**\n"
-                f"We'll update you here once it ships. Thank you! 🙏"
-            )
+        chat_text = (
+            f"✅ **Payment Confirmed!**\n\n"
+            f"We've received your payment for your custom **{ticket.garment_item}**. "
+            f"Your order will move into production shortly.\n\n"
+            f"Order reference: **#{order.id}**. Thank you! 🙏"
+        )
         ChatMessage.objects.create(chat=chat, sender_type='admin', text=chat_text)
 
         receipt_text = (
@@ -1797,7 +1703,7 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
         )
         ChatMessage.objects.create(chat=chat, sender_type='admin', text=receipt_text)
 
-    # ── 5. SEND RECEIPT EMAIL TO CUSTOMER ─────────────────────────────────────
+    # ── 4. SEND RECEIPT EMAIL TO CUSTOMER ─────────────────────────────────────
     try:
         from django.core.mail import send_mail as _send_mail
         _send_mail(
@@ -1813,7 +1719,8 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
                 f"Placement:       {ticket.placement or '—'}\n"
                 f"Amount Paid:     ₦{invoice_amount:,}\n"
                 f"{'─' * 40}\n\n"
-                f"Your order is now in production. We'll email you again once it ships.\n\n"
+                f"Your order is being processed and will move into production shortly. "
+                f"We'll email you again once it ships.\n\n"
                 f"— The HOXOBIL Team 🖤"
             ),
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'help.hoxobil@gmail.com'),
@@ -1823,42 +1730,12 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
     except Exception as e:
         logger.error("_fulfill_custom_design_order | Customer receipt email failed for order %s: %s", order.id, e)
 
-    # ── 6. NOTIFY ADMIN BY EMAIL ──────────────────────────────────────────────
-    try:
-        admin_emails = [e for _, e in getattr(settings, 'ADMINS', [])]
-        fallback     = getattr(settings, 'DEFAULT_FROM_EMAIL', 'help.hoxobil@gmail.com')
-        recipients   = admin_emails or [fallback]
-
-        if printful_error:
-            subject = f"[ACTION REQUIRED] Custom Order #{order.id} — Printful Submission Failed"
-            body = (
-                f"Payment received but Printful submission failed.\n\n"
-                f"Order ID: #{order.id} | Ticket ID: #{ticket.id}\n"
-                f"Customer: {request.user.get_full_name() or request.user.username} ({request.user.email})\n"
-                f"Garment: {ticket.garment_item} | Invoice: ₦{invoice_amount:,}\n"
-                f"Printful ID: {ticket.printful_product_id or 'NOT SET'}\n\n"
-                f"Error: {printful_error}\n\nPlease submit manually from admin."
-            )
-        else:
-            subject = f"[HOXOBIL] Custom Order #{order.id} Paid & Sent to Printful ✅"
-            body = (
-                f"Custom order paid and submitted successfully.\n\n"
-                f"Order ID: #{order.id} | Ticket ID: #{ticket.id}\n"
-                f"Customer: {request.user.get_full_name() or request.user.username} ({request.user.email})\n"
-                f"Garment: {ticket.garment_item} | Invoice: ₦{invoice_amount:,}\n"
-                f"Printful ID: {ticket.printful_product_id} | PF Order ID: {pod_order_id}\n"
-            )
-
-        send_mail(subject=subject, message=body, from_email=fallback,
-                  recipient_list=recipients, fail_silently=True)
-    except Exception as e:
-        logger.error("_fulfill_custom_design_order | Admin email failed for order %s: %s", order.id, e)
-
-    # ── 7. SUCCESS MESSAGE ──────────────────────────────────────────────────
-    if printful_error:
-        messages.warning(request, f"Payment received! Order #{order.id} is being processed by our team.")
-    else:
-        messages.success(request, f"Payment confirmed! Your custom order #{order.id} is now in production. 🚀")
+    # ── 5. SUCCESS MESSAGE ──────────────────────────────────────────────────
+    messages.success(
+        request,
+        f"Payment confirmed! Your custom order #{order.id} is being processed and will "
+        f"move into production shortly. 🚀"
+    )
 
 
 @login_required

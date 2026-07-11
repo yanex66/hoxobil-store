@@ -9,7 +9,9 @@ User = get_user_model()
 
 POD_SERVICES = [('PFT', 'Printful'), ('PFY', 'Printify')]
 ORDER_STATUS_CHOICES = [
-    ('PENDING', 'Pending Payment'), ('POD_SENT', 'Sent to POD'),
+    ('PENDING', 'Pending Payment'),
+    ('PENDING_SETTLEMENT', 'Paid — Awaiting Settlement'),
+    ('POD_SENT', 'Sent to POD'),
     ('FULFILLED', 'Fulfilled by POD'), ('SHIPPED', 'Shipped'), ('CANCELLED', 'Cancelled'),
 ]
 
@@ -117,10 +119,18 @@ class Order(models.Model):
     postal_code = models.CharField(max_length=20)
     shipping_cost = MoneyField(max_digits=14, decimal_places=2, default_currency='USD', default=0)
     paid = models.BooleanField(default=False)
-    status = models.CharField(max_length=10, choices=ORDER_STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='PENDING')
     abandonment_email_sent_at = models.DateTimeField(
         null=True, blank=True,
         help_text="Set once a cart-abandonment reminder has been sent for this order, to avoid emailing twice."
+    )
+    settlement_release_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text=(
+            "Set when payment is confirmed. The order is held at status "
+            "'PENDING_SETTLEMENT' and is not sent to Printful until this "
+            "time passes — see the release_settled_orders management command."
+        ),
     )
     pod_order_id = models.CharField(max_length=100, blank=True, null=True)
     tracking_number = models.CharField(max_length=200, blank=True, null=True)

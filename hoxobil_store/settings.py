@@ -200,6 +200,19 @@ LOGOUT_REDIRECT_URL = '/'
 
 
 # ─────────────────────────────────────────────────────────
+#  PAYMENT SETTLEMENT / FULFILLMENT DELAY
+# ─────────────────────────────────────────────────────────
+# Paystack/Flutterwave settle funds to our bank account roughly a day after
+# a customer pays (sometimes longer). Printful charges our card the moment
+# an order is submitted. To avoid charging Printful before the customer's
+# money has actually landed, paid orders are held at status
+# 'PENDING_SETTLEMENT' for this many hours before the release_settled_orders
+# management command pushes them to Printful. Adjust based on your actual
+# observed Paystack/Flutterwave settlement times.
+SETTLEMENT_DELAY_HOURS = config('SETTLEMENT_DELAY_HOURS', default=24, cast=int)
+
+
+# ─────────────────────────────────────────────────────────
 #  EMAIL CONFIGURATION
 # ─────────────────────────────────────────────────────────
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

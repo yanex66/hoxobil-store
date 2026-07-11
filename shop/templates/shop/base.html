@@ -320,6 +320,21 @@
             .acc-dd-link.signout:hover i { color: var(--crimson-soft); }
         }
 
+        /* Logout button rendered inside a <form> — reuses .acc-dd-link look but resets
+           native <button> chrome (border/background/full-width/text-align) */
+        .acc-dd-link.signout-btn {
+            width: 100%;
+            background: none;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            font: inherit;
+            font-family: 'Raleway', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
         .acc-dd-cta { padding: 1rem 1.1rem; }
         .acc-dd-cta a {
             display: block;
@@ -340,6 +355,24 @@
         @media (hover: hover) {
             .acc-dd-cta .cta-signin:hover { background: var(--crimson-mid); border-color: var(--crimson-mid); }
             .acc-dd-cta .cta-register:hover { color: var(--ivory); border-color: rgba(250,247,242,0.3); }
+        }
+
+        /* Mobile offcanvas "Sign Out" — was a plain text link, now a <button> in a
+           POST form, styled to look identical to the old <a> */
+        .offcanvas-signout-btn {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(250,247,242,0.3);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        @media (hover: hover) {
+            .offcanvas-signout-btn:hover { color: var(--ivory); }
         }
 
         /* ── TICKER TAPE ── */
@@ -755,9 +788,12 @@
 
                             <div class="acc-dd-divider"></div>
 
-                            <a href="{% url 'logout' %}" class="acc-dd-link signout">
-                                <i class="bi bi-box-arrow-right"></i> Sign Out
-                            </a>
+                            <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                                {% csrf_token %}
+                                <button type="submit" class="acc-dd-link signout signout-btn">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </form>
 
                         {% else %}
                             <div class="acc-dd-header">
@@ -874,7 +910,10 @@
             <div style="position:absolute;bottom:2rem;left:1.5rem;right:1.5rem;border-top:1px solid rgba(250,247,242,0.08);padding-top:1.5rem;">
                 <p style="font-family:'Roboto Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson-soft);margin-bottom:0.5rem;">Unleashing Perfection</p>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'logout' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(250,247,242,0.3);text-decoration:none;">Sign Out →</a>
+                    <form method="post" action="{% url 'logout' %}" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="offcanvas-signout-btn">Sign Out →</button>
+                    </form>
                 {% else %}
                     <a href="{% url 'login' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(250,247,242,0.3);text-decoration:none;">Sign In →</a>
                 {% endif %}
