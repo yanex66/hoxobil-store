@@ -635,7 +635,27 @@
         hr { border-color: var(--border); margin: 2rem 0; }
     </style>
 
-    {% block extra_head %}{% endblock %}
+     {% block extra_head %}{% endblock %}
+
+     <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ClothingStore",
+      "name": "HOXOBIL",
+      "url": "https://hoxobil.store",
+      "logo": "https://hoxobil.store{% static 'images/image.png' %}",
+      "image": "https://hoxobil.store{% static 'images/image.png' %}",
+      "founder": {
+        "@type": "Person",
+        "name": "Iyanuoluwa Darasimi",
+        "jobTitle": "Founder",
+        "image": "https://hoxobil.store{% static 'images/DSC_0417~2.jpg' %}",
+        "sameAs": [
+          "https://ng.linkedin.com/in/iyanuoluwa-darasimi-84a305260"
+        ]
+      }
+    }
+    </script>
 </head>
 <body>
 
