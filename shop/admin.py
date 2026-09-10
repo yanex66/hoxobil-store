@@ -104,8 +104,18 @@ class DesignSubmissionInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug']
+    list_display = ['name', 'slug', 'featured_indicator']
     prepopulated_fields = {'slug': ('name',)}
+    
+    def featured_indicator(self, obj):
+        """Display star indicator for featured categories."""
+        featured_slugs = ['new-drop', 'trending', 'limited', 'outerwear', 'editorial']
+        if obj.slug in featured_slugs:
+            return mark_safe(
+                '<span style="color: #c0392b; font-weight: 900; font-size: 1.2em;">★ FEATURED</span>'
+            )
+        return '-'
+    featured_indicator.short_description = 'Featured'
 
 
 class BaseProductAdmin(admin.ModelAdmin):

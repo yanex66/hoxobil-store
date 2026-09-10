@@ -468,11 +468,22 @@
   .hx-look:not(:first-child) { aspect-ratio: 4/3; }
   .hx-look img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; display: block; }
   .hx-look:hover img { transform: scale(1.04); }
+  /* ── Category & Lookbook Tags ── */
+  .hx-cat-tag {
+    position: absolute; top: 1.25rem; left: 1.25rem;
+    background: #c0392b; color: #fff;
+    font-size: 11px; font-weight: 900; letter-spacing: 0.2em;
+    text-transform: uppercase; padding: 6px 12px;
+    border-radius: 2px; box-shadow: 0 2px 8px rgba(192, 57, 43, 0.4);
+    z-index: 10;
+  }
   .hx-look-tag {
     position: absolute; top: 1rem; left: 1rem;
     background: #c0392b; color: #fff;
-    font-size: 9px; font-weight: 800; letter-spacing: 0.18em;
-    text-transform: uppercase; padding: 4px 10px;
+    font-size: 10px; font-weight: 900; letter-spacing: 0.18em;
+    text-transform: uppercase; padding: 5px 11px;
+    border-radius: 2px; box-shadow: 0 2px 8px rgba(192, 57, 43, 0.4);
+    z-index: 10;
   }
 
   /* ── How It Works ── */
@@ -762,6 +773,7 @@
     <a href="{% url 'shop:product_list' %}?category=new-drop" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop" alt="New Drop" loading="lazy">
       <div class="hx-cat-overlay"></div>
+      <span class="hx-cat-tag">NEW DROP</span>
       <div class="hx-cat-label">
         <span class="hx-cat-name">New Drop</span>
         <span class="hx-cat-count">Latest Arrivals</span>
@@ -770,6 +782,7 @@
     <a href="{% url 'shop:product_list' %}?category=trending" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=800&auto=format&fit=crop" alt="Trending" loading="lazy">
       <div class="hx-cat-overlay"></div>
+      <span class="hx-cat-tag">TRENDING</span>
       <div class="hx-cat-label">
         <span class="hx-cat-name">Trending</span>
         <span class="hx-cat-count">Most Popular Now</span>
@@ -778,6 +791,7 @@
     <a href="{% url 'shop:product_list' %}?category=outerwear" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop" alt="Outerwear" loading="lazy">
       <div class="hx-cat-overlay"></div>
+      <span class="hx-cat-tag">OUTERWEAR</span>
       <div class="hx-cat-label">
         <span class="hx-cat-name">Outerwear</span>
         <span class="hx-cat-count">Statement Jackets & More</span>
@@ -786,6 +800,7 @@
     <a href="{% url 'shop:product_list' %}?category=editorial" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=800&auto=format&fit=crop" alt="Editorial" loading="lazy">
       <div class="hx-cat-overlay"></div>
+      <span class="hx-cat-tag">EDITORIAL</span>
       <div class="hx-cat-label">
         <span class="hx-cat-name">Editorial</span>
         <span class="hx-cat-count">Curated Collections</span>
@@ -803,22 +818,23 @@
   <div class="hx-lookbook-grid">
     <a href="{% url 'shop:product_list' %}?category=new-drop" class="hx-look">
       <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop" alt="New Drop" loading="lazy">
-      <span class="hx-look-tag">New Drop</span>
+      <span class="hx-look-tag">NEW DROP</span>
     </a>
     <a href="{% url 'shop:product_list' %}?category=trending" class="hx-look">
       <img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=800&auto=format&fit=crop" alt="Trending" loading="lazy">
-      <span class="hx-look-tag">Trending</span>
+      <span class="hx-look-tag">TRENDING</span>
     </a>
     <a href="{% url 'shop:product_list' %}?category=outerwear" class="hx-look">
       <img src="https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?q=80&w=800&auto=format&fit=crop" alt="Outerwear" loading="lazy">
+      <span class="hx-look-tag">OUTERWEAR</span>
     </a>
     <a href="{% url 'shop:product_list' %}?category=limited" class="hx-look">
       <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop" alt="Limited" loading="lazy">
-      <span class="hx-look-tag">Limited</span>
+      <span class="hx-look-tag">LIMITED</span>
     </a>
     <a href="{% url 'shop:product_list' %}?category=editorial" class="hx-look">
       <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=800&auto=format&fit=crop" alt="Editorial" loading="lazy">
-      <span class="hx-look-tag">Editorial</span>
+      <span class="hx-look-tag">EDITORIAL</span>
     </a>
   </div>
 </section>

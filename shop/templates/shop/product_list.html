@@ -75,8 +75,9 @@
                         {% for cat in categories %}
                         <li>
                             <a href="{% url 'shop:product_list' %}?category={{ cat.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
-                               class="filter-link {% if request.GET.category == cat.slug %}active{% endif %}">
+                               class="filter-link {% if request.GET.category == cat.slug %}active{% endif %} {% if cat.slug in 'new-drop,trending,limited,outerwear,editorial' %}featured-cat{% endif %}">
                                 {{ cat.name }}
+                                {% if cat.slug in 'new-drop,trending,limited,outerwear,editorial' %}<span class="featured-badge">★</span>{% endif %}
                             </a>
                         </li>
                         {% endfor %}
@@ -143,8 +144,8 @@
                     </a>
                     {% for cat in categories %}
                     <a href="{% url 'shop:product_list' %}?category={{ cat.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
-                       class="btn btn-sm {% if request.GET.category == cat.slug %}btn-hox-catalog{% else %}btn-light text-dark border{% endif %} rounded-pill px-4 text-nowrap font-mono">
-                        {{ cat.name }}
+                       class="btn btn-sm {% if request.GET.category == cat.slug %}btn-hox-catalog{% else %}btn-light text-dark border{% endif %} rounded-pill px-4 text-nowrap font-mono {% if cat.slug in 'new-drop,trending,limited,outerwear,editorial' %}featured-pill{% endif %}">
+                        {% if cat.slug in 'new-drop,trending,limited,outerwear,editorial' %}<span class="featured-star">★</span>{% endif %} {{ cat.name }}
                     </a>
                     {% endfor %}
                 </div>
@@ -205,7 +206,7 @@
                                 {% else %}
                                 <div class="d-flex align-items-center justify-content-center h-100 bg-light text-muted font-mono small">NO IMAGE</div>
                                 {% endif %}
-                                <div class="p-tag font-mono">{{ product.categories.first.name|upper }}</div>
+                                <div class="p-tag {% if product.categories.first.slug in 'new-drop,trending,limited,outerwear,editorial' %}p-tag-featured{% endif %} font-mono">{{ product.categories.first.name|upper }}</div>
                             </a>
                             <div class="p-info">
                                 <h3 class="p-title font-display">
@@ -348,6 +349,45 @@
     .hox-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.15em; }
     .filter-link { display: block; padding: 6px 0; color: rgba(28,28,28,0.7); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: color 0.2s; }
     .filter-link:hover, .filter-link.active { color: var(--crimson, #8B0000); }
+    
+    /* ── Featured Categories (Homepage Navigation) ── */
+    .filter-link.featured-cat { 
+      font-weight: 900; 
+      color: #c0392b; 
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+    .filter-link.featured-cat:hover { 
+      color: #a93226;
+    }
+    .featured-badge {
+      display: inline-block;
+      margin-left: 4px;
+      color: #c0392b;
+      font-size: 0.7rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .featured-pill {
+      border-color: #c0392b !important;
+      border-width: 2px !important;
+      color: #c0392b !important;
+      font-weight: 700 !important;
+    }
+    .featured-pill:hover {
+      background: #c0392b !important;
+      color: #fff !important;
+    }
+    .featured-star {
+      display: inline-block;
+      margin-right: 4px;
+      color: #c0392b;
+      font-size: 0.85rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
 
     /* ── Pagination ── */
     .pagination .page-link { color: var(--charcoal, #1C1C1C); border-color: rgba(28,28,28,0.15); font-size: 0.75rem; letter-spacing: 0.05em; }
@@ -395,6 +435,13 @@
         background: var(--charcoal, #1C1C1C); color: var(--ivory, #FAF7F2);
         font-size: 0.58rem; font-weight: 700; padding: 3px 8px;
         border-radius: 4px; letter-spacing: 0.05em; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .p-tag-featured {
+        position: absolute; top: 10px; left: 10px;
+        background: #c0392b; color: #fff;
+        font-size: 10px; font-weight: 900; padding: 5px 10px;
+        border-radius: 3px; letter-spacing: 0.15em; box-shadow: 0 3px 12px rgba(192, 57, 43, 0.35);
+        z-index: 10; text-transform: uppercase;
     }
     .p-info { padding: 12px 2px; }
     .p-title a {
