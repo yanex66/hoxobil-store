@@ -361,7 +361,7 @@
                 <div class="hox-detail-card-body">
                     <div class="totals-row">
                         <span>Items subtotal</span>
-                        <span>{{ order.get_total_cost|convert_manual:CURRENT_CURRENCY }}</span>
+                        <span>{{ order.get_items_subtotal|convert_manual:CURRENT_CURRENCY }}</span>
                     </div>
                     <div class="totals-row">
                         <span>Shipping</span>
@@ -396,17 +396,14 @@
                     <div class="info-row">
                         <span class="label">Fulfillment</span>
                         <span class="value">
-                            {% if order.status == 'PENDING' %}
-                                <span class="hox-badge badge-pending"><i class="bi bi-clock"></i> Pending</span>
-                            {% elif order.status == 'POD_SENT' %}
-                                <span class="hox-badge badge-sent"><i class="bi bi-arrow-up-circle"></i> Processing</span>
-                            {% elif order.status == 'FULFILLED' %}
-                                <span class="hox-badge badge-fulfilled"><i class="bi bi-check-circle"></i> Fulfilled</span>
-                            {% elif order.status == 'SHIPPED' %}
-                                <span class="hox-badge badge-shipped"><i class="bi bi-truck"></i> Shipped</span>
-                            {% elif order.status == 'CANCELLED' %}
-                                <span class="hox-badge badge-cancelled"><i class="bi bi-x-circle"></i> Cancelled</span>
-                            {% endif %}
+                            <span class="hox-badge {% if order.fulfillment_status == 'CANCELLED' %}badge-cancelled{% elif order.fulfillment_status == 'SHIPPED' %}badge-shipped{% elif order.fulfillment_status == 'DELIVERED' %}badge-fulfilled{% elif order.fulfillment_status == 'IN_PRODUCTION' %}badge-sent{% else %}badge-pending{% endif %}">
+                                {% if order.fulfillment_status == 'CANCELLED' %}<i class="bi bi-x-circle"></i>
+                                {% elif order.fulfillment_status == 'SHIPPED' %}<i class="bi bi-truck"></i>
+                                {% elif order.fulfillment_status == 'DELIVERED' %}<i class="bi bi-check-circle"></i>
+                                {% elif order.fulfillment_status == 'IN_PRODUCTION' %}<i class="bi bi-arrow-up-circle"></i>
+                                {% else %}<i class="bi bi-clock"></i>{% endif %}
+                                {{ order.get_fulfillment_status_display }}
+                            </span>
                         </span>
                     </div>
                     {% if order.pod_order_id %}

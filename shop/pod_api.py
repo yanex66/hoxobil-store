@@ -2,7 +2,7 @@ import logging
 import requests
 import time
 from django.conf import settings
-from .models import Order, ProductVariant  # Added ProductVariant import for fast cross-referencing
+from .models import Order, ProductVariant
 from decimal import Decimal, InvalidOperation
 from djmoney.money import Money
 
@@ -24,20 +24,18 @@ CUSTOM_TICKET_POD_ID_PREFIX = 'custom-ticket-'
 
 
 class PodApiClient:
-    def __init__(self, service_type):
-        self.service_type = service_type
-        if service_type in ('PFT', 'PFY'):
-            raw_token = getattr(settings, 'PRINTFUL_ACCESS_TOKEN', '')
-            self.token    = raw_token.strip() if raw_token else None
-            self.store_id = getattr(settings, 'PRINTFUL_STORE_ID', None)
-            self.base_url = PRINTFUL_BASE_URL
-            self.service  = 'Printful'
-            if not self.token:
-                logger.critical("PRINTFUL_ACCESS_TOKEN is missing from settings.")
-            if not self.store_id:
-                logger.critical("PRINTFUL_STORE_ID is missing from settings.")
-        else:
-            raise ValueError("Only Printful integration service types are supported.")
+    def __init__(self, service_type='PFT'):
+        self.service_type = 'PFT'
+        self.last_publish_error = None
+        raw_token = getattr(settings, 'PRINTFUL_ACCESS_TOKEN', '')
+        self.token    = raw_token.strip() if raw_token else None
+        self.store_id = getattr(settings, 'PRINTFUL_STORE_ID', None)
+        self.base_url = PRINTFUL_BASE_URL
+        self.service  = 'Printful'
+        if not self.token:
+            logger.critical("PRINTFUL_ACCESS_TOKEN is missing from settings.")
+        if not self.store_id:
+            logger.critical("PRINTFUL_STORE_ID is missing from settings.")
 
     def _get_headers(self, is_post=False):
         headers = {
@@ -102,6 +100,37 @@ class PodApiClient:
             logger.error("_fetch_product_details | Error for product %s: %s", product_id, e)
         return None
 
+    def update_store_product(self, pod_id, *, name=None, description=None):
+        """Push editable local product fields to an existing Printful product."""
+        payload = {'sync_product': {}}
+        if name is not None:
+            payload['sync_product']['name'] = name
+        if description is not None:
+            payload['sync_product']['description'] = description
+
+        if not payload['sync_product']:
+            return True, ''
+
+        url = f"{self.base_url}/store/products/{pod_id}"
+        try:
+            response = requests.put(
+                url,
+                headers=self._get_headers(is_post=True),
+                json=payload,
+                timeout=TIMEOUT,
+            )
+            if not response.ok:
+                detail = response.text.strip() or '<empty response body>'
+                message = f'HTTP {response.status_code}: {detail}'
+                logger.error('update_store_product | Printful API error for %s: %s', pod_id, message)
+                return False, message
+            return True, ''
+        except requests.Timeout:
+            return False, 'Printful request timed out.'
+        except requests.RequestException as exc:
+            detail = getattr(getattr(exc, 'response', None), 'text', '')
+            return False, f'{exc} {detail}'.strip()
+
     # ── CATALOG HELPERS ───────────────────────────────────────────────────────
 
     def get_catalog_variant_details(self, catalog_variant_id):
@@ -123,21 +152,6 @@ class PodApiClient:
         return None
 
     def _resolve_catalog_ids_from_store_variant(self, store_variant_pod_id):
-        """
-        Resolves the Printful *catalog* product ID and *catalog* variant ID from a
-        store sync-variant pod_id (the ID stored in our ProductVariant.pod_id field,
-        which is actually the sync_variant's `variant_id` — i.e. the catalog variant ID).
-
-        Strategy
-        --------
-        The sync command (sync_printful_products in views.py) saves
-        ``v.get('variant_id') or v['id']`` as the ProductVariant.pod_id.
-        ``variant_id`` on a sync_variant IS the catalog variant ID, so we can use it
-        directly for /catalog/variants/{id} — no store-products round-trip needed.
-
-        We keep the store-products fallback in case pod_id was stored as the sync
-        variant's own `id` (the store-scoped integer) rather than `variant_id`.
-        """
         try:
             variant = ProductVariant.objects.select_related('product').filter(
                 pod_id=str(store_variant_pod_id)
@@ -150,9 +164,6 @@ class PodApiClient:
                 )
                 return None, None
 
-            # ── PATH 1: pod_id IS the catalog variant ID (normal post-sync state) ──
-            # Try to fetch catalog details directly; this works when sync_products
-            # stored variant_id (= catalog variant ID) in pod_id.
             cat_details = self.get_catalog_variant_details(str(store_variant_pod_id))
             if cat_details:
                 catalog_product_id = (
@@ -167,21 +178,17 @@ class PodApiClient:
                     )
                     return catalog_product_id, store_variant_pod_id
 
-            # ── PATH 2: pod_id is the store sync_variant `id`, not `variant_id` ──
-            # Walk the parent product's sync_variants to find the real catalog IDs.
             if variant.product and variant.product.pod_id:
                 product_url = f"{self.base_url}/store/products/{variant.product.pod_id}"
                 resp = requests.get(product_url, headers=self._get_headers(), timeout=TIMEOUT)
                 if resp.status_code == 200:
                     sync_variants = resp.json().get('result', {}).get('sync_variants', [])
                     for sv in sync_variants:
-                        # Match by store sync_variant id OR by our stored pod_id
                         if (
                             str(sv.get('id')) == str(store_variant_pod_id)
                             or str(sv.get('variant_id')) == str(store_variant_pod_id)
                         ):
                             catalog_variant_id = sv.get('variant_id')
-                            # Resolve catalog_product_id via catalog API
                             catalog_product_id = None
                             if catalog_variant_id:
                                 cat2 = self.get_catalog_variant_details(str(catalog_variant_id))
@@ -211,10 +218,6 @@ class PodApiClient:
         return None, None
 
     def get_valid_placement(self, catalog_product_id, requested_zone):
-        """
-        Fetches available placements + printfile dimensions for a catalog product.
-        Returns (validated_zone, pf_width, pf_height).
-        """
         url = f"{self.base_url}/mockup-generator/printfiles/{catalog_product_id}"
         try:
             response = requests.get(url, headers=self._get_headers(), timeout=TIMEOUT)
@@ -260,15 +263,6 @@ class PodApiClient:
         custom_position=None,
         rotation=0
     ):
-        """
-        Full pipeline:
-          1. Resolve catalog_product_id + catalog_variant_id from the store variant ID
-          2. Validate / remap the placement zone
-          3. Submit a mockup-generator task
-          4. Poll until completed and return (mockup_url, pf_width, pf_height)
-        Returns (None, None, None) on failure.
-        """
-        # ── STEP 1: Resolve catalog IDs ───────────────────────────────────────
         catalog_product_id, catalog_variant_id = self._resolve_catalog_ids_from_store_variant(
             product_variant_id
         )
@@ -280,7 +274,6 @@ class PodApiClient:
             )
             return None, None, None
 
-        # ── STEP 2: Validate placement + get printfile dimensions ─────────────
         raw_zone = placement_zone.lower().replace(' ', '_')
         validated_zone, pf_width, pf_height = self.get_valid_placement(
             catalog_product_id, raw_zone
@@ -290,7 +283,6 @@ class PodApiClient:
             pf_width, pf_height, validated_zone
         )
 
-        # ── STEP 3: Build position payload safely mapping types ───────────────
         if custom_position and isinstance(custom_position, dict):
             position = {
                 'area_width':  int(custom_position.get('area_width', pf_width)),
@@ -331,10 +323,9 @@ class PodApiClient:
 
         url = f"{self.base_url}/mockup-generator/create-task/{catalog_product_id}"
 
-        # ── STEP 4: Submit task (with 429 retry backoff) ──────────────────────
         try:
             response = None
-            for attempt in range(4):  # up to 3 retries
+            for attempt in range(4):
                 response = requests.post(
                     url,
                     headers=self._get_headers(is_post=True),
@@ -342,14 +333,14 @@ class PodApiClient:
                     timeout=TIMEOUT,
                 )
                 if response.status_code == 429:
-                    wait = 2 ** attempt  # 1 s, 2 s, 4 s
+                    wait = 2 ** attempt
                     logger.warning(
                         "generate_mockup_preview | 429 rate-limited by Printful, "
                         "retrying in %ds (attempt %d/3)", wait, attempt + 1
                     )
                     time.sleep(wait)
                     continue
-                break  # success or non-429 error — stop retrying
+                break
 
             response.raise_for_status()
             task_key = response.json().get('result', {}).get('task_key')
@@ -358,7 +349,6 @@ class PodApiClient:
                 logger.error("generate_mockup_preview | No task_key in response.")
                 return None, None, None
 
-            # ── STEP 5: Poll for result (up to 10 × 3 s = 30 s) ─────────────
             status_url = f"{self.base_url}/mockup-generator/task?task_key={task_key}"
             for attempt in range(10):
                 time.sleep(3)
@@ -386,27 +376,11 @@ class PodApiClient:
 
     @staticmethod
     def _is_custom_ticket_pod_id(pod_id):
-        """Custom design tickets are stored in the cart with pod_id values like
-        'custom-ticket-7' — these are NOT real Printful catalog variants and
-        must never be sent to Printful's live shipping/mockup APIs."""
         return str(pod_id).startswith(CUSTOM_TICKET_POD_ID_PREFIX)
 
     def get_detailed_shipping_rates(
         self, cart_items, country, zip_code, state="", city="", address1=""
     ):
-        """
-        Splits cart items into:
-          - real Printful products  -> queried live against Printful's API
-          - custom design tickets   -> given a flat manual shipping rate
-        and returns a combined list of rate options.
-
-        Previously, custom-ticket items (pod_id like 'custom-ticket-7') failed
-        `int(variant_obj.pod_id)` and were silently dropped. If the cart
-        contained ONLY a custom ticket, this left an empty `line_items` list,
-        Printful returned nothing usable, and the checkout page showed
-        "Could not load shipping rate". Now custom tickets are routed to a
-        flat shipping rate instead of Printful's live rates API.
-        """
         line_items = []
         has_custom_ticket = False
 
@@ -427,8 +401,6 @@ class PodApiClient:
                     'quantity':   item['quantity'],
                 })
             except (ValueError, TypeError):
-                # Genuinely malformed/unexpected pod_id — skip it but log,
-                # since this is NOT the expected custom-ticket case.
                 logger.warning(
                     "get_detailed_shipping_rates | Skipping cart item with "
                     "non-numeric, non-custom-ticket pod_id=%r", pod_id
@@ -437,7 +409,6 @@ class PodApiClient:
 
         rates = []
 
-        # ── Live Printful rates for any real product line items ──
         if line_items:
             payload = {
                 'recipient': {
@@ -476,17 +447,12 @@ class PodApiClient:
             except Exception as e:
                 logger.error("get_detailed_shipping_rates | Error: %s", e)
 
-        # ── Flat rate for custom design tickets ──
         if has_custom_ticket:
             if rates:
-                # Mix of real products + a custom ticket: add the flat custom
-                # shipping cost on top of each live Printful rate option so the
-                # customer still sees a single combined total per option.
                 for rate in rates:
                     rate['price'] = rate['price'] + CUSTOM_TICKET_FLAT_SHIPPING
                     rate['name']  = f"{rate['name']} (incl. custom item)"
             else:
-                # Cart is ONLY custom design ticket(s) — no Printful call needed.
                 rates.append({
                     'id':       'CUSTOM_FLAT',
                     'name':     'Standard Shipping (Custom Order)',
@@ -514,9 +480,6 @@ class PodApiClient:
         for item in order.items.all():
             pod_id = item.product_variant.pod_id
             if self._is_custom_ticket_pod_id(pod_id):
-                # Custom design tickets are submitted to Printful separately
-                # (see custom_order_payment_callback in views.py, which uses
-                # ticket.printful_product_id) — skip them here.
                 continue
             try:
                 line_items.append({
@@ -542,8 +505,8 @@ class PodApiClient:
             },
             'items': line_items,
             'retail_costs': {
-                'shipping':              str(order.shipping_cost.amount),
-                'retail_delivery_cost':  str(order.shipping_cost.amount),
+                'shipping':             str(order.shipping_cost.amount),
+                'retail_delivery_cost': str(order.shipping_cost.amount),
             },
         }
 

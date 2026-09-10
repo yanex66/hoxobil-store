@@ -1,0 +1,92 @@
+services:
+  - type: web
+    name: hoxobil-store
+    runtime: python
+    pythonVersion: "3.12"
+    
+    # Build command: install dependencies, run migrations, collect static files
+    buildCommand: pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
+    
+    # Start command: run gunicorn server
+    startCommand: gunicorn hoxobil_store.wsgi:application --bind 0.0.0.0:$PORT --workers 4
+    
+    # Environment variables (set these in Render dashboard or keep as placeholders)
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: RENDER_EXTERNAL_HOSTNAME
+        value: "${{ RENDER_EXTERNAL_HOSTNAME }}"
+      
+      # Production Django settings - SET IN RENDER DASHBOARD
+      # These are sensitive and should not be committed to git
+      - key: SECRET_KEY
+        sync: false  # Set in dashboard for security
+      - key: DATABASE_URL
+        sync: false  # Set in dashboard for security
+      - key: SECURE_HSTS_SECONDS
+        value: "31536000"
+      
+      # Security settings
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false  # Set to: https://hoxobil.store,https://www.hoxobil.store
+      
+      # Email Configuration - SET IN RENDER DASHBOARD
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "True"
+      
+      # Payment Gateways - SET IN RENDER DASHBOARD
+      - key: FLUTTERWAVE_PUBLIC_KEY
+        sync: false
+      - key: FLUTTERWAVE_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_MODE
+        value: "live"
+      
+      # Print-on-Demand APIs - SET IN RENDER DASHBOARD
+      - key: PRINTFUL_ACCESS_TOKEN
+        sync: false
+      - key: PRINTFUL_STORE_ID
+        sync: false
+      
+      # AI & External APIs - SET IN RENDER DASHBOARD
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      
+      # Base URL for frontend
+      - key: PUBLIC_BASE_URL
+        value: "https://hoxobil.store"
+    
+    # Static file configuration
+    staticPrecompilationCommand: python manage.py collectstatic --noinput
+    
+    # Disk storage for media files (persistent across deployments)
+    disk:
+      - name: media
+        mountPath: /opt/render/project/src/media
+        sizeGB: 10
+
+databases:
+  - name: hoxobil-postgres
+    databaseName: hoxobil_db
+    user: hoxobil_user
+    # Password auto-generated, use ${{ Database.Password }} in environment
+
+# Optional: Add cron jobs for maintenance
+crons:
+  - id: cleanup-django-sessions
+    command: python manage.py clearsessions
+    schedule: "0 2 * * *"  # Run daily at 2 AM

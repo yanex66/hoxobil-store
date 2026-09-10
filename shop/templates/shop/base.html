@@ -20,8 +20,8 @@
             --ivory-dark:  #EDE8DF;
             --charcoal:    #1C1C1C;
             --gold:        #C9973A;
-            --border:      rgba(139,0,0,0.18);
-            --nav-h:       68px;
+            --border:      rgba(139,0,0,0.15);
+            --nav-h:       72px;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,16 +47,19 @@
             z-index: 9998;
         }
 
-        /* ── NAVBAR ── */
+        /* ── REFINED MODERN LIGHT NAVBAR ── */
         .hox-nav {
             position: fixed;
             top: 0; left: 0; right: 0;
             height: var(--nav-h);
-            background: var(--charcoal);
-            border-bottom: 3px solid var(--crimson);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
             z-index: 1000;
             display: flex;
             align-items: center;
+            transition: all 0.3s ease;
         }
 
         .hox-nav .container {
@@ -70,66 +73,62 @@
         .nav-brand {
             display: flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: 0.75rem;
             text-decoration: none;
             line-height: 1;
             flex-shrink: 0;
         }
         .nav-logo-img {
-            height: 42px;
+            height: 40px;
             width: auto;
             object-fit: contain;
             display: block;
-            mix-blend-mode: lighten;
-            transition: opacity 0.2s;
+            transition: transform 0.2s ease;
         }
         @media (hover: hover) {
-            .nav-brand:hover .nav-logo-img { opacity: 0.82; }
+            .nav-brand:hover .nav-logo-img { transform: scale(1.05); }
         }
 
-        /* Brand text — always visible alongside the logo */
         .nav-brand-text {
             font-family: 'Oswald', sans-serif;
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 700;
-            letter-spacing: 0.14em;
-            color: var(--ivory);
+            letter-spacing: 0.12em;
+            color: var(--charcoal);
             text-transform: uppercase;
             display: block;
-            transition: color 0.2s;
         }
         .nav-brand-text span { color: var(--crimson-soft); }
-        @media (hover: hover) {
-            .nav-brand:hover .nav-brand-text span { color: var(--gold); }
-        }
 
         .nav-links {
             display: flex;
-            gap: 2.5rem;
+            gap: 2.2rem;
             list-style: none;
+            margin-bottom: 0;
+            align-items: center;
         }
         .nav-links a {
             font-family: 'Roboto Mono', monospace;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             letter-spacing: 0.16em;
             text-transform: uppercase;
-            color: rgba(250,247,242,0.55);
+            color: #444444;
             text-decoration: none;
-            transition: color 0.2s;
+            transition: color 0.2s ease;
             position: relative;
-            padding-bottom: 3px;
+            padding: 4px 0;
         }
         .nav-links a::after {
             content: '';
             position: absolute;
-            bottom: 0; left: 0;
+            bottom: -2px; left: 0;
             width: 0; height: 2px;
             background: var(--crimson-soft);
-            transition: width 0.3s ease;
+            transition: width 0.25s ease;
         }
         @media (hover: hover) {
-            .nav-links a:hover { color: var(--ivory); }
+            .nav-links a:hover { color: var(--crimson); }
             .nav-links a:hover::after { width: 100%; }
         }
 
@@ -139,24 +138,24 @@
             font-size: 0.7rem;
             font-weight: 700;
             letter-spacing: 0.08em;
-            background: transparent;
-            border: 1px solid rgba(250,247,242,0.15);
-            border-radius: 3px;
-            padding: 5px 10px;
-            color: rgba(250,247,242,0.5);
+            background: #f4f1eb;
+            border: 1px solid #d8d3c8;
+            border-radius: 4px;
+            padding: 6px 12px;
+            color: #333;
             cursor: pointer;
-            transition: border-color 0.2s, color 0.2s;
+            transition: all 0.2s ease;
             appearance: none;
         }
         @media (hover: hover) {
-            .currency-select:hover { border-color: var(--crimson-soft); color: var(--ivory); }
+            .currency-select:hover { border-color: var(--crimson-soft); background: #fff; }
         }
         .currency-select:focus {
             border-color: var(--crimson-soft);
-            color: var(--ivory);
             outline: none;
+            background: #fff;
         }
-        .currency-select option { background: var(--charcoal); color: var(--ivory); }
+        .currency-select option { background: #fff; color: var(--charcoal); }
 
         /* Nav icon buttons */
         .nav-icon-btn {
@@ -164,57 +163,61 @@
             align-items: center;
             justify-content: center;
             width: 40px; height: 40px;
-            color: rgba(250,247,242,0.5);
-            font-size: 1.2rem;
+            color: #222;
+            font-size: 1.1rem;
             text-decoration: none;
-            transition: color 0.2s, background 0.2s;
+            transition: all 0.2s ease;
             position: relative;
-            border-radius: 4px;
-            background: none;
-            border: none;
+            border-radius: 8px;
+            background: #f4f1eb;
+            border: 1px solid #e2ddd5;
             cursor: pointer;
         }
         @media (hover: hover) {
             .nav-icon-btn:hover {
-                color: var(--ivory);
-                background: rgba(139,0,0,0.3);
+                color: #fff;
+                background: var(--crimson);
+                border-color: var(--crimson);
+                transform: translateY(-1px);
             }
         }
 
         .cart-badge {
             position: absolute;
-            top: 2px; right: 2px;
-            width: 17px; height: 17px;
-            background: var(--crimson-soft);
+            top: -4px; right: -4px;
+            width: 19px; height: 19px;
+            background: var(--crimson);
             color: var(--ivory);
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             font-weight: 700;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Roboto Mono', monospace;
-            border: 2px solid var(--charcoal);
+            box-shadow: 0 2px 5px rgba(139,0,0,0.3);
+            border: 2px solid #ffffff;
         }
 
         /* Hamburger */
         .hox-hamburger {
-            background: none;
-            border: 1px solid rgba(250,247,242,0.2);
-            border-radius: 4px;
+            background: #f4f1eb;
+            border: 1px solid #e2ddd5;
+            border-radius: 8px;
             width: 40px; height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
-            color: rgba(250,247,242,0.6);
+            color: #222;
             cursor: pointer;
-            transition: border-color 0.2s, color 0.2s;
+            transition: all 0.2s ease;
         }
         @media (hover: hover) {
             .hox-hamburger:hover {
-                border-color: var(--crimson-soft);
-                color: var(--ivory);
+                background: var(--charcoal);
+                color: #fff;
+                border-color: var(--charcoal);
             }
         }
 
@@ -224,11 +227,11 @@
         .account-dropdown {
             position: fixed;
             width: 240px;
-            background: var(--charcoal);
-            border: 1px solid rgba(139,0,0,0.35);
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,0.08);
             border-top: 3px solid var(--crimson);
-            border-radius: 6px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.55);
+            border-radius: 8px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.12);
             z-index: 9990;
             opacity: 0;
             visibility: hidden;
@@ -255,8 +258,9 @@
         .account-dropdown .dd-arrow svg { display: block; }
 
         .acc-dd-header {
-            padding: 1rem 1.1rem 0.85rem;
-            border-bottom: 1px solid rgba(250,247,242,0.07);
+            padding: 1.1rem 1.1rem 0.85rem;
+            background: #f9f8f5;
+            border-bottom: 1px solid #eee;
         }
         .acc-dd-header .acc-label {
             font-family: 'Roboto Mono', monospace;
@@ -272,7 +276,7 @@
             font-size: 1.05rem;
             font-weight: 600;
             letter-spacing: 0.06em;
-            color: var(--ivory);
+            color: var(--charcoal);
             text-transform: uppercase;
         }
 
@@ -281,7 +285,7 @@
             font-size: 0.56rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: rgba(250,247,242,0.25);
+            color: #999;
             padding: 0.75rem 1.1rem 0.3rem;
         }
 
@@ -289,11 +293,11 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.62rem 1.1rem;
+            padding: 0.65rem 1.1rem;
             font-family: 'Raleway', sans-serif;
             font-size: 0.88rem;
             font-weight: 600;
-            color: rgba(250,247,242,0.55);
+            color: #444;
             text-decoration: none;
             transition: background 0.15s, color 0.15s, padding-left 0.2s;
             letter-spacing: 0.02em;
@@ -302,26 +306,24 @@
             font-size: 0.95rem;
             width: 18px;
             text-align: center;
-            color: rgba(250,247,242,0.3);
+            color: #777;
             transition: color 0.15s;
             flex-shrink: 0;
         }
         @media (hover: hover) {
-            .acc-dd-link:hover { background: rgba(139,0,0,0.2); color: var(--ivory); padding-left: 1.4rem; }
-            .acc-dd-link:hover i { color: var(--crimson-soft); }
+            .acc-dd-link:hover { background: #f4f1eb; color: var(--crimson); padding-left: 1.4rem; }
+            .acc-dd-link:hover i { color: var(--crimson); }
         }
 
-        .acc-dd-divider { height: 1px; background: rgba(250,247,242,0.07); margin: 0.35rem 0; }
+        .acc-dd-divider { height: 1px; background: #eee; margin: 0.35rem 0; }
 
-        .acc-dd-link.signout { color: rgba(196,48,48,0.65); }
-        .acc-dd-link.signout i { color: rgba(196,48,48,0.45); }
+        .acc-dd-link.signout { color: var(--crimson-soft); }
+        .acc-dd-link.signout i { color: var(--crimson-soft); }
         @media (hover: hover) {
-            .acc-dd-link.signout:hover { background: rgba(139,0,0,0.25); color: var(--crimson-soft); }
-            .acc-dd-link.signout:hover i { color: var(--crimson-soft); }
+            .acc-dd-link.signout:hover { background: #fdf0ee; color: var(--crimson); }
+            .acc-dd-link.signout:hover i { color: var(--crimson); }
         }
 
-        /* Logout button rendered inside a <form> — reuses .acc-dd-link look but resets
-           native <button> chrome (border/background/full-width/text-align) */
         .acc-dd-link.signout-btn {
             width: 100%;
             background: none;
@@ -345,41 +347,23 @@
             letter-spacing: 0.18em;
             text-transform: uppercase;
             padding: 0.65rem 1rem;
-            border-radius: 3px;
+            border-radius: 4px;
             text-decoration: none;
             transition: background 0.2s, color 0.2s;
             margin-bottom: 0.5rem;
         }
         .acc-dd-cta .cta-signin { background: var(--crimson); color: var(--ivory); border: 2px solid var(--crimson); }
-        .acc-dd-cta .cta-register { background: transparent; color: rgba(250,247,242,0.45); border: 1px solid rgba(250,247,242,0.12); }
+        .acc-dd-cta .cta-register { background: #f4f1eb; color: #444; border: 1px solid #d8d3c8; }
         @media (hover: hover) {
-            .acc-dd-cta .cta-signin:hover { background: var(--crimson-mid); border-color: var(--crimson-mid); }
-            .acc-dd-cta .cta-register:hover { color: var(--ivory); border-color: rgba(250,247,242,0.3); }
-        }
-
-        /* Mobile offcanvas "Sign Out" — was a plain text link, now a <button> in a
-           POST form, styled to look identical to the old <a> */
-        .offcanvas-signout-btn {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 0.65rem;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: rgba(250,247,242,0.3);
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        @media (hover: hover) {
-            .offcanvas-signout-btn:hover { color: var(--ivory); }
+            .acc-dd-cta .cta-signin:hover { background: var(--crimson-mid); }
+            .acc-dd-cta .cta-register:hover { background: #eae5de; color: #111; }
         }
 
         /* ── TICKER TAPE ── */
         .hox-ticker {
             background: var(--crimson);
             color: var(--ivory);
-            height: 34px;
+            height: 36px;
             overflow: hidden;
             display: flex;
             align-items: center;
@@ -387,14 +371,14 @@
         .ticker-inner {
             display: flex;
             white-space: nowrap;
-            animation: ticker 22s linear infinite;
+            animation: ticker 25s linear infinite;
             font-family: 'Roboto Mono', monospace;
             font-size: 0.68rem;
             font-weight: 700;
             letter-spacing: 0.2em;
             text-transform: uppercase;
             gap: 3rem;
-            opacity: 0.92;
+            opacity: 0.95;
         }
         @keyframes ticker {
             from { transform: translateX(0); }
@@ -403,19 +387,20 @@
         @media (hover: hover) {
             .ticker-inner:hover { animation-play-state: paused; }
         }
-        .ticker-sep { opacity: 0.4; margin: 0 0.5rem; }
+        .ticker-sep { opacity: 0.5; margin: 0 0.5rem; }
 
         /* ── OFFCANVAS ── */
         .hox-offcanvas {
-            width: 300px !important;
-            background: var(--charcoal) !important;
-            border-right: 3px solid var(--crimson) !important;
+            width: 320px !important;
+            background: #ffffff !important;
+            color: var(--charcoal) !important;
+            border-right: 1px solid rgba(0,0,0,0.1) !important;
         }
         .hox-offcanvas .offcanvas-header {
-            border-bottom: 1px solid rgba(250,247,242,0.08);
+            border-bottom: 1px solid #eee;
             padding: 1.5rem;
         }
-        .hox-offcanvas .btn-close { filter: invert(1); opacity: 0.4; }
+        .hox-offcanvas .btn-close { filter: none; opacity: 0.6; }
         @media (hover: hover) {
             .hox-offcanvas .btn-close:hover { opacity: 1; }
         }
@@ -427,7 +412,7 @@
             font-size: 0.62rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: var(--crimson-soft);
+            color: var(--crimson);
             margin-bottom: 1.4rem;
         }
 
@@ -437,7 +422,7 @@
             font-size: 1.5rem;
             font-weight: 600;
             letter-spacing: 0.05em;
-            color: rgba(250,247,242,0.65);
+            color: #333;
             text-decoration: none;
             line-height: 1.35;
             transition: color 0.18s, padding-left 0.2s;
@@ -445,28 +430,41 @@
             text-transform: uppercase;
         }
         @media (hover: hover) {
-            .offcanvas-nav-link:hover { color: var(--ivory); padding-left: 10px; }
+            .offcanvas-nav-link:hover { color: var(--crimson); padding-left: 10px; }
         }
 
         .offcanvas-currency select {
             font-family: 'Roboto Mono', monospace;
             font-size: 0.75rem;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 4px;
-            color: var(--ivory);
+            background: #f4f1eb;
+            border: 1px solid #d8d3c8;
+            border-radius: 6px;
+            color: #333;
             padding: 0.75rem 1rem;
             width: 100%;
             appearance: none;
             cursor: pointer;
             transition: border-color 0.2s;
         }
-        .offcanvas-currency select:focus { outline: none; border-color: var(--crimson-soft); }
-        .offcanvas-currency option { background: var(--charcoal); }
+        .offcanvas-currency select:focus { outline: none; border-color: var(--crimson); }
+        .offcanvas-currency option { background: #fff; }
+
+        .offcanvas-signout-btn {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--crimson);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-weight: 700;
+        }
 
         /* ── ALERT MESSAGES ── */
         .hox-alert {
-            border-radius: 4px;
+            border-radius: 6px;
             border: none;
             padding: 1rem 1.4rem;
             font-size: 0.95rem;
@@ -475,6 +473,7 @@
             align-items: center;
             gap: 0.65rem;
             margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
             animation: slideDown 0.28s ease;
         }
         @keyframes slideDown {
@@ -500,11 +499,11 @@
             background: var(--crimson);
             color: var(--ivory);
             border: 2px solid var(--crimson);
-            border-radius: 3px;
+            border-radius: 4px;
             padding: 0.8rem 2rem;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
-            box-shadow: 0 3px 12px rgba(139,0,0,0.2);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(139,0,0,0.2);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -519,7 +518,6 @@
                 box-shadow: 0 6px 20px rgba(139,0,0,0.3);
             }
         }
-        .btn-hox:active { transform: translateY(0); }
 
         .btn-hox-outline {
             font-family: 'Oswald', sans-serif;
@@ -530,10 +528,10 @@
             background: transparent;
             color: var(--crimson);
             border: 2px solid var(--crimson);
-            border-radius: 3px;
+            border-radius: 4px;
             padding: 0.8rem 2rem;
             cursor: pointer;
-            transition: background 0.2s, color 0.2s, transform 0.15s;
+            transition: all 0.2s ease;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -552,9 +550,9 @@
             background: var(--crimson) !important;
             color: var(--ivory) !important;
             border: 2px solid var(--crimson) !important;
-            border-radius: 3px !important;
-            box-shadow: 0 3px 12px rgba(139,0,0,0.2) !important;
-            transition: all 0.2s !important;
+            border-radius: 4px !important;
+            box-shadow: 0 4px 14px rgba(139,0,0,0.2) !important;
+            transition: all 0.2s ease !important;
         }
         @media (hover: hover) {
             .btn-primary:hover, .btn-accent:hover {
@@ -565,79 +563,83 @@
             }
         }
 
-        /* ── FOOTER ── */
+        /* ── LUXURY LIGHT STUDIO FOOTER ── */
         .hox-footer {
-            background: var(--charcoal);
-            color: rgba(250,247,242,0.4);
-            padding: 4.5rem 0 2.5rem;
+            background: #f4f1eb;
+            color: #555555;
+            padding: 5rem 0 3rem;
             margin-top: 7rem;
             position: relative;
             z-index: 1;
-            border-top: 3px solid var(--crimson);
+            border-top: 1px solid #d8d3c8;
+            box-shadow: inset 0 10px 30px rgba(0,0,0,0.02);
         }
         .hox-footer .footer-brand {
             font-family: 'Oswald', sans-serif;
-            font-size: 4rem;
+            font-size: 3.2rem;
             font-weight: 700;
-            letter-spacing: 0.12em;
-            color: var(--ivory);
+            letter-spacing: 0.14em;
+            color: var(--charcoal);
             display: block;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.1rem;
             text-transform: uppercase;
             line-height: 1;
         }
         .hox-footer .footer-tagline {
             font-family: 'Roboto Mono', monospace;
-            font-size: 0.68rem;
-            letter-spacing: 0.24em;
+            font-size: 0.65rem;
+            letter-spacing: 0.25em;
             text-transform: uppercase;
-            color: var(--crimson-soft);
+            color: var(--crimson);
+            font-weight: 700;
         }
         .hox-footer .footer-slogan {
             font-family: 'Raleway', sans-serif;
             font-size: 0.82rem;
             font-style: italic;
             color: var(--gold);
-            margin-top: 0.5rem;
+            margin-top: 0.4rem;
             letter-spacing: 0.06em;
         }
         .hox-footer .footer-desc {
             font-size: 0.9rem;
             line-height: 1.7;
-            color: rgba(250,247,242,0.25);
+            color: #666666;
             margin-top: 1.25rem;
-            max-width: 300px;
+            max-width: 280px;
         }
-        .hox-footer .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+        .hox-footer .footer-links { list-style: none; display: flex; flex-direction: column; gap: 0.65rem; padding-left: 0; }
         .hox-footer .footer-links a {
             font-size: 0.92rem;
-            font-weight: 400;
-            color: rgba(250,247,242,0.35);
+            font-weight: 500;
+            color: #555555;
             text-decoration: none;
-            transition: color 0.2s;
+            transition: all 0.2s ease;
             letter-spacing: 0.02em;
         }
         @media (hover: hover) {
-            .hox-footer .footer-links a:hover { color: var(--ivory); }
+            .hox-footer .footer-links a:hover { color: var(--crimson); padding-left: 4px; }
         }
         .hox-footer .footer-heading {
             font-family: 'Roboto Mono', monospace;
-            font-size: 0.62rem;
+            font-size: 0.65rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: var(--crimson-soft);
-            margin-bottom: 1.3rem;
+            color: var(--charcoal);
+            font-weight: 700;
+            margin-bottom: 1.4rem;
         }
         .hox-footer .footer-bottom {
-            border-top: 1px solid rgba(250,247,242,0.07);
-            margin-top: 3.5rem;
+            border-top: 1px solid #d8d3c8;
+            margin-top: 4rem;
             padding-top: 1.75rem;
             font-family: 'Roboto Mono', monospace;
             font-size: 0.62rem;
             letter-spacing: 0.1em;
             text-transform: uppercase;
+            color: #777777;
         }
-        .hox-footer .footer-bottom .powered { color: var(--gold); }
+        .hox-footer .footer-bottom .powered { color: var(--crimson); font-weight: 700; }
 
         /* ── PAGE ENTRANCE ANIMATION ── */
         .page-fade { animation: pageFade 0.4s ease both; }
@@ -647,9 +649,9 @@
         }
 
         /* ── SCROLLBAR ── */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: var(--ivory-dark, #EDE8DF); }
-        ::-webkit-scrollbar-thumb { background: var(--crimson); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--ivory-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--crimson); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--crimson-mid); }
 
         /* ── SELECTION ── */
@@ -662,8 +664,6 @@
         .text-gold    { color: var(--gold) !important; }
         .bg-crimson   { background: var(--crimson) !important; }
         .text-accent  { color: var(--crimson-soft) !important; }
-        .text-blue    { color: var(--crimson) !important; }
-        .bg-blue      { background: var(--crimson) !important; }
         .text-primary-base { color: var(--charcoal) !important; }
 
         hr { border-color: var(--border); margin: 2rem 0; }
@@ -741,7 +741,7 @@
                 </form>
 
                 <!-- Search -->
-                <a href="{% url 'shop:product_list' %}" class="nav-icon-btn d-none d-md-flex">
+                <a href="{% url 'shop:product_list' %}" class="nav-icon-btn d-none d-md-flex" title="Search">
                     <i class="bi bi-search"></i>
                 </a>
 
@@ -758,7 +758,7 @@
                     <div class="account-dropdown" id="accountDropdown">
                         <span class="dd-arrow arrow-top" id="ddArrow">
                             <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M7 0L14 8H0L7 0Z" fill="#8B0000"/>
+                                <path d="M7 0L14 8H0L7 0Z" fill="#ffffff"/>
                             </svg>
                         </span>
 
@@ -810,7 +810,7 @@
                 <!-- ── END ACCOUNT DROPDOWN ── -->
 
                 <!-- Cart -->
-                <a href="{% url 'shop:cart_detail' %}" class="nav-icon-btn">
+                <a href="{% url 'shop:cart_detail' %}" class="nav-icon-btn" title="Cart">
                     <i class="bi bi-bag-fill"></i>
                     {% if cart|length > 0 %}
                         <span class="cart-badge">{{ cart|length }}</span>
@@ -824,8 +824,6 @@
     <div class="hox-ticker">
         <div class="ticker-inner">
             <span>Unleashing Perfection</span>
-            <span class="ticker-sep">◆</span>
-            <span>Free shipping on orders over $75</span>
             <span class="ticker-sep">◆</span>
             <span>New drops every week</span>
             <span class="ticker-sep">◆</span>
@@ -857,12 +855,13 @@
             <!-- Logo in offcanvas too -->
             <img src="{% static 'images/image.png' %}"
                  alt="HOXOBIL"
-                 style="height:36px;width:auto;object-fit:contain;mix-blend-mode:lighten;"
+                 style="height:36px;width:auto;object-fit:contain;"
                  onerror="this.style.display='none';document.getElementById('offcanvasLogoFallback').style.display='block';">
             <span id="offcanvasLogoFallback"
-                  style="display:none;font-family:'Oswald',sans-serif;font-size:1.7rem;letter-spacing:0.14em;color:var(--ivory);text-transform:uppercase;">
+                  style="display:none;font-family:'Oswald',sans-serif;font-size:1.7rem;letter-spacing:0.14em;color:var(--charcoal);text-transform:uppercase;">
                 HOXOBIL
             </span>
+
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
@@ -907,15 +906,15 @@
                 </form>
             </div>
 
-            <div style="position:absolute;bottom:2rem;left:1.5rem;right:1.5rem;border-top:1px solid rgba(250,247,242,0.08);padding-top:1.5rem;">
-                <p style="font-family:'Roboto Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson-soft);margin-bottom:0.5rem;">Unleashing Perfection</p>
+            <div style="position:absolute;bottom:2rem;left:1.5rem;right:1.5rem;border-top:1px solid #eee;padding-top:1.5rem;">
+                <p style="font-family:'Roboto Mono',monospace;font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--crimson);margin-bottom:0.5rem;">Unleashing Perfection</p>
                 {% if user.is_authenticated %}
                     <form method="post" action="{% url 'logout' %}" style="margin:0;">
                         {% csrf_token %}
                         <button type="submit" class="offcanvas-signout-btn">Sign Out →</button>
                     </form>
                 {% else %}
-                    <a href="{% url 'login' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(250,247,242,0.3);text-decoration:none;">Sign In →</a>
+                    <a href="{% url 'login' %}" style="font-family:'Roboto Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:#555;text-decoration:none;">Sign In →</a>
                 {% endif %}
             </div>
         </div>
@@ -948,15 +947,25 @@
                     <!-- Logo in footer -->
                     <img src="{% static 'images/image.png' %}"
                          alt="HOXOBIL"
-                         style="height:56px;width:auto;object-fit:contain;mix-blend-mode:lighten;margin-bottom:0.5rem;display:block;"
+                         style="height:52px;width:auto;object-fit:contain;margin-bottom:0.5rem;display:block;"
                          onerror="this.style.display='none';document.getElementById('footerLogoFallback').style.display='block';">
                     <span id="footerLogoFallback" class="footer-brand" style="display:none;">HOXOBIL</span>
                     <span class="footer-tagline">Wear the Future</span>
                     <p class="footer-slogan">— Unleashing Perfection</p>
                     <p class="footer-desc">Premium print-on-demand streetwear. New drops. No restocks. Move fast.</p>
+                    
+                    <!-- Official Enterprise Identifiers & Address -->
+                    <div style="font-family:'Roboto Mono',monospace; font-size:0.68rem; line-height:1.6; color:#666; margin-top:1.2rem;">
+                        <p class="mb-1"><strong>HOXOBIL ENTERPRISE</strong></p>
+                        <p class="mb-1">CAC Reg. No: 9705319</p>
+                        <p class="mb-1">TIN: 2622419169130</p>
+                        <p class="mb-1">SMEDAN SUID: SUID-1963-4833-2438-8840</p>
+                        <!-- <p class="mb-0">8, LUTH Lagos, Mushin, Lagos, Nigeria</p> -->
+                    </div>
+
                     <a href="mailto:help.hoxobil@gmail.com"
-                       style="font-family:'Roboto Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:rgba(250,247,242,0.3);text-decoration:none;display:block;margin-top:1rem;transition:color 0.2s;"
-                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.3)'">
+                       style="font-family:'Roboto Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:#555555;text-decoration:none;display:block;margin-top:0.8rem;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--crimson)'" onmouseout="this.style.color='#555555'">
                         help.hoxobil@gmail.com
                     </a>
                 </div>
@@ -990,14 +999,14 @@
                 </div>
             </div>
             <div class="footer-bottom d-flex flex-wrap justify-content-between gap-2">
-                <span>© {% now "Y" %} HOXOBIL. All rights reserved.</span>
+                <span>© {% now "Y" %} HOXOBIL Enterprise. All rights reserved.</span>
                 <span class="d-flex gap-3 align-items-center">
                     <a href="{% url 'shop:privacy_policy' %}"
-                       style="color:rgba(250,247,242,0.25);text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
-                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.25)'">Privacy</a>
+                       style="color:#666666;text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--crimson)'" onmouseout="this.style.color='#666666'">Privacy</a>
                     <a href="{% url 'shop:terms_of_service' %}"
-                       style="color:rgba(250,247,242,0.25);text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
-                       onmouseover="this.style.color='var(--ivory)'" onmouseout="this.style.color='rgba(250,247,242,0.25)'">Terms</a>
+                       style="color:#666666;text-decoration:none;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:color 0.2s;"
+                       onmouseover="this.style.color='var(--crimson)'" onmouseout="this.style.color='#666666'">Terms</a>
                     <span class="powered">Powered by Printful</span>
                 </span>
             </div>

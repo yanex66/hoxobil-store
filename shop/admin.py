@@ -1,21 +1,33 @@
-import time
 import json
+import logging
 from decimal import Decimal, InvalidOperation
 from django.contrib import admin
 from django.utils.safestring import mark_safe
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.contrib import messages
+from django.db.models import Q
+from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
 
 from .models import (
     Product, Category, Order, OrderItem, ProductVariant,
     VideoAd, CustomOrderRequest, SupportChat, ChatMessage, DesignSubmission,
     CustomDesignTicket, BotKnowledge, UnknownQuestion, Review,
+    RegularProduct, CustomizableBlankProduct,
 )
 from .pod_api import PodApiClient
+from .fulfillment import submit_regular_order_to_printful
 
-PUBLISH_DELAY = 5
+logger = logging.getLogger(__name__)
+
+
+def trigger_printful_api(order):
+    """Real or queueable trigger for Printful order submission."""
+    client = PodApiClient('PFT')
+    # Connect order fulfillment payload generation here safely
+    return client
 
 
 def _drop_invoice_into_chat(ticket, request=None, base_url=None):
@@ -31,7 +43,6 @@ def _drop_invoice_into_chat(ticket, request=None, base_url=None):
 
     chat, _ = SupportChat.objects.get_or_create(user=ticket.user)
 
-    # Build a readable price breakdown if NGN breakdown fields exist
     product_ngn  = getattr(ticket, 'product_price_ngn', None)
     shipping_ngn = getattr(ticket, 'shipping_cost_ngn', None)
 
@@ -97,11 +108,14 @@ class CategoryAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'price', 'get_categories', 'available', 'pod_id', 'created', 'publish_button']
+class BaseProductAdmin(admin.ModelAdmin):
+    list_display = [
+        'product_thumbnail', 'name', 'price', 'display_categories',
+        'available', 'pod_id', 'pod_service', 'created', 'publish_action_button',
+    ]
     list_filter = ['available', 'categories']
     list_editable = ['price', 'available']
+    filter_horizontal = ('categories',)
     prepopulated_fields = {'slug': ('name',)}
     search_fields = ['name', 'pod_id']
     fields = (
@@ -110,79 +124,143 @@ class ProductAdmin(admin.ModelAdmin):
     )
     inlines = [ProductVariantInline]
 
-    def get_categories(self, obj):
+    @admin.display(description='Image')
+    def product_thumbnail(self, obj):
+        if obj.image_file:
+            image_url = obj.image_file.url
+        elif obj.image_url:
+            image_url = obj.image_url
+        else:
+            return '-'
+
+        return format_html(
+            '<img src="{}" width="40" height="40" alt="{}" '
+            'style="object-fit: cover; border-radius: 4px;" />',
+            image_url,
+            obj.name,
+        )
+
+    @admin.display(description='Categories')
+    def display_categories(self, obj):
         return ', '.join(obj.categories.values_list('name', flat=True))
-    get_categories.short_description = 'Categories'
+
+    @admin.display(description='Actions')
+    def publish_action_button(self, obj):
+        if not obj.pk or not obj.pod_id:
+            return '-'
+
+        url = reverse('admin:shop_product_publish', args=[obj.pk])
+        return format_html(
+            '<form action="{}" method="POST" style="display:inline;">'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="button" style="'
+            'background:#417690;padding:6px 12px;color:white;'
+            'border-radius:4px;border:none;cursor:pointer;font-weight:bold;">'
+            'Publish</button></form>',
+            url,
+            self.get_csrf_token(obj) if hasattr(self, 'get_csrf_token') else ''
+        )
+
+    def get_csrf_token(self, obj):
+        return ''
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path(
-                '<path:pod_id>/publish/',
+                '<int:product_id>/publish/',
                 self.admin_site.admin_view(self.publish_product_view),
                 name='shop_product_publish',
             ),
         ]
         return custom_urls + urls
 
-    def publish_button(self, obj):
-        if not obj.pod_id:
-            return '—'
-        url = reverse('admin:shop_product_publish', args=[obj.pod_id])
-        return format_html(
-            '<a class="button" href="{}" style="'
-            'background:#417690;color:#fff;padding:4px 10px;'
-            'border-radius:4px;text-decoration:none;font-size:12px;">'
-            'Publish</a>',
-            url
+    @method_decorator(require_POST)
+    def publish_product_view(self, request, product_id):
+        product = get_object_or_404(Product, pk=product_id)
+        provider = product.get_pod_service_display() or product.pod_service or 'POD'
+        product.available = True
+        product.save(update_fields=['available', 'updated'])
+        self.message_user(
+            request,
+            f'Product "{product.name}" is now visible on the storefront '
+            f'and managed by {provider}.',
+            messages.SUCCESS,
         )
-    publish_button.short_description = 'Printify'
-    publish_button.allow_tags = True
-
-    def publish_product_view(self, request, pod_id):
-        client = PodApiClient('PFY')
-        time.sleep(2)
-        success = client.publish_product(pod_id)
-        if success:
-            self.message_user(request, f"Product {pod_id} published successfully.", messages.SUCCESS)
-        else:
-            self.message_user(
-                request,
-                f"Failed to publish product {pod_id}. Check your logs for details.",
-                messages.ERROR,
-            )
         return redirect('admin:shop_product_changelist')
 
-    def publish_all_action(self, request, queryset):
-        client = PodApiClient('PFY')
-        success_count = 0
-        fail_count = 0
-        skipped_count = 0
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.save_m2m()
 
-        products = list(queryset)
-        for i, product in enumerate(products):
-            if not product.pod_id:
-                skipped_count += 1
-                continue
-
-            success = client.publish_product(product.pod_id)
-            if success:
-                success_count += 1
+        if change and obj.pod_service == 'PFT' and obj.pod_id:
+            client = PodApiClient('PFT')
+            synced, error = client.update_store_product(
+                obj.pod_id,
+                name=obj.name,
+                description=obj.description,
+            )
+            if synced:
+                self.message_user(
+                    request,
+                    f'Product "{obj.name}" saved locally and synced to Printful.',
+                    messages.SUCCESS,
+                )
             else:
-                fail_count += 1
+                self.message_user(
+                    request,
+                    f'Product saved locally, but Printful sync failed: {error}',
+                    messages.ERROR,
+                )
 
-            if i < len(products) - 1:
-                time.sleep(PUBLISH_DELAY)
+        if 'design_team_mockup' in form.changed_data and obj.design_team_mockup:
+            chat = None
+            if obj.user:
+                chat = SupportChat.objects.filter(user=obj.user).first()
 
-        if success_count:
-            self.message_user(request, f"{success_count} product(s) published successfully.", messages.SUCCESS)
-        if fail_count:
-            self.message_user(request, f"{fail_count} product(s) failed. Check your logs for details.", messages.ERROR)
-        if skipped_count:
-            self.message_user(request, f"{skipped_count} product(s) skipped — no Printify ID set.", messages.WARNING)
+            if chat:
+                obj.status = 'Sent to Customer for Approval'
+                obj.save(update_fields=['status'])
 
-    publish_all_action.short_description = "Publish selected products to Printify"
-    actions = [publish_all_action]
+                notification_text = (
+                    "🎨 **Your Custom Mockup Proof is Ready!**\n\n"
+                    "Our design team has reviewed your asset specifications and cooked up your layout draft. "
+                    "Take a close look at the layout mockup below.\n\n"
+                    "👉 Reply with **'Approve'** to send it directly to production!\n"
+                    "👉 Or type any tweaks or positioning changes you want adjusted."
+                )
+
+                msg = ChatMessage.objects.create(
+                    chat=chat,
+                    sender_type='admin',
+                    text=notification_text
+                )
+                msg.image_field = obj.design_team_mockup
+                msg.save()
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        form.save_m2m()
+
+
+@admin.register(RegularProduct)
+class RegularProductAdmin(BaseProductAdmin):
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_customizable=False)
+
+    def save_model(self, request, obj, form, change):
+        obj.is_customizable = False
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(CustomizableBlankProduct)
+class CustomizableBlankProductAdmin(BaseProductAdmin):
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(is_customizable=True)
+
+    def save_model(self, request, obj, form, change):
+        obj.is_customizable = True
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Order)
@@ -190,6 +268,80 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ['id', 'first_name', 'last_name', 'email', 'status', 'paid', 'created']
     list_filter = ['paid', 'status', 'created']
     search_fields = ['first_name', 'last_name', 'email', 'pod_order_id']
+
+    # ── Clean, organized layout using fieldsets to reduce clutter ──
+    fieldsets = (
+        ('Customer Information', {
+            'fields': ('first_name', 'last_name', 'email', 'phone')
+        }),
+        ('Delivery Address', {
+            'fields': ('address', 'city', 'state', 'country', 'postal_code', 'shipping_cost')
+        }),
+        ('Financial & Gateway Status', {
+            'fields': ('paid', 'status', 'payment_status', 'total_amount', 'currency', 'paystack_reference', 'flutterwave_reference')
+        }),
+        ('Fulfillment & Production', {
+            'fields': ('fulfillment_status', 'pod_order_id', 'settlement_release_at'),
+            'description': 'Manage manual release to Printful and track production/shipping status.'
+        }),
+        ('Tracking & Logistics (Optional)', {
+            'classes': ('collapse',),
+            'fields': ('tracking_number', 'tracking_url', 'carrier', 'abandonment_email_sent_at')
+        }),
+    )
+
+    readonly_fields = ('paystack_reference', 'flutterwave_reference', 'total_amount', 'currency')
+
+    @admin.action(description='Send Selected Orders to Printful')
+    def push_orders_to_printful(self, request, queryset):
+        """Manually submit paid, unsent orders after confirming available cash."""
+        selected_count = queryset.count()
+        eligible_orders = queryset.filter(paid=True).filter(
+            Q(pod_order_id__isnull=True) | Q(pod_order_id=''),
+        ).prefetch_related(
+            'items__product_variant',
+        )
+
+        eligible_ids = set(eligible_orders.values_list('id', flat=True))
+        skipped_count = selected_count - len(eligible_ids)
+        submitted_count = 0
+
+        for order in eligible_orders:
+            try:
+                success, error = submit_regular_order_to_printful(order)
+                if not success:
+                    raise RuntimeError(error or 'Printful rejected the order.')
+
+                order.refresh_from_db(fields=['pod_order_id', 'status'])
+                order.status = 'POD_SENT'
+                order.fulfillment_status = 'IN_PRODUCTION'
+                order.save(update_fields=['status', 'fulfillment_status', 'updated'])
+                submitted_count += 1
+            except Exception as exc:
+                logger.exception(
+                    'OrderAdmin.push_orders_to_printful failed for order %s',
+                    order.id,
+                )
+                self.message_user(
+                    request,
+                    f'Order #{order.id} failed to send to Printful: {exc}',
+                    messages.ERROR,
+                )
+
+        if submitted_count:
+            self.message_user(
+                request,
+                f'{submitted_count} paid order(s) sent to Printful.',
+                messages.SUCCESS,
+            )
+        if skipped_count:
+            self.message_user(
+                request,
+                f'{skipped_count} selected order(s) skipped: they must be paid and not already sent to Printful.',
+                messages.WARNING,
+            )
+
+    actions = ['push_orders_to_printful']
 
 
 @admin.register(OrderItem)
@@ -296,12 +448,15 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         if obj.invoice_amount:
             extra = f'<p style="margin-top:6px;font-size:12px;color:#555;">Current invoice: <strong>₦{obj.invoice_amount:,}</strong></p>'
         return format_html(
-            '<a class="button" href="{}" style="'
+            '<form action="{}" method="POST" style="display:inline;">'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="button" style="'
             'background:#27ae60;color:#fff;padding:6px 14px;'
-            'border-radius:4px;text-decoration:none;font-size:13px;font-weight:bold;">'
-            '💰 Fetch Price + Shipping from Printful</a>'
-            '{}',
-            url, mark_safe(extra)
+            'border-radius:4px;border:none;cursor:pointer;font-size:13px;font-weight:bold;">'
+            '💰 Fetch Price + Shipping from Printful</button></form>{}',
+            url,
+            self.get_csrf_token(obj) if hasattr(self, 'get_csrf_token') else '',
+            mark_safe(extra)
         )
     fetch_price_button.short_description = 'Price & Shipping'
 
@@ -312,11 +467,14 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             return mark_safe('<p style="color:#999;">Enter a Printful Product ID above and save first.</p>')
         url = reverse('admin:shop_ticket_fetch_mockup', args=[obj.id])
         return format_html(
-            '<a class="button" href="{}" style="'
+            '<form action="{}" method="POST" style="display:inline;">'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="button" style="'
             'background:#2980b9;color:#fff;padding:6px 14px;'
-            'border-radius:4px;text-decoration:none;font-size:13px;font-weight:bold;">'
-            '🖼 Fetch Mockup from Printful</a>',
-            url
+            'border-radius:4px;border:none;cursor:pointer;font-size:13px;font-weight:bold;">'
+            '🖼 Fetch Mockup from Printful</button></form>',
+            url,
+            self.get_csrf_token(obj) if hasattr(self, 'get_csrf_token') else ''
         )
     fetch_mockup_button.short_description = 'Printful Mockup'
 
@@ -333,11 +491,14 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             return '—'
         url = reverse('admin:shop_ticket_send_invoice', args=[obj.id])
         return format_html(
-            '<a class="button" href="{}" style="'
+            '<form action="{}" method="POST" style="display:inline;">'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="button" style="'
             'background:#c0392b;color:#fff;padding:4px 10px;'
-            'border-radius:4px;text-decoration:none;font-size:12px;">'
-            '💳 Send Invoice</a>',
-            url
+            'border-radius:4px;border:none;cursor:pointer;font-size:12px;">'
+            '💳 Send Invoice</button></form>',
+            url,
+            self.get_csrf_token(obj) if hasattr(self, 'get_csrf_token') else ''
         )
     invoice_button.short_description = 'Invoice Action'
 
@@ -356,105 +517,104 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
 
     def live_chat_panel(self, obj):
         if not obj.user:
-            return format_html('<p style="color:#999;">No user linked to this ticket.</p>')
+            return mark_safe('<p style="color:#999;">No user linked to this ticket.</p>')
 
         chat = SupportChat.objects.filter(user=obj.user).first()
         if not chat:
-            return format_html('<p style="color:#999;">No chat session found for this customer.</p>')
+            return mark_safe('<p style="color:#999;">No chat session found for this customer.</p>')
 
         messages_qs = chat.messages.order_by('created_at')
 
         bubbles_html = ''
         for msg in messages_qs:
             is_admin = msg.sender_type == 'admin'
-            align = 'right' if is_admin else 'left'
+            align = 'flex-end' if is_admin else 'flex-start'
             bg    = '#1a7a4a' if is_admin else '#f0f0f0'
             color = '#fff'    if is_admin else '#222'
             label = '🛠 Design Team' if is_admin else f'👤 {obj.user.first_name or obj.user.username}'
             time_str = msg.created_at.strftime('%d %b, %H:%M') if msg.created_at else ''
 
-            image_html = ''
-            if msg.image_field:
-                image_html = f'<br><img src="{msg.image_field.url}" style="max-width:260px;border-radius:8px;margin-top:8px;">'
+            image_html = format_html('<br><img src="{}" style="max-width:260px;border-radius:8px;margin-top:8px;">', msg.image_field.url) if msg.image_field else ''
 
-            bubbles_html += f'''
-            <div style="display:flex;justify-content:flex-{align};margin-bottom:12px;">
-                <div style="max-width:70%;background:{bg};color:{color};padding:10px 14px;
-                            border-radius:12px;font-size:13px;line-height:1.5;">
-                    <div style="font-size:11px;opacity:0.75;margin-bottom:4px;">{label} · {time_str}</div>
-                    {msg.text}{image_html}
-                </div>
-            </div>'''
+            bubbles_html += format_html(
+                '<div style="display:flex;justify-content:{};margin-bottom:12px;">'
+                '<div style="max-width:70%;background:{};color:{};padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;">'
+                '<div style="font-size:11px;opacity:0.75;margin-bottom:4px;">{} · {}</div>'
+                '{}'
+                '{}'
+                '</div></div>',
+                align, bg, color, label, time_str, msg.text, image_html
+            )
 
-        if not bubbles_html:
-            bubbles_html = '<p style="color:#999;text-align:center;">No messages yet.</p>'
+        if not messages_qs.exists():
+            bubbles_html = mark_safe('<p style="color:#999;text-align:center;">No messages yet.</p>')
 
         reply_url = reverse('admin:shop_ticket_admin_reply', args=[obj.id])
 
-        return mark_safe('''
-            <div id="chat-panel" style="border:1px solid #ddd;border-radius:10px;overflow:hidden;
-                                        font-family:sans-serif;margin-top:8px;">
+        return format_html(
+            '''
+            <div id="chat-panel" style="border:1px solid #ddd;border-radius:10px;overflow:hidden;font-family:sans-serif;margin-top:8px;">
                 <div style="background:#1a7a4a;color:#fff;padding:12px 16px;font-weight:bold;font-size:14px;">
-                    💬 Live Chat — {username} ({email})
+                    💬 Live Chat — {} ({})
                 </div>
                 <div id="chat-messages" style="height:400px;overflow-y:auto;padding:16px;background:#fafafa;">
-                    {bubbles}
+                    {}
                 </div>
                 <div style="border-top:1px solid #ddd;padding:12px;background:#fff;display:flex;gap:8px;align-items:flex-end;">
                     <textarea id="admin-reply-text" rows="2"
                         placeholder="Type your reply to the customer..."
-                        style="flex:1;padding:10px;border:1px solid #ccc;border-radius:6px;
-                               font-size:13px;resize:vertical;font-family:sans-serif;"></textarea>
-                    <button type="button" onclick="sendAdminReply('{reply_url}')"
-                        style="background:#1a7a4a;color:#fff;border:none;padding:10px 18px;
-                               border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
+                        style="flex:1;padding:10px;border:1px solid #ccc;border-radius:6px;font-size:13px;resize:vertical;font-family:sans-serif;"></textarea>
+                    <button type="button" onclick="sendAdminReply('{}')"
+                        style="background:#1a7a4a;color:#fff;border:none;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
                         Send ➤
                     </button>
                 </div>
             </div>
-
             <script>
-            function sendAdminReply(url) {{
+            function sendAdminReply(url) {
                 var text = document.getElementById('admin-reply-text').value.trim();
                 if (!text) return;
-                fetch(url, {{
+                fetch(url, {
                     method: 'POST',
-                    headers: {{
+                    headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)[1]
-                    }},
+                    },
                     body: 'message=' + encodeURIComponent(text)
-                }})
+                })
                 .then(r => r.json())
-                .then(data => {{
-                    if (data.status === 'ok') {{
+                .then(data => {
+                    if (data.status === 'ok') {
                         document.getElementById('admin-reply-text').value = '';
                         var feed = document.getElementById('chat-messages');
-                        var now = new Date().toLocaleString('en-GB', {{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}});
-                        feed.innerHTML += `
-                            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-                                <div style="max-width:70%;background:#1a7a4a;color:#fff;padding:10px 14px;
-                                            border-radius:12px;font-size:13px;line-height:1.5;">
-                                    <div style="font-size:11px;opacity:0.75;margin-bottom:4px;">🛠 Design Team · ${{now}}</div>
-                                    ${{text}}
-                                </div>
-                            </div>`;
+                        var now = new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+                        var bubbleRow = document.createElement('div');
+                        bubbleRow.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:12px;';
+                        var bubble = document.createElement('div');
+                        bubble.style.cssText = 'max-width:70%;background:#1a7a4a;color:#fff;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;';
+                        var metadata = document.createElement('div');
+                        metadata.style.cssText = 'font-size:11px;opacity:0.75;margin-bottom:4px;';
+                        metadata.textContent = '🛠 Design Team · ' + now;
+                        bubble.appendChild(metadata);
+                        bubble.appendChild(document.createTextNode(text));
+                        bubbleRow.appendChild(bubble);
+                        feed.appendChild(bubbleRow);
                         feed.scrollTop = feed.scrollHeight;
-                    }}
-                }})
+                    }
+                })
                 .catch(err => alert('Send failed: ' + err));
-            }}
-            window.addEventListener('load', function() {{
+            }
+            window.addEventListener('load', function() {
                 var feed = document.getElementById('chat-messages');
                 if (feed) feed.scrollTop = feed.scrollHeight;
-            }});
+            });
             </script>
-        '''.format(
-            username=obj.user.get_full_name() or obj.user.username,
-            email=obj.user.email,
-            bubbles=bubbles_html,
-            reply_url=reply_url,
-        ))
+            ''',
+            obj.user.get_full_name() or obj.user.username,
+            obj.user.email,
+            mark_safe(bubbles_html),
+            reply_url
+        )
 
     live_chat_panel.short_description = 'Customer Chat'
 
@@ -484,6 +644,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    @method_decorator(require_POST)
     def fetch_price_and_shipping_view(self, request, ticket_id):
         import requests as _req
         from django.http import HttpResponseRedirect
@@ -502,10 +663,9 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             'Content-Type': 'application/json',
         }
 
-        # ── 1. Fetch sync product to get variants + retail price ──────────────
         product_price_usd  = Decimal('0')
-        sync_variant_id    = None   # used for shipping payload
-        external_variant_id = None  # the catalog variant_id field
+        sync_variant_id    = None
+        external_variant_id = None
 
         try:
             api_url = f'https://api.printful.com/store/products/{ticket.printful_product_id}'
@@ -520,7 +680,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
                 self.message_user(request, "No variants found for this Printful product.", level='error')
                 return HttpResponseRedirect(redirect_url)
 
-            # Try to match by size, fall back to first variant
             target_size = (ticket.garment_size or '').upper()
             matched_variant = None
             for v in variants:
@@ -530,11 +689,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             if not matched_variant:
                 matched_variant = variants[0]
 
-            # sync variant ID (the store's internal ID)
             sync_variant_id = matched_variant.get('id')
-
-            # external_variant_id is the catalog variant ID — used by shipping API
-            # It lives at matched_variant['main_category_id'] → no, it's variant_id
             external_variant_id = matched_variant.get('variant_id')
 
             retail_price = (
@@ -548,7 +703,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             self.message_user(request, f"Failed to fetch product price from Printful: {e}", level='error')
             return HttpResponseRedirect(redirect_url)
 
-        # ── 2. Fetch shipping estimate ────────────────────────────────────────
         shipping_cost_usd = Decimal('0')
         shipping_rate_name = ''
 
@@ -574,10 +728,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             recipient_city    = 'Lagos'
             recipient_address = 'N/A'
 
-        # Printful /shipping/rates accepts either:
-        #   { "variant_id": <catalog_variant_id>, "quantity": 1 }   ← preferred
-        #   { "sync_variant_id": <store_variant_id>, "quantity": 1 } ← fallback
-        # We try catalog variant_id first, then fall back to sync_variant_id
         shipping_item = None
         if external_variant_id:
             shipping_item = {"variant_id": external_variant_id, "quantity": 1}
@@ -631,7 +781,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
                 level='warning'
             )
 
-        # ── 3. Convert USD → NGN ──────────────────────────────────────────────
         try:
             rates_map = getattr(_settings, 'CASH_EXCHANGE_BACKEND', {}).get('USD', {})
             ngn_rate  = Decimal(str(rates_map.get('NGN', 1500)))
@@ -642,7 +791,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         shipping_ngn = (shipping_cost_usd * ngn_rate).quantize(Decimal('1'))
         total_ngn    = product_ngn + shipping_ngn
 
-        # ── 4. Save to ticket ─────────────────────────────────────────────────
         ticket.invoice_amount = total_ngn
         if hasattr(ticket, 'product_price_ngn'):
             ticket.product_price_ngn = product_ngn
@@ -656,7 +804,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             save_fields.append('shipping_cost_ngn')
         ticket.save(update_fields=save_fields)
 
-        # ── 5. Show admin breakdown ───────────────────────────────────────────
         parts = [f"Product: ${product_price_usd} (₦{product_ngn:,})"]
         if shipping_cost_usd:
             parts.append(f"Shipping ({shipping_rate_name}): ${shipping_cost_usd} (₦{shipping_ngn:,})")
@@ -671,6 +818,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         self.message_user(request, "✅ " + " · ".join(parts), level='success')
         return HttpResponseRedirect(redirect_url)
 
+    @method_decorator(require_POST)
     def fetch_mockup_from_printful_view(self, request, ticket_id):
         import requests as _req
         from django.core.files.base import ContentFile
@@ -769,6 +917,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
 
         return HttpResponseRedirect(reverse('admin:shop_customdesignticket_change', args=[ticket_id]))
 
+    @method_decorator(require_POST)
     def send_invoice_view(self, request, ticket_id):
         from django.http import HttpResponseRedirect
         ticket = CustomDesignTicket.objects.get(id=ticket_id)
@@ -794,11 +943,9 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         )
         return HttpResponseRedirect(reverse('admin:shop_customdesignticket_change', args=[ticket_id]))
 
+    @method_decorator(require_POST)
     def admin_reply_view(self, request, ticket_id):
         from django.http import JsonResponse as _JsonResponse
-
-        if request.method != 'POST':
-            return _JsonResponse({'status': 'error', 'message': 'POST required'}, status=405)
 
         text = request.POST.get('message', '').strip()
         if not text:
@@ -815,34 +962,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         chat, _ = SupportChat.objects.get_or_create(user=ticket.user)
         ChatMessage.objects.create(chat=chat, sender_type='admin', text=text)
         return _JsonResponse({'status': 'ok'})
-
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-
-        if 'design_team_mockup' in form.changed_data and obj.design_team_mockup:
-            chat = None
-            if obj.user:
-                chat = SupportChat.objects.filter(user=obj.user).first()
-
-            if chat:
-                obj.status = 'Sent to Customer for Approval'
-                obj.save(update_fields=['status'])
-
-                notification_text = (
-                    "🎨 **Your Custom Mockup Proof is Ready!**\n\n"
-                    "Our design team has reviewed your asset specifications and cooked up your layout draft. "
-                    "Take a close look at the layout mockup below.\n\n"
-                    "👉 Reply with **'Approve'** to send it directly to production!\n"
-                    "👉 Or type any tweaks or positioning changes you want adjusted."
-                )
-
-                msg = ChatMessage.objects.create(
-                    chat=chat,
-                    sender_type='admin',
-                    text=notification_text
-                )
-                msg.image_field = obj.design_team_mockup
-                msg.save()
 
 
 # ─────────────────────────────────────────────────────────
@@ -904,11 +1023,14 @@ class UnknownQuestionAdmin(admin.ModelAdmin):
     def teach_button(self, obj):
         url = reverse('admin:shop_unknownquestion_teach', args=[obj.id])
         return format_html(
-            '<a class="button" href="{}" style="'
+            '<form action="{}" method="POST" style="display:inline;">'
+            '<input type="hidden" name="csrfmiddlewaretoken" value="{}">'
+            '<button type="submit" class="button" style="'
             'background:#8e44ad;color:#fff;padding:4px 10px;'
-            'border-radius:4px;text-decoration:none;font-size:12px;">'
-            '🧠 Teach Bot</a>',
-            url
+            'border-radius:4px;border:none;cursor:pointer;font-size:12px;">'
+            '🧠 Teach Bot</button></form>',
+            url,
+            self.get_csrf_token(obj) if hasattr(self, 'get_csrf_token') else ''
         )
     teach_button.short_description = 'Action'
 
@@ -948,7 +1070,6 @@ class UnknownQuestionAdmin(admin.ModelAdmin):
             else:
                 self.message_user(request, "Both keywords and answer are required.", level='error')
 
-        # Suggest keywords from the message itself
         suggested_keywords = ', '.join(
             w for w in question.message.lower().split()
             if len(w) > 3 and w not in {'what', 'when', 'where', 'does', 'will', 'your', 'have', 'this', 'that'}

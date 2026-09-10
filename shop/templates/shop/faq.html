@@ -18,7 +18,7 @@
                     How do I place an order? <i class="bi bi-plus-lg faq-icon"></i>
                 </button>
                 <div class="faq-a">
-                    <p>Browse our catalog, select your product, choose your size and colour, and add it to your cart. When you're ready, proceed to checkout, enter your shipping details, and complete payment via Flutterwave.</p>
+                    <p>Browse our catalog, select your product, choose your size and colour, and add it to your cart. When you're ready, proceed to checkout, enter your shipping details, and complete your secure payment via Paystack or Flutterwave.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -26,7 +26,7 @@
                     Can I modify or cancel my order after placing it? <i class="bi bi-plus-lg faq-icon"></i>
                 </button>
                 <div class="faq-a">
-                    <p>Unfortunately, no. Once an order is confirmed and sent to Printful for production, it cannot be modified or cancelled. Please review your order carefully before completing payment.</p>
+                    <p>Unfortunately, no. Once an order is confirmed and sent for production, it cannot be modified or cancelled. Please review your order carefully before completing payment.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -82,7 +82,7 @@
                     What are your products made of? <i class="bi bi-plus-lg faq-icon"></i>
                 </button>
                 <div class="faq-a">
-                    <p>Our products are produced by Printful using premium quality blanks. Fabric composition is listed on each product page. We use high-quality direct-to-garment (DTG) and embroidery printing techniques.</p>
+                    <p>Our products are produced using premium quality blanks. Fabric composition is listed on each product page. We use high-quality direct-to-garment (DTG) and embroidery printing techniques.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -118,7 +118,7 @@
                     What payment methods do you accept? <i class="bi bi-plus-lg faq-icon"></i>
                 </button>
                 <div class="faq-a">
-                    <p>We accept all major cards, bank transfers, and mobile money through Flutterwave. We support payments in NGN, USD, GBP, EUR, and more.</p>
+                    <p>We accept all major debit/credit cards, bank transfers, and mobile money securely through **Paystack** and **Flutterwave**. We support multi-currency payments including NGN, USD, GBP, EUR, and more.</p>
                 </div>
             </div>
             <div class="faq-item">
@@ -126,7 +126,7 @@
                     Is my payment information secure? <i class="bi bi-plus-lg faq-icon"></i>
                 </button>
                 <div class="faq-a">
-                    <p>Yes. Payments are processed entirely by Flutterwave using industry-standard encryption. HOXOBIL never stores your card details.</p>
+                    <p>Yes. All payments are processed securely through our certified payment partners (Paystack &amp; Flutterwave) using industry-standard TLS encryption. HOXOBIL never stores your card details.</p>
                 </div>
             </div>
         </div>
@@ -191,10 +191,11 @@
     .faq-cta-box {
         text-align: center;
         padding: 2.5rem 2rem;
-        background: var(--ivory-dark, #EDE8DF);
+        background: #f4f1eb;
         border-radius: 8px;
-        margin-top: 1rem;
-        border: 1px solid rgba(139,0,0,0.1);
+        margin-top: 2rem;
+        border: 1px solid #d8d3c8;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
     }
     .faq-cta-box h2 {
         font-family: 'Oswald', sans-serif; font-size: 1.4rem; font-weight: 600;
@@ -212,10 +213,10 @@
         font-family: 'Oswald', sans-serif; font-size: 0.88rem; font-weight: 600;
         letter-spacing: 0.18em; text-transform: uppercase;
         background: var(--crimson, #8B0000); color: #FAF7F2 !important;
-        border: 2px solid var(--crimson, #8B0000); border-radius: 3px;
+        border: 2px solid var(--crimson, #8B0000); border-radius: 4px;
         padding: 0.8rem 2rem; text-decoration: none !important;
-        transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-        box-shadow: 0 3px 12px rgba(139,0,0,0.2); cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 14px rgba(139,0,0,0.2); cursor: pointer;
         margin-bottom: 1.25rem;
     }
     .faq-cta-btn:hover {
@@ -229,8 +230,8 @@
     /* Email row with address + copy */
     .faq-email-row {
         display: inline-flex; align-items: center; gap: 0.6rem;
-        background: #fff; border: 1px solid rgba(139,0,0,0.15);
-        border-radius: 5px; padding: 0.55rem 0.75rem;
+        background: #fff; border: 1px solid #d8d3c8;
+        border-radius: 6px; padding: 0.55rem 0.85rem;
         margin-top: 0.25rem;
     }
     .faq-email-text {

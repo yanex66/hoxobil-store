@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
-from . import launch_views   # ← ADDED: was missing, urls.py referenced launch_views without importing it
+from . import launch_views
 
 app_name = 'shop'
 
@@ -24,12 +24,11 @@ urlpatterns = [
     # Sync (superuser only)
     path('sync-products/', views.sync_printful_products, name='sync_printify'),
 
-    # Currency and Registration
+    # Currency, Registration & Newsletter (must be above catch-alls)
     path('set-currency/', views.set_currency, name='set_currency'),
     path('register/', views.register, name='register'),
-
-    # OTP resend endpoint
     path('register/resend-otp/', views.resend_otp, name='resend_otp'),
+    path('newsletter/subscribe/', views.newsletter_subscribe, name='newsletter_subscribe'),
 
     # Custom two-step password change
     path('password-change/', views.password_change_custom, name='password_change'),
@@ -48,22 +47,23 @@ urlpatterns = [
     path('checkout/final/<int:order_id>/', views.checkout_final, name='checkout_final'),
     path('checkout/payment/<int:order_id>/', views.checkout_payment, name='checkout_payment'),
     path('checkout/payment/<int:order_id>/callback/', views.flutterwave_callback, name='flutterwave_callback'),
-    path('checkout/<int:order_id>/complete/', views.complete_checkout, name='checkout_complete'),
     path('checkout/shipping/calculate/', views.calculate_shipping, name='calculate_shipping'),
     path('checkout/<int:order_id>/paystack-callback/', views.paystack_callback, name='paystack_callback'),
+    path('webhooks/paystack/', views.paystack_webhook, name='paystack_webhook'),
+    path('webhooks/flutterwave/', views.flutterwave_webhook, name='flutterwave_webhook'),
 
     # Order Views
     path('orders/', views.OrderHistoryView.as_view(), name='order_history'),
     path('orders/<int:order_id>/', views.OrderDetailView.as_view(), name='order_detail'),
     path('orders/<int:order_id>/tracking/', views.order_tracking, name='order_tracking'),
 
-    # Custom Order
-    path('custom-order/', views.custom_order_request, name='custom_order'),
-    path('custom-order/<slug:product_slug>/', views.custom_order_request, name='custom_order_slug'),
+    # Custom Order (Specific sub-paths MUST come before the slug catch-all)
     path('custom-order/checkout/<int:ticket_id>/', views.custom_order_checkout, name='custom_order_checkout'),
     path('custom-order/payment/<int:order_id>/<int:ticket_id>/', views.custom_order_payment, name='custom_order_payment'),
     path('custom-order/payment/<int:order_id>/<int:ticket_id>/callback/', views.custom_order_payment_callback, name='custom_order_payment_callback'),
     path('custom-order/<int:order_id>/<int:ticket_id>/paystack-callback/', views.custom_order_payment_paystack_callback, name='custom_order_payment_paystack_callback'),
+    path('custom-order/', views.custom_order_request, name='custom_order'),
+    path('custom-order/<slug:product_slug>/', views.custom_order_request, name='custom_order_slug'),
 
     # Legal & Support Pages
     path('privacy-policy/', views.PrivacyPolicyView.as_view(), name='privacy_policy'),
@@ -82,13 +82,10 @@ urlpatterns = [
     path('support/chat/PENDING_UPLOAD', views.pending_upload_status, name='pending_upload_status'),
     path('support/chat/add-to-cart/', views.custom_order_add_to_cart, name='custom_order_add_to_cart'),
 
-    # AI Placement Scanner (custom order page)
+    # AI Placement Scanner
     path('api/ai-placement/', views.ai_placement_view, name='ai_placement'),
 
     # --- LAUNCH PAGE & DONATIONS ---
-    # IMPORTANT: these must stay ABOVE the generic '<slug:slug>/' catch-all
-    # below, otherwise Django would treat 'launch' / 'donate' as a product
-    # slug and route them into ProductDetailView instead.
     path('launch/', launch_views.launch_page, name='launch_page'),
     path('donate/flutterwave/', launch_views.donate_initiate_flutterwave, name='donate_initiate_flutterwave'),
     path('donate/flutterwave/callback/', launch_views.donate_flutterwave_callback, name='donate_flutterwave_callback'),
@@ -99,4 +96,4 @@ urlpatterns = [
     # --- 4. Generic Path (Lowest Priority — must stay LAST) ---
     path('<slug:slug>/review/', views.submit_review, name='submit_review'),
     path('<slug:slug>/', views.ProductDetailView.as_view(), name='product_detail'),
-   ]
+]

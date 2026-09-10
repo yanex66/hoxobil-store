@@ -41,11 +41,11 @@ class HoxobilChatbot:
         # NOTE: this replaces the old hardcoded `self.pricing` dict, which
         # was never referenced anywhere else in the file.
         self.base_prices_ngn = {
-            'tee':        Decimal('8500'),
-            'tee_print':  Decimal('2500'),   # extra print cost add-on for tee
-            'hoodie':     Decimal('14500'),
-            'sweatshirt': Decimal('12000'),
-            'cap':        Decimal('6000'),
+            'tee':         Decimal('8500'),
+            'tee_print':   Decimal('2500'),   # extra print cost add-on for tee
+            'hoodie':      Decimal('14500'),
+            'sweatshirt':  Decimal('12000'),
+            'cap':         Decimal('6000'),
         }
 
         self._complaint_patterns = [
@@ -61,7 +61,7 @@ class HoxobilChatbot:
             'ticket_ready',
             'awaiting_instructions',
             'awaiting_upload',
-            'awaiting_design_type',   # NEW
+            'awaiting_design_type',    # NEW
             'awaiting_font',
         }
 
@@ -481,7 +481,7 @@ class HoxobilChatbot:
             if 'left' in raw_msg:
                 if 'left_side'    in zones: user_msg_idx = zones.index('left_side')
                 elif 'left_chest' in zones: user_msg_idx = zones.index('left_chest')
-                elif 'left'       in zones: user_msg_idx = zones.index('left')
+                elif 'left'        in zones: user_msg_idx = zones.index('left')
                 else: user_msg_idx = 2 if len(zones) > 2 else 0
                 override = True
             elif 'right' in raw_msg:
@@ -516,15 +516,14 @@ class HoxobilChatbot:
                 context['placement'] = selected_zone
                 display_label = self._zone_display(selected_zone)
 
-                # ── NEW: ask what they're printing before triggering upload ──
                 context['current_step'] = 'awaiting_design_type'
                 reply = (
                     f"Excellent configuration. Your custom blueprint is locked in:\n"
                     f"• Garment: **{context['garment']}**\n"
                     f"• Placement Target: **{display_label}**\n\n"
                     "⚠️ **Important Design Note:**\n"
-                    "Custom designs **cannot** be printed directly over our signature HOXOBIL logos or text names. "
-                    "We can leave that space clear and print your artwork beautifully around it! ✨\n\n"
+                    '<span style="color: #C43030; font-weight: 500;">Custom designs **cannot** be printed directly over our signature HOXOBIL logos or text names. '
+                    "We can leave that space clear and print your artwork beautifully around it! ✨</span>\n\n"
                     "Now — what are we printing on this piece? 🎨\n\n"
                     "👉 **[A] Text only** — I'll type out the words I want\n"
                     "👉 **[B] Image / graphic only** — I'll upload a picture or logo\n"
@@ -573,7 +572,6 @@ class HoxobilChatbot:
         elif current_step == 'awaiting_upload':
             design_type = context.get('design_type', 'text')
 
-            # Image uploaded
             if '[uploaded design layer asset:' in raw_msg or 'image.png' in raw_msg or 'image.jpg' in raw_msg:
                 context['design_asset'] = user_message
                 context['current_step'] = 'awaiting_instructions'
@@ -583,12 +581,10 @@ class HoxobilChatbot:
                     "(If none, just reply **'No'**)"
                 ), context, False
 
-            # Text submitted (for text-only or both)
             else:
                 context['custom_text_request'] = user_message
                 context['current_step'] = 'awaiting_font'
 
-                # If design type is 'both', after font we'll still trigger upload
                 context['needs_upload_after_font'] = (design_type == 'both')
 
                 return (
@@ -623,15 +619,12 @@ class HoxobilChatbot:
                 'd': None,  # Browse — handled below
             }
 
-            # Check if a specific font name was sent (from the picker clicking a font)
-            # Font picker sends: "[A] FontName" — e.g. "[A] Bebas Neue"
             font_picker_match = re.match(r'\[a\]\s+(.+)', raw_msg)
             if font_picker_match:
                 chosen_font = font_picker_match.group(1).strip().title()
                 context['font_style'] = chosen_font
                 context['font_source'] = 'picker'
             elif 'd' in words and len(words) <= 2:
-                # They chose "Browse all fonts" via letter D but picker is already shown
                 return (
                     "Browse the full font list above and click the one you like — it'll be selected automatically! 👆"
                 ), context, False
@@ -654,7 +647,6 @@ class HoxobilChatbot:
 
                 context['font_style'] = matched_font
 
-            # If they chose 'both' design type, now trigger the upload panel
             if context.get('needs_upload_after_font'):
                 context['current_step'] = 'awaiting_upload'
                 context['needs_upload_after_font'] = False

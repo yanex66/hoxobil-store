@@ -1,194 +1,211 @@
 {% extends 'shop/base.html' %}
 {% load static %}
-{% block title %}Our Story | HOXOBIL{% endblock %}
+{% block title %}About | HOXOBIL{% endblock %}
+
 {% block content %}
-    <div class="row page-fade">
-        <div class="col-lg-10 offset-lg-1">
-            
-            <!-- HEADER -->
-            <header class="text-center mb-5 mt-4">
-                <h1 class="font-display display-4 mb-2 fw-900 text-uppercase tracking-tight" style="color: var(--charcoal); font-size: 3rem;">
-                    Crafted on Demand.<br class="d-md-none"> Curated by You.
-                </h1>
-                <p class="font-mono text-muted small text-uppercase tracking-widest mt-3">
-                    HOXOBIL IS WHERE DESIGN MEETS RESPONSIBILITY, POWERED BY INTELLIGENT FULFILLMENT.
-                </p>
-                <hr class="w-25 mx-auto opacity-100 mt-4" style="border-color: var(--crimson); border-width: 3px;">
-            </header>
+<div class="container py-4 page-fade">
+    
+    <!-- ── HERO SECTION ── -->
+    <section class="text-center py-5 my-3 position-relative">
+        <span class="font-mono text-crimson fw-bold text-uppercase tracking-widest d-block mb-3" style="font-size: 0.72rem; letter-spacing: 0.25em;">
+            — Unleashing Perfection —
+        </span>
+        <h1 class="font-display display-3 fw-900 text-uppercase tracking-tight mb-4" style="color: var(--charcoal); line-height: 1.1;">
+            Crafted on Demand.<br>Curated by You.
+        </h1>
+        <p class="font-mono text-muted mx-auto small text-uppercase tracking-wider" style="max-width: 600px; line-height: 1.8;">
+            Hoxobil is where digital architecture meets sustainable execution, powered by intelligent global fulfillment matrices.
+        </p>
+        <div class="mx-auto mt-4" style="width: 40px; height: 3px; background: var(--crimson);"></div>
+    </section>
 
-            <!-- CORE PHILOSOPHY -->
-            <section class="mb-5 py-2">
-                <h3 class="font-display text-uppercase fw-bold mb-3" style="color: var(--charcoal); letter-spacing: 0.05em;">Our Core Philosophy</h3>
-                <p class="text-muted" style="line-height: 1.8;">
-                    HOXOBIL was founded on a simple premise: <strong style="color: var(--charcoal);">Quality and customization should not come at the expense of the planet.</strong> We noticed a gap in the market for high-end, uniquely designed goods that were free from the waste of traditional bulk manufacturing.
-                </p>
-                <p class="text-muted" style="line-height: 1.8;">
-                    That's why we operate entirely on a <strong class="text-crimson fw-bold">Print-on-Demand (POD)</strong> framework. When you place an order, your unique item is created specifically for you. This means zero unnecessary inventory, zero mass-produced clutter, and a strictly reduced carbon footprint.
-                </p>
-            </section>
-
-            <!-- THE BRAND MANIFESTO -->
-            <section class="mb-5 py-4 border-top border-bottom text-center" style="border-color: rgba(0,0,0,0.08) !important;">
-                <p class="font-display text-uppercase tracking-wide fw-bold mb-2" style="color: var(--crimson); font-size: 0.85rem;">The HOXOBIL Manifesto</p>
-                <h2 class="font-display fw-900 text-uppercase mx-auto my-3" style="max-width: 750px; color: var(--charcoal); font-size: 1.75rem; line-height: 1.4;">
-                    We do not build for the masses. <br>We engineer functional statements for the individual.
-                </h2>
-                <p class="text-muted mx-auto small mb-2" style="max-width: 650px; line-height: 1.7;">
-                    Our design framework views streetwear as a canvas of digital architecture. Every graphic line, typographic choice, and textile layout is vetted extensively before being deployed to the live store matrix. If it doesn't challenge the standard, it doesn't get released.
-                </p>
-            </section>
-
-            <!-- THE ADVANTAGE BLOCK -->
-            <section class="mb-5 p-4 p-md-5 rounded-3 shadow-sm border border-start-5" style="background-color: var(--ivory-dark); border-color: rgba(139,0,0,0.1) rgba(139,0,0,0.1) rgba(139,0,0,0.1) var(--gold) !important;">
-                <h3 class="font-display text-uppercase fw-bold mb-4" style="color: var(--charcoal); letter-spacing: 0.05em;">The Advantage: Quality & Transparency</h3>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <h6 class="font-mono fw-bold text-uppercase mb-2" style="color: var(--charcoal); letter-spacing: 0.05em;">01 // Precision Fulfillment</h6>
-                        <p class="small text-muted" style="line-height: 1.7;">
-                            We partner exclusively with premium manufacturing platforms. By leveraging a global network of trusted fulfillment matrices, we ensure your order is printed by the facility closest to your destination region, guaranteeing absolute quality control and reliable shipping speeds.
+    <!-- ── MANIFESTO BANNER (DARK THEME) ── -->
+    <section class="row justify-content-center mb-6">
+        <div class="col-lg-12">
+            <div class="p-5 rounded-4 text-white position-relative overflow-hidden shadow-lg" style="background: var(--charcoal);">
+                <div class="position-absolute top-0 end-0 opacity-10 p-4 font-mono display-1 fw-bold pointer-events-none">HXBL</div>
+                <div class="row align-items-center position-relative z-1">
+                    <div class="col-lg-8">
+                        <span class="font-mono text-crimson-soft small text-uppercase tracking-widest d-block mb-2">The Brand Manifesto</span>
+                        <h2 class="font-display fw-bold text-uppercase mb-3" style="font-size: 2.1rem; letter-spacing: 0.04em; line-height: 1.3;">
+                            We do not build for the masses. We engineer functional statements for the individual.
+                        </h2>
+                        <p class="text-white-50 mb-0 font-Raleway" style="font-size: 0.95rem; line-height: 1.7;">
+                            Every graphic line, typographic choice, and textile layout is vetted extensively before deployment. If it doesn't challenge the standard, it doesn't leave the archive.
                         </p>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="font-mono fw-bold text-uppercase mb-2" style="color: var(--charcoal); letter-spacing: 0.05em;">02 // Sustainable Architecture</h6>
-                        <p class="small text-muted" style="line-height: 1.7;">
-                            Since nothing enters production until it is purchased, we eliminate excess stock cycles completely common in traditional fast fashion. You receive an elite, uniquely generated product, and the environment benefits from decreased industrial runoffs.
-                        </p>
+                    <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                        <a href="{% url 'shop:product_list' %}" class="btn-hox px-4 py-3 bg-white text-dark border-white font-display">
+                            Explore Active Drops →
+                        </a>
                     </div>
                 </div>
-            </section>
-
-            <!-- HOW IT WORKS PROCESS GRID -->
-            <section class="mb-5 py-3">
-                <div class="text-center mb-5">
-                    <h3 class="font-display text-uppercase fw-bold mb-1" style="color: var(--charcoal); letter-spacing: 0.05em;">The Lifecycle of a Drop</h3>
-                    <p class="font-mono text-muted small text-uppercase tracking-wider">From server database confirmation straight to your door.</p>
-                </div>
-                <div class="row g-4 text-center">
-                    <div class="col-md-4">
-                        <div class="px-3">
-                            <div class="font-mono fw-bold text-muted mb-2" style="font-size: 1.5rem;">[ 01 ]</div>
-                            <h5 class="font-display fw-bold text-uppercase mb-2" style="color: var(--charcoal); font-size: 1.1rem;">Secure Matrix Checkout</h5>
-                            <p class="small text-muted" style="line-height: 1.6;">
-                                Select your layout and securely authenticate payment through our integrated global routing. Your billing is verified instantly via localized encryption protocols.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="px-3">
-                            <div class="font-mono fw-bold text-muted mb-2" style="font-size: 1.5rem;">[ 02 ]</div>
-                            <h5 class="font-display fw-bold text-uppercase mb-2" style="color: var(--charcoal); font-size: 1.1rem;">Customized Execution</h5>
-                            <p class="small text-muted" style="line-height: 1.6;">
-                                The system pushes your exact configuration data to our high-end print matrices. Production pipelines begin working on your blank garment within hours.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="px-3">
-                            <div class="font-mono fw-bold text-muted mb-2" style="font-size: 1.5rem;">[ 03 ]</div>
-                            <h5 class="font-display fw-bold text-uppercase mb-2" style="color: var(--charcoal); font-size: 1.1rem;">Premium Logistics</h5>
-                            <p class="small text-muted" style="line-height: 1.6;">
-                                Items undergo strict quality validation, are assigned tracked global transit routes, and are dispatched directly to your location with active tracking codes.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- MEET THE BOARD -->
-            <section class="mb-5">
-                <div class="text-center mb-5">
-                    <h3 class="font-display text-uppercase fw-bold mb-1" style="color: var(--charcoal); letter-spacing: 0.05em;">Meet the Board</h3>
-                    <p class="font-mono text-muted small text-uppercase tracking-wider">The structural visionaries behind the brand.</p>
-                </div>
-                
-                <div class="row g-4 text-center justify-content-center">
-                    <!-- Highest Shareholder (70% Equity) -->
-                    <div class="col-sm-6 col-md-4">
-                        <div class="p-4 rounded-3 border bg-white h-100 shadow-sm transition-card">
-                            <div class="mb-3">
-                                <div class="rounded-3 mx-auto shadow-sm overflow-hidden" style="width: 80px; height: 80px; border-bottom: 3px solid var(--crimson);">
-                                    <img src="{% static 'images/DSC_0417~2.jpg' %}" alt="Iyanuoluwa Darasimi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
-                                </div>
-                            </div>
-                            <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Iyanuoluwa Darasimi</h5>
-                            <p class="font-mono text-crimson small text-uppercase fw-bold mb-3" style="font-size: 0.68rem; letter-spacing: 0.1em;">Founder / Highest Shareholder</p>
-                            <span class="badge font-mono rounded-0 bg-dark text-white px-3 py-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">70% EQUITY SHARE</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Co-Founder (30% Equity) -->
-                    <div class="col-sm-6 col-md-4">
-                        <div class="p-4 rounded-3 border bg-white h-100 shadow-sm transition-card">
-                            <div class="mb-3">
-                                <div class="rounded-3 mx-auto shadow-sm overflow-hidden" style="width: 80px; height: 80px; border-bottom: 3px solid var(--gold);">
-                                    <img src="{% static 'images/IMG_20260505_201736.jpg' %}" alt="Akinfewa Feranmi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
-                                </div>
-                            </div>
-                            <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Akinfewa Feranmi</h5>
-                            <p class="font-mono text-gold small text-uppercase fw-bold mb-3" style="font-size: 0.68rem; letter-spacing: 0.1em;">Co-Founder & Shareholder</p>
-                            <span class="badge font-mono rounded-0 bg-dark text-white px-3 py-2" style="font-size: 0.65rem; letter-spacing: 0.05em;">30% EQUITY SHARE</span>
-                        </div>
-                    </div>
-
-                    <!-- Open Slot -->
-                    <div class="col-sm-6 col-md-4">
-                        <div class="p-4 rounded-3 h-100 d-flex flex-column align-items-center justify-content-center" style="background: transparent; border: 2px dashed rgba(28,28,28,0.15);">
-                            <div class="mb-3">
-                                <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center fw-bold text-muted bg-white border" style="width: 65px; height: 65px; font-size: 1.5rem;">
-                                    +
-                                </div>
-                            </div>
-                            <h5 class="font-display fw-bold text-muted text-uppercase mb-1" style="font-size: 1.1rem;">Distribution Head</h5>
-                            <p class="font-mono text-muted small text-uppercase mb-0" style="font-size: 0.62rem; letter-spacing: 0.05em;">General Management</p>
-                            <p class="font-mono text-muted mt-2 mb-0" style="font-size: 0.68rem;">Position to be allocated.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- GLOBAL LOGISTICS / CUSTOMER TRUST -->
-            <section class="mb-5 p-4 rounded-3 border bg-white shadow-sm">
-                <div class="row align-items-center g-3 text-center text-md-start">
-                    <div class="col-md-8">
-                        <h4 class="font-display text-uppercase fw-bold mb-2" style="color: var(--charcoal); font-size: 1.25rem;">Global Infrastructure, Local Processing</h4>
-                        <p class="small text-muted mb-0" style="line-height: 1.6;">
-                            HOXOBIL serves design drop coordinates worldwide. Whether you are routing fulfillment inside Sub-Saharan Africa or clearing automated checkpoints to destinations across Europe and North America, our server instances coordinate optimal custom handling lanes for low latency and prompt delivery.
-                        </p>
-                    </div>
-                    <div class="col-md-4 text-md-end text-center">
-                        <span class="font-mono fw-bold small text-muted border px-3 py-2 text-uppercase" style="letter-spacing: 0.05em; background: var(--ivory-dark);">
-                            Active Status: 100% Online
-                        </span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- CALL TO ACTION -->
-            <section class="text-center mt-5 p-5 rounded-3 border" style="background-color: var(--ivory-dark); border-color: rgba(139,0,0,0.06) !important;">
-                <h3 class="font-display text-uppercase fw-900 mb-2" style="color: var(--charcoal); letter-spacing: 0.02em; font-size: 1.8rem;">Ready to secure a piece of the archive?</h3>
-                <p class="text-muted small font-mono text-uppercase tracking-wide mb-4">Explore our active drop collection. Unreleased assets move fast.</p>
-                <a href="{% url 'shop:product_list' %}" class="btn-hox px-5 py-3 shadow-sm font-display">
-                    Shop The Drop
-                </a>
-            </section>
-
+            </div>
         </div>
-    </div>
+    </section>
 
-    <!-- STYLES -->
-    <style>
-        .fw-900 { font-weight: 900; }
-        .tracking-tight { letter-spacing: -0.04em; }
-        .tracking-wider { letter-spacing: 0.1em; }
-        .tracking-widest { letter-spacing: 0.22em; }
-        .border-start-5 { border-left-width: 5px !important; }
+    <!-- ── CORE PHILOSOPHY & ADVANTAGE (SPLIT GRID) ── -->
+    <section class="row g-4 mb-6 align-items-stretch">
+        <div class="col-md-6">
+            <div class="p-4 p-md-5 rounded-4 border bg-white h-100 shadow-sm">
+                <span class="font-mono text-muted small tracking-widest">01 // PHILOSOPHY</span>
+                <h3 class="font-display text-uppercase fw-bold mt-2 mb-3" style="color: var(--charcoal); font-size: 1.5rem;">Zero Waste Architecture</h3>
+                <p class="text-muted" style="line-height: 1.8; font-size: 0.95rem;">
+                    Quality and custom expression should never come at the expense of the planet. Operating on a strict <strong class="text-crimson">Print-on-Demand (POD)</strong> model means zero bulk inventory, zero mass-produced clutter, and a strictly controlled carbon footprint.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="p-4 p-md-5 rounded-4 border bg-white h-100 shadow-sm">
+                <span class="font-mono text-muted small tracking-widest">02 // PRECISION</span>
+                <h3 class="font-display text-uppercase fw-bold mt-2 mb-3" style="color: var(--charcoal); font-size: 1.5rem;">Global Fulfillment Routing</h3>
+                <p class="text-muted" style="line-height: 1.8; font-size: 0.95rem;">
+                    We partner with elite global manufacturing networks. When an order clears our server database, it is routed straight to the printing facility closest to your destination to ensure maximum speed and flawless quality control.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── LIFECYCLE OF A DROP ── -->
+    <section class="mb-6 py-4">
+        <div class="text-center mb-5">
+            <h3 class="font-display text-uppercase fw-bold mb-1" style="color: var(--charcoal); font-size: 1.8rem;">The Lifecycle of a Drop</h3>
+            <p class="font-mono text-muted small text-uppercase tracking-widest">From database authentication straight to your wardrobe.</p>
+        </div>
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border bg-white h-100 shadow-sm">
+                    <div class="font-mono text-crimson fw-bold mb-3" style="font-size: 1.25rem;">[ 01 ]</div>
+                    <h5 class="font-display fw-bold text-uppercase mb-2" style="font-size: 1.1rem;">Secure Matrix Checkout</h5>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        Authenticate your purchase via encrypted local or international payment gateways with instant database confirmation.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border bg-white h-100 shadow-sm">
+                    <div class="font-mono text-crimson fw-bold mb-3" style="font-size: 1.25rem;">[ 02 ]</div>
+                    <h5 class="font-display fw-bold text-uppercase mb-2" style="font-size: 1.1rem;">Customized Execution</h5>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        The system pushes your precise sizing and layout blueprint directly into automated production pipelines.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 rounded-3 border bg-white h-100 shadow-sm">
+                    <div class="font-mono text-crimson fw-bold mb-3" style="font-size: 1.25rem;">[ 03 ]</div>
+                    <h5 class="font-display fw-bold text-uppercase mb-2" style="font-size: 1.1rem;">Tracked Transit</h5>
+                    <p class="small text-muted mb-0" style="line-height: 1.6;">
+                        Rigorous quality checks are performed before items are dispatched with active live tracking numbers.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── MEET THE BOARD ── -->
+    <section class="mb-6">
+        <div class="text-center mb-5">
+            <h3 class="font-display text-uppercase fw-bold mb-1" style="color: var(--charcoal); font-size: 1.8rem;">Meet the Board</h3>
+            <p class="font-mono text-muted small text-uppercase tracking-widest">The structural visionaries driving the enterprise.</p>
+        </div>
         
-        .transition-card {
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-        }
-        .transition-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(28,28,28,0.06) !important;
-        }
-    </style>
+        <div class="row g-4 text-center justify-content-center">
+            <!-- Founder -->
+            <div class="col-sm-6 col-md-4">
+                <div class="p-4 rounded-4 border bg-white h-100 shadow-sm transition-card">
+                    <div class="mb-3">
+                        <div class="rounded-circle mx-auto shadow-sm overflow-hidden border border-2 border-light" style="width: 90px; height: 90px;">
+                            <img src="{% static 'images/DSC_0417~2.jpg' %}" alt="Iyanuoluwa Darasimi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
+                        </div>
+                    </div>
+                    <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Iyanuoluwa Darasimi</h5>
+                    <p class="font-mono text-crimson small text-uppercase fw-bold mb-3" style="font-size: 0.68rem;">Founder / CEO</p>
+                    <span class="badge font-mono rounded-pill bg-dark text-white px-3 py-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">70% EQUITY SHARE</span>
+                </div>
+            </div>
+            
+            <!-- Co-Founder -->
+            <div class="col-sm-6 col-md-4">
+                <div class="p-4 rounded-4 border bg-white h-100 shadow-sm transition-card">
+                    <div class="mb-3">
+                        <div class="rounded-circle mx-auto shadow-sm overflow-hidden border border-2 border-light" style="width: 90px; height: 90px;">
+                            <img src="{% static 'images/IMG_20260505_201736.jpg' %}" alt="Akinfewa Feranmi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
+                        </div>
+                    </div>
+                    <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Akinfewa Feranmi</h5>
+                    <p class="font-mono text-gold small text-uppercase fw-bold mb-3" style="font-size: 0.68rem;">Co-Founder & Shareholder</p>
+                    <span class="badge font-mono rounded-pill bg-dark text-white px-3 py-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">30% EQUITY SHARE</span>
+                </div>
+            </div>
+
+            <!-- Open Slot -->
+            <div class="col-sm-6 col-md-4">
+                <div class="p-4 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center bg-white border border-dashed" style="border-style: dashed !important; border-color: rgba(28,28,28,0.2) !important;">
+                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-muted bg-light border mb-3" style="width: 50px; height: 50px; font-size: 1.25rem;">
+                        +
+                    </div>
+                    <h5 class="font-display fw-bold text-muted text-uppercase mb-1" style="font-size: 1rem;">Distribution Head</h5>
+                    <p class="font-mono text-muted small text-uppercase mb-2" style="font-size: 0.62rem;">General Management</p>
+                    <span class="badge font-mono rounded-pill bg-light text-secondary border px-3 py-2" style="font-size: 0.6rem;">AVAILABLE SLOT</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── CORPORATE COMPLIANCE BADGE PANEL ── -->
+    <section class="mb-6 p-4 p-md-5 rounded-4 border bg-white shadow-sm">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-success font-mono text-uppercase" style="font-size: 0.6rem;">Verified Legal Entity</span>
+                    <span class="font-mono text-muted small">Federal Republic of Nigeria</span>
+                </div>
+                <h4 class="font-display text-uppercase fw-bold mb-3" style="color: var(--charcoal); font-size: 1.35rem;">Corporate Registration & Transparency</h4>
+                <div class="row g-2 font-mono text-dark" style="font-size: 0.78rem;">
+                    <div class="col-sm-6"><strong>Entity:</strong> Hoxobil Enterprise[cite: 1, 2]</div>
+                    <div class="col-sm-6"><strong>CAC Reg:</strong> BN 9705319[cite: 1, 2]</div>
+                    <div class="col-sm-6"><strong>TIN:</strong> 2622419169130[cite: 1]</div>
+                    <div class="col-sm-6"><strong>SMEDAN SUID:</strong> SUID-1963-4833-2438-8840[cite: 3]</div>
+                    <div class="col-12 mt-1 text-muted"><strong>Office:</strong> 8, LUTH Lagos, Mushin, Lagos, Nigeria[cite: 1, 2]</div>
+                </div>
+            </div>
+            <div class="col-lg-4 text-lg-end text-center">
+                <div class="p-3 rounded-3 bg-light border d-inline-block text-start">
+                    <div class="font-mono small fw-bold text-success mb-1">
+                        <i class="bi bi-shield-fill-check me-1"></i> Active Compliance
+                    </div>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem;">Fully certified under CAMA 2020 & SMEDAN guidelines[cite: 1, 3].</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── CALL TO ACTION ── -->
+    <section class="text-center py-5 px-4 rounded-4 border mb-4" style="background-color: var(--ivory-dark);">
+        <h3 class="font-display text-uppercase fw-900 mb-2" style="color: var(--charcoal); font-size: 1.8rem;">Ready to secure a piece of the archive?</h3>
+        <p class="text-muted small font-mono text-uppercase tracking-wide mb-4">Explore our active drop collection. Unreleased assets move fast.</p>
+        <a href="{% url 'shop:product_list' %}" class="btn-hox px-5 py-3 shadow-sm font-display">
+            Shop The Drop
+        </a>
+    </section>
+
+</div>
+
+<!-- STYLES -->
+<style>
+    .fw-900 { font-weight: 900; }
+    .tracking-tight { letter-spacing: -0.03em; }
+    .tracking-wider { letter-spacing: 0.1em; }
+    .tracking-widest { letter-spacing: 0.22em; }
+    .mb-6 { margin-bottom: 5rem !important; }
+    
+    .transition-card {
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    }
+    .transition-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(28,28,28,0.08) !important;
+    }
+</style>
 {% endblock content %}

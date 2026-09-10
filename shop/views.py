@@ -1,5 +1,7 @@
 import logging
 import base64
+import hashlib
+import hmac
 import json as _json
 import io
 from decimal import Decimal, InvalidOperation
@@ -9,13 +11,16 @@ from django.utils import timezone
 from django.views.generic import ListView, DetailView, TemplateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
-from django.http import JsonResponse, QueryDict
+from django.http import JsonResponse, QueryDict, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 import json
 import requests as http_requests
 from django.utils.text import slugify
@@ -32,6 +37,113 @@ from .forms import CheckoutForm, ReviewForm
 from .ai_bot import bot
 from PIL import Image
 logger = logging.getLogger(__name__)
+
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from .models import NewsletterSubscriber 
+
+
+def _mark_order_paid_for_review(order):
+    """Mark payment complete while leaving later fulfillment states untouched."""
+    order.payment_status = 'PAID'
+    if order.fulfillment_status in {'', 'AWAITING_PAYMENT', None}:
+        order.fulfillment_status = 'PREPARING'
+
+
+@csrf_exempt
+@require_POST
+def paystack_webhook(request):
+    """Accept Paystack events, validate exact amounts/currency, and mark paid atomically."""
+    received_signature = request.headers.get('X-Paystack-Signature', '')
+    expected_signature = hmac.new(
+        settings.PAYSTACK_SECRET_KEY.encode('utf-8'),
+        request.body,
+        hashlib.sha512,
+    ).hexdigest()
+
+    if not received_signature or not hmac.compare_digest(received_signature, expected_signature):
+        return JsonResponse({'status': 'error'}, status=401)
+
+    try:
+        payload = _json.loads(request.body)
+    except (TypeError, ValueError):
+        return JsonResponse({'status': 'error'}, status=400)
+
+    if payload.get('event') != 'charge.success':
+        return JsonResponse({'status': 'ok'})
+
+    tx_data = payload.get('data', {})
+    reference = tx_data.get('reference')
+    if not reference:
+        return JsonResponse({'status': 'ok'})
+
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(paystack_reference=reference).first()
+        if order:
+            paid_amount = Decimal(str(tx_data.get('amount', 0))) / Decimal('100')
+            paid_currency = str(tx_data.get('currency', '')).upper()
+            expected_amount = order.get_total_cost().amount
+
+            if paid_amount == expected_amount and paid_currency == order.currency.upper():
+                order.mark_paid(gateway_reference=reference, gateway_name='paystack')
+            else:
+                logger.critical(
+                    "paystack_webhook | Amount/currency mismatch for order %s | expected %s %s, got %s %s",
+                    order.id, expected_amount, order.currency.upper(), paid_amount, paid_currency,
+                )
+                return JsonResponse({'status': 'error'}, status=400)
+
+    return JsonResponse({'status': 'ok'})
+
+
+@csrf_exempt
+@require_POST
+def flutterwave_webhook(request):
+    """Accept verified Flutterwave payments, validate amounts, and mark paid atomically."""
+    received_hash = request.headers.get('verif-hash', '')
+    expected_hash = settings.FLW_SECRET_HASH
+
+    if not expected_hash or not received_hash or not hmac.compare_digest(received_hash, expected_hash):
+        return JsonResponse({'status': 'error'}, status=401)
+
+    try:
+        payload = _json.loads(request.body)
+    except (TypeError, ValueError):
+        return JsonResponse({'status': 'error'}, status=400)
+
+    data = payload.get('data') or {}
+    payment_status = str(data.get('status') or payload.get('status') or '').lower()
+    event = str(payload.get('event') or payload.get('event_type') or '').lower()
+    successful_event = event in {'charge.success', 'payment.success', 'successful_payment'}
+    if payment_status != 'successful' and not successful_event:
+        return JsonResponse({'status': 'ok'})
+
+    reference = data.get('tx_ref') or data.get('txRef') or payload.get('tx_ref')
+    if not reference:
+        return JsonResponse({'status': 'ok'})
+
+    with transaction.atomic():
+        order = Order.objects.select_for_update().filter(
+            Q(flutterwave_reference=reference) | Q(paystack_reference=reference)
+        ).first()
+
+        if order is None:
+            return JsonResponse({'status': 'ok'})
+
+        paid_amount = Decimal(str(data.get('amount', 0)))
+        paid_currency = str(data.get('currency', '')).upper()
+        expected_amount = order.get_total_cost().amount
+
+        if paid_amount == expected_amount and paid_currency == order.currency.upper():
+            order.mark_paid(gateway_reference=reference, gateway_name='flutterwave')
+        else:
+            logger.critical(
+                "flutterwave_webhook | Amount/currency mismatch for order %s | expected %s %s, got %s %s",
+                order.id, expected_amount, order.currency.upper(), paid_amount, paid_currency,
+            )
+            return JsonResponse({'status': 'error'}, status=400)
+
+    return JsonResponse({'status': 'ok'})
 
 
 # ─────────────────────────────────────────────────────────
@@ -51,6 +163,7 @@ def home(request):
 # ─────────────────────────────────────────────────────────
 #  1. PRODUCT LIST VIEW
 # ─────────────────────────────────────────────────────────
+@method_decorator(never_cache, name='dispatch')
 class ProductListView(ListView):
     model = Product
     template_name = 'shop/product_list.html'
@@ -58,15 +171,18 @@ class ProductListView(ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        base_qs = Product.objects.filter(available=True, is_customizable=False)
+        base_qs = Product.objects.filter(
+            available=True,
+            is_customizable=False,
+        ).prefetch_related('categories').order_by('-created', '-pk')
         filter_data = self.request.GET.copy()
         filter_data.pop('category', None)
         self._filter = ProductFilter(filter_data, queryset=base_qs, request=self.request)
         qs = self._filter.qs
 
         category_slug = self.request.GET.get('category', '').strip()
-        if category_slug:
-            qs = qs.filter(categories__slug=category_slug)
+        if category_slug and category_slug != 'all':
+            qs = qs.filter(categories__slug=category_slug).distinct()
             logger.debug("ProductListView | category_slug=%r | after filter count=%s", category_slug, qs.count())
 
         q = self.request.GET.get('q', '').strip()
@@ -101,8 +217,9 @@ class ProductListView(ListView):
         context['filter_debug'] = {
             'GET': dict(self.request.GET),
             'errors': self._filter.errors,
-            'count': self._filter.qs.count(),
+            'count': context['paginator'].count if context.get('paginator') else context['object_list'].count(),
         }
+        context['active_category'] = self.request.GET.get('category', '').strip()
         return context
 
 
@@ -110,12 +227,6 @@ class ProductListView(ListView):
 #  1b. CUSTOM PRODUCTS VIEW (blank garments customers can customize)
 # ─────────────────────────────────────────────────────────
 class CustomProductListView(ListView):
-    """
-    Shows only the blank garments flagged is_customizable=True during sync
-    (Printful title was prefixed with 'c#'). These aren't finished listings —
-    customers pick one, then get routed into the HOXO chat ticket flow to
-    request their own design on it, instead of Add to Cart.
-    """
     model = Product
     template_name = 'shop/custom_product_list.html'
     context_object_name = 'products'
@@ -125,8 +236,8 @@ class CustomProductListView(ListView):
         qs = Product.objects.filter(available=True, is_customizable=True)
 
         category_slug = self.request.GET.get('category', '').strip()
-        if category_slug:
-            qs = qs.filter(categories__slug=category_slug)
+        if category_slug and category_slug != 'all':
+            qs = qs.filter(categories__slug=category_slug).distinct()
 
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -160,7 +271,6 @@ class ProductDetailView(DetailView):
         context['cart'] = Cart(self.request)
         context['video_ads'] = VideoAd.objects.filter(is_active=True, placement='DETAIL').order_by('-id')
 
-        # ── Reviews ──────────────────────────────────────────────────────
         reviews = product.reviews.filter(is_approved=True).select_related('user')
         context['reviews'] = reviews
         context['review_count'] = reviews.count()
@@ -195,8 +305,6 @@ class ProductDetailView(DetailView):
 def submit_review(request, slug):
     product = get_object_or_404(Product, slug=slug)
 
-    # Re-check purchase server-side — never trust that the form was only
-    # rendered for eligible users; someone could POST directly.
     purchased_item = OrderItem.objects.filter(
         order__user=request.user,
         order__paid=True,
@@ -229,49 +337,49 @@ def submit_review(request, slug):
 #  3. PRINTFUL SYNC FUNCTION
 # ─────────────────────────────────────────────────────────
 PRINTFUL_CATEGORY_MAP = {
-    'bucket hat':       'Hats',
-    'snapback':         'Hats',
-    'beanie':           'Hats',
-    'cap':              'Hats',
-    'hat':              'Hats',
-    'crop top':         "Women's Clothing",
-    'skater dress':     "Women's Clothing",
-    'dress':            "Women's Clothing",
-    'sports bra':       "Women's Clothing",
-    'padded bra':       "Women's Clothing",
-    'bra':              "Women's Clothing",
-    'skirt':            "Women's Clothing",
-    'polo shirt':       "Men's Clothing",
-    'polo':             "Men's Clothing",
-    'crew neck':        "Men's Clothing",
-    'crewneck':         "Men's Clothing",
-    'sweatshirt':       "Men's Clothing",
-    'hoodie':           "Men's Clothing",
-    'long sleeve':      "Men's Clothing",
-    'longsleeve':       "Men's Clothing",
-    't-shirt':          "Men's Clothing",
-    'tshirt':           "Men's Clothing",
-    'unisex tee':       "Men's Clothing",
-    'kids':             "Kids' Clothing",
-    'youth':            "Kids' Clothing",
-    'toddler':          "Kids' Clothing",
-    'infant':           "Kids' Clothing",
-    'jogger':           'Bottoms',
-    'shorts':           'Bottoms',
-    'pants':            'Bottoms',
-    'leggings':         'Bottoms',
-    'crossbody':        'Accessories',
-    'tote':             'Accessories',
-    'bag':              'Accessories',
-    'backpack':         'Accessories',
-    'fanny pack':       'Accessories',
-    'phone case':       'Accessories',
-    'socks':            'Accessories',
-    'mug':              'Home & Lifestyle',
-    'pillow':           'Home & Lifestyle',
-    'blanket':          'Home & Lifestyle',
-    'poster':           'Home & Lifestyle',
-    'canvas':           'Home & Lifestyle',
+    'bucket hat':          'Hats',
+    'snapback':            'Hats',
+    'beanie':              'Hats',
+    'cap':                 'Hats',
+    'hat':                 'Hats',
+    'crop top':            "Women's Clothing",
+    'skater dress':        "Women's Clothing",
+    'dress':               "Women's Clothing",
+    'sports bra':          "Women's Clothing",
+    'padded bra':          "Women's Clothing",
+    'bra':                 "Women's Clothing",
+    'skirt':               "Women's Clothing",
+    'polo shirt':          "Men's Clothing",
+    'polo':                "Men's Clothing",
+    'crew neck':           "Men's Clothing",
+    'crewneck':            "Men's Clothing",
+    'sweatshirt':          "Men's Clothing",
+    'hoodie':              "Men's Clothing",
+    'long sleeve':         "Men's Clothing",
+    'longsleeve':          "Men's Clothing",
+    't-shirt':             "Men's Clothing",
+    'tshirt':              "Men's Clothing",
+    'unisex tee':          "Men's Clothing",
+    'kids':                "Kids' Clothing",
+    'youth':               "Kids' Clothing",
+    'toddler':             "Kids' Clothing",
+    'infant':              "Kids' Clothing",
+    'jogger':              'Bottoms',
+    'shorts':              'Bottoms',
+    'pants':               'Bottoms',
+    'leggings':            'Bottoms',
+    'crossbody':           'Accessories',
+    'tote':                'Accessories',
+    'bag':                 'Accessories',
+    'backpack':            'Accessories',
+    'fanny pack':          'Accessories',
+    'phone case':          'Accessories',
+    'socks':               'Accessories',
+    'mug':                 'Home & Lifestyle',
+    'pillow':              'Home & Lifestyle',
+    'blanket':             'Home & Lifestyle',
+    'poster':              'Home & Lifestyle',
+    'canvas':              'Home & Lifestyle',
 }
 
 def _get_category_for_product(name):
@@ -300,6 +408,9 @@ def sync_printful_products(request):
         active_pod_ids.append(pid)
 
         title = item.get('name', f'product-{pid}')
+        
+        is_customizable_flag = title.strip().lower().startswith('c#')
+
         cat_name = _get_category_for_product(title)
         cat_slug = slugify(cat_name)[:100]
 
@@ -338,6 +449,7 @@ def sync_printful_products(request):
                 'name': title,
                 'slug': slug,
                 'available': True,
+                'is_customizable': is_customizable_flag,
                 'image_url': image_url,
                 'pod_service': 'PFT',
                 'price': min_price,
@@ -505,7 +617,6 @@ def password_change_custom(request):
 
 
 @login_required
-@csrf_exempt
 @require_POST
 def resend_otp(request):
     PasswordResetOTP.objects.filter(user=request.user, is_used=False).update(is_used=True)
@@ -538,15 +649,21 @@ def cart_add(request, product_id):
     variant_id = request.POST.get('variant_id')
     override_quantity = request.POST.get('override_quantity') == 'True'
 
+    product = get_object_or_404(Product, id=product_id, available=True)
     if variant_id:
-        variant = get_object_or_404(ProductVariant, id=variant_id, available=True)
+        variant = get_object_or_404(
+            ProductVariant, 
+            id=variant_id, 
+            product=product, 
+            available=True, 
+            product__available=True
+        )
     else:
-        product = get_object_or_404(Product, id=product_id)
         variant = product.variants.filter(available=True).first()
 
     if variant is None:
         messages.error(request, "Sorry, this product has no available variants.")
-        return redirect('shop:product_detail', pk=product_id)
+        return redirect('shop:product_detail', slug=product.slug)
 
     try:
         quantity = int(request.POST.get('quantity', 1))
@@ -674,22 +791,50 @@ def checkout_shipping_methods(request, order_id):
 def checkout_final(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
+    api_client = PodApiClient('PFT')
     try:
-        shipping_cost = Decimal(request.POST.get('shipping_cost', '0'))
-    except InvalidOperation:
-        messages.error(request, "Invalid shipping cost value.")
+        order_items = list(order.items.select_related('product_variant'))
+        cart_items_for_api = [
+            {'variant': item.product_variant, 'quantity': item.quantity}
+            for item in order_items
+            if item.product_variant_id
+        ]
+        shipping_rates = api_client.get_detailed_shipping_rates(
+            cart_items=cart_items_for_api,
+            country=order.country,
+            zip_code=order.postal_code,
+            state=order.state,
+            city=order.city,
+            address1=order.address,
+        )
+        selected_shipping_id = request.POST.get('shipping_id', '').strip()
+        selected_rate = next(
+            (rate for rate in shipping_rates if str(rate.get('id')) == selected_shipping_id),
+            None,
+        )
+        selected_rate = selected_rate or min(
+            shipping_rates,
+            key=lambda rate: Decimal(str(rate.get('price', '0'))),
+            default=None,
+        )
+        if selected_rate is None:
+            raise ValueError('No shipping rates available')
+        shipping_cost = Decimal(str(selected_rate['price']))
+    except Exception as e:
+        logger.error("checkout_final | Failed to calculate server-side shipping for order %s: %s", order.id, e)
+        messages.error(request, "Could not verify shipping rates. Please try again.")
         return redirect('shop:checkout_shipping_methods', order_id=order.id)
 
     order.shipping_cost = shipping_cost
     order.paid = False
     order.status = 'PENDING'
-    order.save()
+    order.save(update_fields=['shipping_cost', 'paid', 'status', 'updated'])
 
     return redirect('shop:checkout_payment', order_id=order.id)
 
 
 # ─────────────────────────────────────────────────────────
-#  8. FLUTTERWAVE PAYMENT VIEWS
+#  8. PAYMENT VIEWS & SECURED CALLBACKS
 # ─────────────────────────────────────────────────────────
 @login_required
 def checkout_payment(request, order_id):
@@ -722,7 +867,19 @@ def checkout_payment(request, order_id):
     amount = ((items_total_usd + shipping_usd) * rate).quantize(Decimal('0.01'))
 
     currency = flw_currency
+    if order.currency != currency:
+        order.currency = currency
+        order.save(update_fields=['currency', 'updated'])
     tx_ref = f"HOXOBIL-ORDER-{order.id}-{order.created.strftime('%Y%m%d%H%M%S')}"
+    if order.flutterwave_reference != tx_ref:
+        order.flutterwave_reference = tx_ref
+        order.save(update_fields=['flutterwave_reference', 'updated'])
+
+    paystack_ref = f"HOXOBIL-PS-{order.id}-{order.created.strftime('%Y%m%d%H%M%S')}"
+    if order.paystack_reference != paystack_ref:
+        order.paystack_reference = paystack_ref
+        order.save(update_fields=['paystack_reference', 'updated'])
+
     callback_url = request.build_absolute_uri(
         reverse('shop:flutterwave_callback', args=[order.id])
     )
@@ -735,6 +892,7 @@ def checkout_payment(request, order_id):
         'amount': amount,
         'currency': currency,
         'tx_ref': tx_ref,
+        'reference': paystack_ref,
         'callback_url': callback_url,
         'flutterwave_public_key': settings.FLUTTERWAVE_PUBLIC_KEY,
         'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
@@ -750,6 +908,8 @@ def flutterwave_callback(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
     if order.paid:
+        _mark_order_paid_for_review(order)
+        order.save(update_fields=['payment_status', 'fulfillment_status', 'updated'])
         return redirect('shop:order_detail', order_id=order.id)
 
     status = request.GET.get('status')
@@ -777,8 +937,16 @@ def flutterwave_callback(request, order_id):
             messages.error(request, "Payment verification failed. Please contact support.")
             return redirect('shop:checkout_payment', order_id=order.id)
 
-        paid_amount = Decimal(str(data['data']['amount']))
-        paid_currency = data['data']['currency']
+        tx_data = data.get('data', {})
+        provider_tx_ref = tx_data.get('tx_ref') or tx_data.get('txRef')
+
+        if not provider_tx_ref or provider_tx_ref != order.flutterwave_reference:
+            logger.error("flutterwave_callback | Reference mismatch for order %s", order.id)
+            messages.error(request, "Transaction reference validation failed. Please contact support.")
+            return redirect('shop:checkout_payment', order_id=order.id)
+
+        paid_amount = Decimal(str(tx_data['amount']))
+        paid_currency = tx_data['currency']
 
         session_currency = request.session.get('currency_code', '')
         FLW_SUPPORTED = {'NGN', 'USD', 'GHS', 'KES', 'ZAR', 'GBP', 'EUR'}
@@ -813,12 +981,7 @@ def flutterwave_callback(request, order_id):
         messages.error(request, "Could not verify payment. Please contact support.")
         return redirect('shop:checkout_payment', order_id=order.id)
 
-    order.paid = True
-    order.status = 'PENDING_SETTLEMENT'
-    order.settlement_release_at = timezone.now() + timedelta(
-        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
-    )
-    order.save()
+    order.mark_paid(gateway_reference=provider_tx_ref, gateway_name='flutterwave')
 
     messages.success(
         request,
@@ -837,6 +1000,8 @@ def paystack_callback(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
     if order.paid:
+        _mark_order_paid_for_review(order)
+        order.save(update_fields=['payment_status', 'fulfillment_status', 'updated'])
         return redirect('shop:order_detail', order_id=order.id)
 
     reference = request.GET.get('reference') or request.GET.get('trxref')
@@ -859,9 +1024,16 @@ def paystack_callback(request, order_id):
             messages.error(request, "Payment verification failed. Please contact support.")
             return redirect('shop:checkout_payment', order_id=order.id)
 
-        # Paystack returns amount in the smallest currency subunit (e.g. kobo).
-        paid_amount = Decimal(str(data['data']['amount'])) / Decimal('100')
-        paid_currency = data['data']['currency']
+        tx_data = data.get('data', {})
+        provider_ref = tx_data.get('reference')
+
+        if not provider_ref or provider_ref != order.paystack_reference:
+            logger.error("paystack_callback | Reference mismatch for order %s", order.id)
+            messages.error(request, "Transaction reference validation failed. Please contact support.")
+            return redirect('shop:checkout_payment', order_id=order.id)
+
+        paid_amount = Decimal(str(tx_data['amount'])) / Decimal('100')
+        paid_currency = tx_data['currency']
 
         session_currency = request.session.get('currency_code', '')
         PAYSTACK_SUPPORTED = {'NGN', 'USD', 'GHS', 'ZAR'}
@@ -896,12 +1068,7 @@ def paystack_callback(request, order_id):
         messages.error(request, "Could not verify payment. Please contact support.")
         return redirect('shop:checkout_payment', order_id=order.id)
 
-    order.paid = True
-    order.status = 'PENDING_SETTLEMENT'
-    order.settlement_release_at = timezone.now() + timedelta(
-        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
-    )
-    order.save()
+    order.mark_paid(gateway_reference=provider_ref, gateway_name='paystack')
 
     messages.success(
         request,
@@ -915,20 +1082,6 @@ def paystack_callback(request, order_id):
     return redirect('shop:order_detail', order_id=order.id)
 
 
-@csrf_exempt
-def complete_checkout(request, order_id):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required.'}, status=401)
-
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    if not order.paid:
-        order.paid = True
-        order.status = 'POD_SENT'
-        order.save()
-    return JsonResponse({'status': 'success', 'order_id': order.id})
-
-
-@csrf_exempt
 @require_POST
 def calculate_shipping(request):
     try:
@@ -949,7 +1102,10 @@ def calculate_shipping(request):
         })
     except Exception as e:
         logger.error("calculate_shipping | error: %s", e)
-        return JsonResponse({'error': str(e)}, status=400)
+        return JsonResponse(
+            {'error': 'Unable to calculate shipping for the provided address.'},
+            status=400,
+        )
 
 
 # ─────────────────────────────────────────────────────────
@@ -961,7 +1117,7 @@ class OrderHistoryView(LoginRequiredMixin, ListView):
     context_object_name = 'orders'
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user).prefetch_related('items').order_by('-created')
+        return Order.objects.filter(user=self.request.user).prefetch_related('items__product', 'items__product_variant').order_by('-created')
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
@@ -970,7 +1126,7 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = 'order_id'
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(user=self.request.user).prefetch_related('items__product', 'items__product_variant')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1079,7 +1235,6 @@ def _resolve_product_by_garment(garment_keyword):
 
 
 def pending_upload_status(request):
-    from django.http import JsonResponse
     return JsonResponse({'status': 'pending'}, status=202)
 
 
@@ -1102,12 +1257,6 @@ def chat_support_page(request):
     pinned_size    = request.GET.get('pinned_size', '').strip()
     pinned_image   = request.GET.get('pinned_image', '').strip()
 
-    # ── A pinned product arrived via query params (from the product page) ──
-    # Process it ONCE: clear old history, set the session context, stash a
-    # one-time greeting payload, then redirect to the clean URL. This stops
-    # a page refresh from re-triggering the "fresh start" flow over and over
-    # (refreshing used to wipe out progress like ticket_ready/awaiting_instructions
-    # because the query params never went away).
     if pinned_product:
         if request.user.is_authenticated:
             chat = SupportChat.objects.filter(user=request.user).first()
@@ -1137,17 +1286,13 @@ def chat_support_page(request):
 
         return redirect('shop:chat_support')
 
-    # ── Clean URL (no pinned params): pop the one-time greeting if present ──
     pending_greeting = request.session.pop('hoxo_pending_greeting', None)
-
-    # Deck banner + ongoing state should reflect whatever's currently in the
-    # session context, not the URL, so it survives refreshes correctly.
     current_context = request.session.get('hoxo_chat_context', {})
 
     return render(request, 'shop/chat_support.html', {
         'pending_greeting_json': _json.dumps(pending_greeting) if pending_greeting else 'null',
-        'current_garment':       current_context.get('garment', ''),
-        'current_image':         pending_greeting.get('image', '') if pending_greeting else '',
+        'current_garment':        current_context.get('garment', ''),
+        'current_image':          pending_greeting.get('image', '') if pending_greeting else '',
     })
 
 
@@ -1168,9 +1313,6 @@ def _build_editor_token(garment_url, design_url, file_url, pf_width=1500, pf_hei
 # ─────────────────────────────────────────────────────────
 @require_POST
 def send_support_message(request):
-    """Customer sends a message or image; AI processing generates automated mockup proofs."""
-
-    # Return a JSON auth prompt instead of redirecting — keeps the chat alive
     if not request.user.is_authenticated:
         return JsonResponse({
             'status': 'auth_required',
@@ -1181,17 +1323,15 @@ def send_support_message(request):
             )
         }, status=200)
 
-    text       = request.POST.get('message', '').strip()
+    text           = request.POST.get('message', '').strip()
     image_file = request.FILES.get('image')
 
     chat, created = SupportChat.objects.get_or_create(user=request.user)
 
-    # Load session context
     session_context = request.session.get('hoxo_chat_context', {
         'current_step': 'awaiting_garment', 'garment': None, 'color': None, 'size': None, 'placement': None
     })
 
-    # ── STATE RESTORATION GUARD ──
     TERMINAL_STEPS = {
         'ticket_ready', 'awaiting_instructions', 'awaiting_upload', 'awaiting_font',
         'awaiting_custom_text', 'awaiting_print_color', 'awaiting_quantity',
@@ -1205,16 +1345,15 @@ def send_support_message(request):
         if existing_ticket:
             session_context = {
                 'current_step': 'ticket_ready',
-                'garment':      existing_ticket.garment_item,
-                'color':        existing_ticket.garment_color,
-                'size':         existing_ticket.garment_size,
-                'placement':    existing_ticket.placement,
+                'garment':     existing_ticket.garment_item,
+                'color':       existing_ticket.garment_color,
+                'size':        existing_ticket.garment_size,
+                'placement':   existing_ticket.placement,
                 'custom_text_request': existing_ticket.custom_text,
                 'typography_style':    existing_ticket.typography_style,
             }
             request.session['hoxo_chat_context'] = session_context
 
-    # Handle Image Uploads
     if image_file:
         simulated_text = f"[Uploaded Design Layer Asset: {image_file.name}]"
         msg = ChatMessage.objects.create(chat=chat, sender_type='user', text=simulated_text)
@@ -1227,10 +1366,8 @@ def send_support_message(request):
             return JsonResponse({'status': 'error', 'message': 'Empty message payloads rejected.'}, status=400)
         ChatMessage.objects.create(chat=chat, sender_type='user', text=text)
 
-    # Bot Logic
     auto_reply_text, updated_context, trigger_upload = bot.get_response(text, context=session_context, user=request.user)
 
-    # ── APPROVAL AUTO-INVOICE TRIGGER ──
     if trigger_upload and updated_context.get('current_step') == 'ticket_ready':
         active_ticket = CustomDesignTicket.objects.filter(
             user=request.user,
@@ -1251,7 +1388,6 @@ def send_support_message(request):
                 )
             )
 
-    # ── TICKET LOOKUP / CREATE ──
     if updated_context.get('current_step') == 'ticket_ready':
         ticket = CustomDesignTicket.objects.filter(
             user=request.user,
@@ -1280,7 +1416,6 @@ def send_support_message(request):
             updated_context['ticket_created'] = True
             updated_context['active_ticket_id'] = ticket.id
 
-    # Save session state
     request.session['hoxo_chat_context'] = updated_context
     ChatMessage.objects.create(chat=chat, sender_type='admin', text=auto_reply_text)
 
@@ -1532,12 +1667,10 @@ def custom_order_checkout(request, ticket_id):
                 order.shipping_cost = 0
                 order.save()
 
-                # Convert NGN invoice to USD to match all other products on the site
                 rates = getattr(settings, 'CASH_EXCHANGE_BACKEND', {}).get('USD', {})
                 ngn_rate = Decimal(str(rates.get('NGN', 1500)))
                 invoice_amount_usd = (Decimal(str(invoice_amount)) / ngn_rate).quantize(Decimal('0.01'))
 
-                # Use the ticket mockup as the product image so it shows in cart
                 mockup_url = ''
                 if ticket.design_team_mockup:
                     try:
@@ -1548,15 +1681,14 @@ def custom_order_checkout(request, ticket_id):
                 custom_product, created = Product.objects.get_or_create(
                     slug='custom-design-order',
                     defaults={
-                        'name':           'Custom Design Order',
-                        'price':          invoice_amount_usd,
+                        'name':                'Custom Design Order',
+                        'price':               invoice_amount_usd,
                         'price_currency': 'USD',
-                        'available':      False,
-                        'image_url':      mockup_url,
+                        'available':           False,
+                        'image_url':           mockup_url,
                     }
                 )
 
-                # Always sync price, currency and image to current ticket values
                 update_fields = []
                 if float(custom_product.price.amount) != float(invoice_amount_usd):
                     custom_product.price = invoice_amount_usd
@@ -1570,10 +1702,6 @@ def custom_order_checkout(request, ticket_id):
                 if update_fields:
                     custom_product.save(update_fields=update_fields)
 
-                # Custom orders don't come from the regular catalog, so there's no
-                # real ProductVariant already tied to this purchase. Create/reuse a
-                # dedicated variant scoped to this ticket so OrderItem's
-                # product_variant field (required on most schemas) is always filled.
                 variant_pod_id = f'custom-ticket-{ticket.id}'
                 custom_variant, _ = ProductVariant.objects.get_or_create(
                     pod_id=variant_pod_id,
@@ -1608,18 +1736,20 @@ def custom_order_checkout(request, ticket_id):
         return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
 
     return render(request, 'shop/custom_order_checkout.html', {
-        'ticket':         ticket,
+        'ticket':       ticket,
         'invoice_amount': invoice_amount,
-        'form':           form,
+        'form':         form,
     })
 
 
 @login_required
 def custom_order_payment(request, order_id, ticket_id):
     order  = get_object_or_404(Order, id=order_id, user=request.user)
-    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user)
+    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user, linked_order=order)
 
     if order.paid:
+        _mark_order_paid_for_review(order)
+        order.save(update_fields=['payment_status', 'fulfillment_status', 'updated'])
         return redirect('shop:order_detail', order_id=order.id)
 
     invoice_amount = Decimal(str(getattr(ticket, 'invoice_amount', 0)))
@@ -1630,6 +1760,15 @@ def custom_order_payment(request, order_id, ticket_id):
     amount = (invoice_amount * rate).quantize(Decimal('0.01'))
 
     tx_ref       = f"HOXOBIL-CUSTOM-{ticket.id}-{order.id}"
+    if order.flutterwave_reference != tx_ref:
+        order.flutterwave_reference = tx_ref
+        order.save(update_fields=['flutterwave_reference', 'updated'])
+
+    paystack_ref = f"HOXOBIL-CUST-PS-{ticket.id}-{order.id}"
+    if order.paystack_reference != paystack_ref:
+        order.paystack_reference = paystack_ref
+        order.save(update_fields=['paystack_reference', 'updated'])
+
     callback_url = request.build_absolute_uri(
         reverse('shop:custom_order_payment_callback', args=[order.id, ticket.id])
     )
@@ -1641,12 +1780,13 @@ def custom_order_payment(request, order_id, ticket_id):
     paystack_currency = currency if currency in PAYSTACK_SUPPORTED else None
 
     return render(request, 'shop/custom_order_payment.html', {
-        'order':                  order,
-        'ticket':                 ticket,
-        'amount':                 amount,
-        'currency':               currency,
-        'tx_ref':                 tx_ref,
-        'callback_url':           callback_url,
+        'order':                    order,
+        'ticket':                   ticket,
+        'amount':                   amount,
+        'currency':                 currency,
+        'tx_ref':                   tx_ref,
+        'reference':                paystack_ref,
+        'callback_url':             callback_url,
         'flutterwave_public_key': settings.FLUTTERWAVE_PUBLIC_KEY,
         'paystack_public_key':    settings.PAYSTACK_PUBLIC_KEY,
         'paystack_currency':      paystack_currency,
@@ -1655,29 +1795,8 @@ def custom_order_payment(request, order_id, ticket_id):
 
 
 def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
-    """
-    Shared fulfillment logic for a paid custom design order: marks the order
-    paid, submits to Printful, notifies the customer in chat, emails a
-    receipt, and emails the admin team. Used by both the Flutterwave and
-    Paystack custom-order payment callbacks so the ~180 line flow isn't
-    duplicated. Sets request messages and returns nothing.
-    """
-    # ── 2. MARK ORDER AS PAID, HOLD FOR SETTLEMENT ────────────────────────────
-    # We no longer push to Printful here. Printful charges our card the
-    # instant an order is submitted, but Paystack/Flutterwave typically take
-    # ~24h (sometimes longer) to actually settle the customer's payment into
-    # our bank account. Pushing instantly risks the card being declined for
-    # insufficient funds. Instead we hold the order at PENDING_SETTLEMENT and
-    # let the release_settled_orders management command submit it to
-    # Printful once the settlement window has passed. See shop/fulfillment.py.
-    order.paid   = True
-    order.status = 'PENDING_SETTLEMENT'
-    order.settlement_release_at = timezone.now() + timedelta(
-        hours=getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
-    )
-    order.save()
+    order.mark_paid(gateway_reference=order.flutterwave_reference or order.paystack_reference or '', gateway_name='custom')
 
-    # ── 3. NOTIFY CUSTOMER IN CHAT ────────────────────────────────────────────
     chat = SupportChat.objects.filter(user=request.user).first()
     if chat:
         chat_text = (
@@ -1691,10 +1810,10 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
         receipt_text = (
             f"🧾 **Your Order Receipt**\n\n"
             f"{'─' * 30}\n"
-            f"**Order ID:**       #{order.id}\n"
-            f"**Item:**           Custom {ticket.garment_item}\n"
+            f"**Order ID:**        #{order.id}\n"
+            f"**Item:**            Custom {ticket.garment_item}\n"
             f"**Garment Color:**  {ticket.garment_color or '—'}\n"
-            f"**Size:**           {ticket.garment_size or '—'}\n"
+            f"**Size:**            {ticket.garment_size or '—'}\n"
             f"**Placement:**      {ticket.placement or '—'}\n"
             f"**Amount Paid:**    ₦{invoice_amount:,}\n"
             f"{'─' * 30}\n\n"
@@ -1703,7 +1822,6 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
         )
         ChatMessage.objects.create(chat=chat, sender_type='admin', text=receipt_text)
 
-    # ── 4. SEND RECEIPT EMAIL TO CUSTOMER ─────────────────────────────────────
     try:
         from django.core.mail import send_mail as _send_mail
         _send_mail(
@@ -1712,12 +1830,12 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
                 f"Hi {order.first_name},\n\n"
                 f"Thank you for your order! Here's your receipt:\n\n"
                 f"{'─' * 40}\n"
-                f"Order ID:        #{order.id}\n"
-                f"Item:            Custom {ticket.garment_item}\n"
-                f"Garment Color:   {ticket.garment_color or '—'}\n"
-                f"Size:            {ticket.garment_size or '—'}\n"
-                f"Placement:       {ticket.placement or '—'}\n"
-                f"Amount Paid:     ₦{invoice_amount:,}\n"
+                f"Order ID:          #{order.id}\n"
+                f"Item:              Custom {ticket.garment_item}\n"
+                f"Garment Color:     {ticket.garment_color or '—'}\n"
+                f"Size:              {ticket.garment_size or '—'}\n"
+                f"Placement:         {ticket.placement or '—'}\n"
+                f"Amount Paid:       ₦{invoice_amount:,}\n"
                 f"{'─' * 40}\n\n"
                 f"Your order is being processed and will move into production shortly. "
                 f"We'll email you again once it ships.\n\n"
@@ -1730,7 +1848,6 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
     except Exception as e:
         logger.error("_fulfill_custom_design_order | Customer receipt email failed for order %s: %s", order.id, e)
 
-    # ── 5. SUCCESS MESSAGE ──────────────────────────────────────────────────
     messages.success(
         request,
         f"Payment confirmed! Your custom order #{order.id} is being processed and will "
@@ -1741,9 +1858,11 @@ def _fulfill_custom_design_order(request, order, ticket, invoice_amount):
 @login_required
 def custom_order_payment_callback(request, order_id, ticket_id):
     order  = get_object_or_404(Order, id=order_id, user=request.user)
-    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user)
+    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user, linked_order=order)
 
     if order.paid:
+        _mark_order_paid_for_review(order)
+        order.save(update_fields=['payment_status', 'fulfillment_status', 'updated'])
         return redirect('shop:order_detail', order_id=order.id)
 
     status         = request.GET.get('status')
@@ -1757,7 +1876,6 @@ def custom_order_payment_callback(request, order_id, ticket_id):
         messages.error(request, "Payment was not successful. Please try again.")
         return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
 
-    # ── 1. VERIFY PAYMENT ────────────────────────────────────────────────────
     try:
         verify_url = f"https://api.flutterwave.com/v3/transactions/{transaction_id}/verify"
         headers    = {
@@ -1771,8 +1889,16 @@ def custom_order_payment_callback(request, order_id, ticket_id):
             messages.error(request, "Payment verification failed. Please contact support.")
             return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
 
-        paid_amount    = Decimal(str(data['data']['amount']))
-        paid_currency  = data['data']['currency']
+        tx_data = data.get('data', {})
+        provider_tx_ref = tx_data.get('tx_ref') or tx_data.get('txRef')
+
+        if not provider_tx_ref or provider_tx_ref != order.flutterwave_reference:
+            logger.error("custom_order_payment_callback | Reference mismatch for order %s", order.id)
+            messages.error(request, "Transaction reference validation failed. Please contact support.")
+            return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
+
+        paid_amount    = Decimal(str(tx_data['amount']))
+        paid_currency  = tx_data['currency']
         invoice_amount = Decimal(str(getattr(ticket, 'invoice_amount', 0)))
         currency       = 'NGN' if getattr(order, 'country', 'NG').upper() == 'NG' else 'USD'
         rates          = getattr(settings, 'CASH_EXCHANGE_BACKEND', {}).get('USD', {})
@@ -1796,9 +1922,11 @@ def custom_order_payment_callback(request, order_id, ticket_id):
 @login_required
 def custom_order_payment_paystack_callback(request, order_id, ticket_id):
     order  = get_object_or_404(Order, id=order_id, user=request.user)
-    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user)
+    ticket = get_object_or_404(CustomDesignTicket, id=ticket_id, user=request.user, linked_order=order)
 
     if order.paid:
+        _mark_order_paid_for_review(order)
+        order.save(update_fields=['payment_status', 'fulfillment_status', 'updated'])
         return redirect('shop:order_detail', order_id=order.id)
 
     reference = request.GET.get('reference') or request.GET.get('trxref')
@@ -1807,7 +1935,6 @@ def custom_order_payment_paystack_callback(request, order_id, ticket_id):
         messages.error(request, "Payment was not successful. Please try again.")
         return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
 
-    # ── 1. VERIFY PAYMENT ────────────────────────────────────────────────────
     try:
         verify_url = f"https://api.paystack.co/transaction/verify/{reference}"
         headers    = {
@@ -1821,9 +1948,16 @@ def custom_order_payment_paystack_callback(request, order_id, ticket_id):
             messages.error(request, "Payment verification failed. Please contact support.")
             return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
 
-        # Paystack returns amount in the smallest currency subunit (e.g. kobo).
-        paid_amount    = Decimal(str(data['data']['amount'])) / Decimal('100')
-        paid_currency  = data['data']['currency']
+        tx_data = data.get('data', {})
+        provider_ref = tx_data.get('reference')
+
+        if not provider_ref or provider_ref != order.paystack_reference:
+            logger.error("custom_order_payment_paystack_callback | Reference mismatch for order %s", order.id)
+            messages.error(request, "Transaction reference validation failed. Please contact support.")
+            return redirect('shop:custom_order_payment', order_id=order.id, ticket_id=ticket.id)
+
+        paid_amount    = Decimal(str(tx_data['amount'])) / Decimal('100')
+        paid_currency  = tx_data['currency']
         invoice_amount = Decimal(str(getattr(ticket, 'invoice_amount', 0)))
         currency       = 'NGN' if getattr(order, 'country', 'NG').upper() == 'NG' else 'USD'
         rates          = getattr(settings, 'CASH_EXCHANGE_BACKEND', {}).get('USD', {})
@@ -1847,12 +1981,9 @@ def custom_order_payment_paystack_callback(request, order_id, ticket_id):
 # ─────────────────────────────────────────────────────────
 #  14. CUSTOM ORDER — ADD TO CART FROM CHAT
 # ─────────────────────────────────────────────────────────
-
 @login_required
 @require_POST
 def custom_order_add_to_cart(request):
-    from djmoney.money import Money
-
     ticket_id = request.POST.get('ticket_id', '').strip()
     if not ticket_id:
         return JsonResponse({'status': 'error', 'message': 'No ticket ID provided.'}, status=400)
@@ -1867,12 +1998,10 @@ def custom_order_add_to_cart(request):
 
     invoice_amount = Decimal(str(ticket.invoice_amount))
 
-    # Convert NGN to USD to match all other products
     rates = getattr(settings, 'CASH_EXCHANGE_BACKEND', {}).get('USD', {})
     ngn_rate = Decimal(str(rates.get('NGN', 1500)))
     invoice_amount_usd = (invoice_amount / ngn_rate).quantize(Decimal('0.01'))
 
-    # Mockup image for cart display
     mockup_url = ''
     if ticket.design_team_mockup:
         try:
@@ -1883,11 +2012,11 @@ def custom_order_add_to_cart(request):
     custom_product, _ = Product.objects.get_or_create(
         slug='custom-design-order',
         defaults={
-            'name':           'Custom Design Order',
-            'price':          invoice_amount_usd,
+            'name':                'Custom Design Order',
+            'price':               invoice_amount_usd,
             'price_currency': 'USD',
-            'available':      False,
-            'image_url':      mockup_url,
+            'available':           False,
+            'image_url':           mockup_url,
         }
     )
 
@@ -1928,3 +2057,27 @@ def custom_order_add_to_cart(request):
         'cart_count': len(cart),
         'message':    f'Custom order added to cart (₦{invoice_amount:,.0f})',
     })
+
+
+@require_POST
+def newsletter_subscribe(request):
+    email = request.POST.get('email', '').strip().lower()
+
+    if not email:
+        return JsonResponse({'status': 'error', 'message': 'Please enter an email address.'}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'status': 'error', 'message': 'That email address doesn\'t look right.'}, status=400)
+
+    subscriber, created = NewsletterSubscriber.objects.get_or_create(email=email)
+
+    if not created and subscriber.is_active:
+        return JsonResponse({'status': 'success', 'message': 'You\'re already subscribed!'})
+
+    if not created and not subscriber.is_active:
+        subscriber.is_active = True
+        subscriber.save()
+
+    return JsonResponse({'status': 'success', 'message': 'You\'re in! Watch your inbox.'})

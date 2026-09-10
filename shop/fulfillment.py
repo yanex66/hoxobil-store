@@ -92,12 +92,53 @@ def submit_custom_order_to_printful(order, ticket, invoice_amount):
             timeout=15,
         )
         product_data = product_resp.json()
-        variants     = product_data.get('result', {}).get('sync_variants', [])
+        result_data  = product_data.get('result', {})
+        variants     = result_data.get('sync_variants', [])
 
         if not variants:
             return False, None, "No variants found for Printful product."
 
-        sync_variant_id = variants[0].get('id')
+        # SECURE FIX: Match variant precisely by customer's chosen size and color rather than fallback to index 0
+        target_size = (ticket.garment_size or '').strip().lower()
+        target_color = (ticket.garment_color or '').strip().lower()
+
+        matched_variant = None
+        for v in variants:
+            v_name = (v.get('name') or '').lower()
+            size_match = not target_size or target_size in v_name
+            color_match = not target_color or target_color in v_name
+            if size_match and color_match:
+                matched_variant = v
+                break
+
+        if not matched_variant:
+            matched_variant = variants[0]
+
+        sync_variant_id = matched_variant.get('id')
+
+        # SECURE FIX: Fetch exact quantity from the related order item
+        order_item = order.items.filter(product_variant__pod_id=f'custom-ticket-{ticket.id}').first()
+        quantity = order_item.quantity if order_item else 1
+
+        # SECURE FIX: Resolve design file URL and attach it to Printful item payload
+        design_url = ''
+        if ticket.design_team_mockup:
+            public_base = getattr(settings, 'PUBLIC_BASE_URL', '').rstrip('/')
+            if public_base:
+                design_url = f"{public_base}{ticket.design_team_mockup.url}"
+            else:
+                design_url = ticket.design_team_mockup.url
+
+        item_dict = {
+            "sync_variant_id": sync_variant_id,
+            "quantity": quantity,
+        }
+        if design_url:
+            normalized_placement = (ticket.placement or 'front').lower().replace(' ', '_')
+            item_dict["files"] = [{
+                "url": design_url,
+                "placement": normalized_placement
+            }]
 
         printful_order_payload = {
             "recipient": {
@@ -110,7 +151,7 @@ def submit_custom_order_to_printful(order, ticket, invoice_amount):
                 "email":        order.email,
                 "phone":        order.phone or '',
             },
-            "items": [{"sync_variant_id": sync_variant_id, "quantity": 1}],
+            "items": [item_dict],
             "retail_costs": {
                 "currency": "USD",
                 "subtotal": str(invoice_amount),
@@ -190,12 +231,12 @@ def send_custom_order_release_notifications(order, ticket, invoice_amount, pod_o
                 f"Hi {order.first_name},\n\n"
                 f"Good news — your custom order is now in production:\n\n"
                 f"{'─' * 40}\n"
-                f"Order ID:        #{order.id}\n"
-                f"Item:            Custom {ticket.garment_item}\n"
-                f"Garment Color:   {ticket.garment_color or '—'}\n"
-                f"Size:            {ticket.garment_size or '—'}\n"
-                f"Placement:       {ticket.placement or '—'}\n"
-                f"Amount Paid:     ₦{invoice_amount:,}\n"
+                f"Order ID:         #{order.id}\n"
+                f"Item:             Custom {ticket.garment_item}\n"
+                f"Garment Color:    {ticket.garment_color or '—'}\n"
+                f"Size:             {ticket.garment_size or '—'}\n"
+                f"Placement:        {ticket.placement or '—'}\n"
+                f"Amount Paid:      ₦{invoice_amount:,}\n"
                 f"{'─' * 40}\n\n"
                 f"We'll email you again once it ships.\n\n"
                 f"— The HOXOBIL Team 🖤"

@@ -3,11 +3,70 @@
 
 {% block extra_head %}
 <style>
-    .hox-auth-wrap {
-        max-width: 460px;
+    .hox-auth-split {
+        max-width: 1080px;
         margin: 3rem auto 4rem;
         padding: 0 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
     }
+    .hox-auth-wrap {
+        max-width: 460px;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .hox-auth-visual {
+        position: relative;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 4 / 5;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    .hox-auth-visual img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: grayscale(15%);
+    }
+    .hox-auth-visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 45%);
+    }
+    .hox-auth-visual-caption {
+        position: absolute;
+        left: 1.5rem;
+        bottom: 1.5rem;
+        z-index: 1;
+        color: #fff;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .hox-auth-visual-caption span {
+        display: block;
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+        margin-top: 0.35rem;
+        text-transform: none;
+    }
+
+    @media (max-width: 860px) {
+        .hox-auth-split {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .hox-auth-visual { display: none; }
+    }
+
     .hox-auth-title {
         font-family: 'Oswald', sans-serif;
         font-size: 2.2rem;
@@ -95,40 +154,118 @@
         text-decoration: none;
     }
     .hox-auth-footer a:hover { text-decoration: underline; }
+
+    /* Password visibility toggle */
+    .hox-password-wrap {
+        position: relative;
+    }
+    .hox-password-wrap input[type="password"],
+    .hox-password-wrap input[type="text"] {
+        padding-right: 2.75rem;
+    }
+    .hox-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.75rem;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 0.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(28,28,28,0.45);
+        line-height: 0;
+    }
+    .hox-password-toggle:hover { color: var(--crimson); }
+    .hox-password-toggle svg {
+        width: 20px;
+        height: 20px;
+        display: block;
+    }
+    .hox-password-toggle .hox-eye-off { display: none; }
+    .hox-password-toggle.is-visible .hox-eye { display: none; }
+    .hox-password-toggle.is-visible .hox-eye-off { display: block; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="hox-auth-wrap">
-    <h1 class="hox-auth-title">Welcome Back</h1>
+<div class="hox-auth-split">
+    <div class="hox-auth-wrap">
+        <h1 class="hox-auth-title">Welcome Back</h1>
 
-    <form method="post" class="hox-auth-card">
-        {% csrf_token %}
-        {% for field in form %}
-            <div class="hox-auth-field">
-                <div class="hox-auth-label-row">
-                    <label for="{{ field.id_for_label }}" class="hox-auth-label">{{ field.label }}</label>
+        <form method="post" class="hox-auth-card">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="hox-auth-field">
+                    <div class="hox-auth-label-row">
+                        <label for="{{ field.id_for_label }}" class="hox-auth-label">{{ field.label }}</label>
+                        {% if field.name == 'password' %}
+                            <a href="{% url 'password_reset' %}" class="hox-auth-forgot">Forgot password?</a>
+                        {% endif %}
+                    </div>
+
                     {% if field.name == 'password' %}
-                        <a href="{% url 'password_reset' %}" class="hox-auth-forgot">Forgot password?</a>
+                        <div class="hox-password-wrap">
+                            {{ field }}
+                            <button type="button" class="hox-password-toggle" data-target="{{ field.id_for_label }}" aria-label="Show password">
+                                <svg class="hox-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="hox-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <small class="hox-auth-error">{{ field.errors }}</small>
                     {% endif %}
                 </div>
-                {{ field }}
-                {% if field.errors %}
-                    <small class="hox-auth-error">{{ field.errors }}</small>
-                {% endif %}
-            </div>
-        {% endfor %}
+            {% endfor %}
 
-        {% if form.non_field_errors %}
-            <div class="hox-alert alert-error">{{ form.non_field_errors }}</div>
-        {% endif %}
+            {% if form.non_field_errors %}
+                <div class="hox-alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
 
-        <button type="submit" class="btn-hox hox-auth-submit">Log In</button>
-    </form>
+            <button type="submit" class="btn-hox hox-auth-submit">Log In</button>
+        </form>
 
-    <p class="hox-auth-footer">
-        Don't have an account?
-        <a href="{% url 'shop:register' %}">Sign Up here</a>
-    </p>
+        <p class="hox-auth-footer">
+            Don't have an account?
+            <a href="{% url 'shop:register' %}">Sign Up here</a>
+        </p>
+    </div>
+
+    <div class="hox-auth-visual">
+        <img src="https://images.unsplash.com/photo-1592833578500-1082e18665a3?auto=format&fit=crop&w=900&q=80"
+             alt="Model in black streetwear coat"
+             loading="lazy">
+        <div class="hox-auth-visual-caption">
+            New Arrivals
+            <span>Fall / Winter Drop</span>
+        </div>
+    </div>
 </div>
+
+<script>
+document.querySelectorAll('.hox-password-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var targetId = btn.getAttribute('data-target');
+        var input = document.getElementById(targetId);
+        if (!input) return;
+
+        var nowVisible = input.type === 'password';
+        input.type = nowVisible ? 'text' : 'password';
+        btn.classList.toggle('is-visible', nowVisible);
+        btn.setAttribute('aria-label', nowVisible ? 'Hide password' : 'Show password');
+    });
+});
+</script>
 {% endblock content %}

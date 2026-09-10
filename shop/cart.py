@@ -1,7 +1,7 @@
 import logging
 from django.conf import settings
 from .models import ProductVariant
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from djmoney.money import Money
 
 logger = logging.getLogger(__name__)
@@ -25,9 +25,17 @@ class Cart:
         variant_id = str(variant.id)
         clean_price = str(variant.price.amount)
 
+        # SECURE FIX: Safely parse and clamp quantity to prevent negative/invalid values
+        try:
+            parsed_qty = int(quantity)
+        except (ValueError, TypeError):
+            parsed_qty = 1
+        
+        parsed_qty = max(1, min(50, parsed_qty))
+
         logger.debug(
             "Cart.add | variant_id=%s pod_id=%s qty=%s override=%s",
-            variant_id, variant.pod_id, quantity, override_quantity,
+            variant_id, variant.pod_id, parsed_qty, override_quantity,
         )
 
         if variant_id not in self.cart:
@@ -38,9 +46,12 @@ class Cart:
             self.cart[variant_id]['price'] = clean_price
 
         if override_quantity:
-            self.cart[variant_id]['quantity'] = int(quantity)
+            self.cart[variant_id]['quantity'] = parsed_qty
         else:
-            self.cart[variant_id]['quantity'] += int(quantity)
+            self.cart[variant_id]['quantity'] = min(
+                50,
+                self.cart[variant_id]['quantity'] + parsed_qty,
+            )
 
         logger.debug(
             "Cart.add | variant_id=%s new_quantity=%s",

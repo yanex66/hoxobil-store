@@ -7,102 +7,149 @@
 {% block content %}
 
 <style>
-  /* ── Hero ── */
-  .hx-hero {
+  /* ── Split Hero (Made Lighter & Brighter) ── */
+  .hx-split-hero {
     position: relative;
-    min-height: 100vh;
+    min-height: calc(100vh - 80px);
     display: flex;
     align-items: center;
-    justify-content: center;
+    background: #f9f9f7; /* Crisp, airy light studio background */
     overflow: hidden;
-    background: #0a0a0a;
+    padding: 4rem 2rem;
   }
-  .hx-hero-bg {
-    position: absolute; inset: 0;
-    background-image: url('https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=2000&auto=format&fit=crop');
-    background-size: cover; background-position: center top;
-    opacity: 0.75;
-    transform: scale(1.05);
-    animation: heroZoom 12s ease-in-out infinite alternate;
+  .hx-split-container {
+    max-width: 1350px;
+    margin: 0 auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+    position: relative;
+    z-index: 2;
   }
-  @keyframes heroZoom { from { transform: scale(1.05); } to { transform: scale(1.12); } }
-  .hx-hero-overlay {
-    position: absolute; inset: 0;
-    background: linear-gradient(160deg, rgba(139,0,0,0.1) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.72) 100%);
+  @media (max-width: 900px) {
+    .hx-split-container {
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      text-align: center;
+      padding-top: 2rem;
+    }
   }
-  .hx-hero-content {
-    position: relative; z-index: 2;
-    text-align: center; padding: 2rem 1rem;
-  }
-  .hx-hero-eyebrow {
-    display: inline-block;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.3em;
-    color: #c0392b; text-transform: uppercase;
-    border: 1px solid rgba(192,57,43,0.4);
-    padding: 6px 18px; border-radius: 2px;
-    margin-bottom: 1.5rem;
-    animation: fadeUp 0.8s ease both;
-  }
-  .hx-hero-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: clamp(3.5rem, 10vw, 8rem);
-    font-weight: 700; line-height: 0.9;
-    color: #fff; text-transform: uppercase;
-    letter-spacing: -0.02em;
-    margin-bottom: 1.5rem;
-    animation: fadeUp 0.8s 0.15s ease both;
-  }
-  .hx-hero-title span {
-    color: #c0392b;
-    display: block;
-  }
-  .hx-hero-sub {
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    color: rgba(255,255,255,0.6);
-    max-width: 500px; margin: 0 auto 2.5rem;
-    font-weight: 300; letter-spacing: 0.05em;
-    animation: fadeUp 0.8s 0.3s ease both;
-  }
-  .hx-hero-actions {
-    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
-    animation: fadeUp 0.8s 0.45s ease both;
-  }
-  .hx-btn-primary {
-    padding: 14px 36px;
-    background: #c0392b; color: #fff;
-    font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; text-decoration: none;
-    border: none; cursor: pointer;
-    transition: background 0.2s, transform 0.15s;
-  }
-  .hx-btn-primary:hover { background: #a93226; transform: translateY(-2px); color: #fff; }
-  .hx-btn-ghost {
-    padding: 13px 36px;
-    background: transparent; color: #fff;
-    font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.3);
-    transition: border-color 0.2s, color 0.2s, transform 0.15s;
-  }
-  .hx-btn-ghost:hover { border-color: #fff; color: #fff; transform: translateY(-2px); }
 
-  /* Scroll indicator */
-  .hx-scroll-hint {
-    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
-    z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px;
-    color: rgba(255,255,255,0.4); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
-    animation: fadeUp 1s 1s ease both;
+  /* Left Column Content */
+  .hx-hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
-  .hx-scroll-line {
-    width: 1px; height: 40px; background: rgba(255,255,255,0.2);
-    position: relative; overflow: hidden;
+  @media (max-width: 900px) {
+    .hx-hero-left {
+      align-items: center;
+    }
   }
-  .hx-scroll-line::after {
-    content: ''; position: absolute; top: -100%; left: 0;
-    width: 100%; height: 100%; background: #c0392b;
-    animation: scrollLine 1.5s ease infinite;
+
+  .hx-split-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(3.2rem, 6.5vw, 5.8rem);
+    font-weight: 700;
+    line-height: 1.05;
+    color: #1c1c1c;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
   }
-  @keyframes scrollLine { to { top: 100%; } }
+  .hx-split-desc {
+    font-size: clamp(1rem, 1.5vw, 1.15rem);
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    max-width: 480px;
+    font-weight: 400;
+  }
+  .hx-split-actions {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+  @media (max-width: 900px) {
+    .hx-split-actions {
+      justify-content: center;
+    }
+  }
+  .hx-btn-red {
+    padding: 14px 32px;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.2s, transform 0.15s;
+    box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
+  }
+  .hx-btn-red:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    color: #fff;
+  }
+  .hx-link-arrow {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1c1c1c;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .hx-link-arrow:hover {
+    color: #e74c3c;
+  }
+  
+  /* Featuring footer note */
+  .hx-hero-featuring {
+    font-size: 12px;
+    color: #777;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.03em;
+  }
+  .hx-hero-featuring strong {
+    color: #1c1c1c;
+  }
+
+  /* Right Column Visual */
+  .hx-hero-right {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .hx-hero-image-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    justify-content: center;
+  }
+  .hx-hero-image-wrapper img, 
+  .hx-hero-image-wrapper video {
+    width: 100%;
+    height: auto;
+    max-height: 600px;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.08));
+  }
 
   /* ── Ticker ── */
   .hx-ticker {
@@ -132,7 +179,7 @@
   }
   .hx-stat {
     text-align: center; padding: 2rem 1rem;
-    border-right: 1px solid rgba(0,0,0,0.08);
+    border-right: 1px solid rgba(255,255,255,0.05);
   }
   .hx-stat:last-child { border-right: none; }
   .hx-stat-num {
@@ -350,7 +397,6 @@
     opacity: 1; transform: translateY(0);
   }
 
-
   /* ── Categories ── */
   .hx-categories {
     padding: 4rem 1rem;
@@ -516,9 +562,13 @@
     text-transform: uppercase; margin-bottom: 0.5rem;
   }
   .hx-newsletter-sub { font-size: 13px; color: #666; margin-bottom: 1.75rem; }
+  
   .hx-newsletter-form {
-    display: flex; gap: 0; max-width: 420px; margin: 0 auto;
-    border: 1px solid rgba(192,57,43,0.3); border-radius: 3px; overflow: hidden;
+    display: flex;
+    gap: 0;
+    max-width: 440px;
+    margin: 0 auto;
+    border: 1px solid rgba(255,255,255,0.15);
   }
   .hx-newsletter-input {
     flex: 1; padding: 0.85rem 1.1rem;
@@ -597,33 +647,45 @@
   <span class="hx-float-custom-text">Design Your Custom</span>
 </a>
 
-<!-- ── HERO ── -->
-<section class="hx-hero">
-  {% if video_ads %}
-    <video autoplay loop muted playsinline
-           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.3;z-index:0;">
-      <source src="{{ video_ads.0.video_file.url }}" type="video/mp4">
-    </video>
-  {% else %}
-    <div class="hx-hero-bg"></div>
-  {% endif %}
-  <div class="hx-hero-overlay"></div>
+<!-- ── SPLIT HERO SECTION ── -->
+<section class="hx-split-hero">
+  <div class="hx-split-container">
+    
+    <!-- Left Column: Copy & Actions -->
+    <div class="hx-hero-left">
+      <h1 class="hx-split-title">
+        Less hustle.<br>More passion.
+      </h1>
+      
+      <p class="hx-split-desc">
+        Add your designs to hundreds of beautiful products, which we print and ship to your customers around the world.
+      </p>
 
-  <div class="hx-hero-content">
-    <div class="hx-hero-eyebrow">New Collection 2026</div>
-    <h1 class="hx-hero-title">
-      Wear The<span>Bold.</span>
-    </h1>
-    <p class="hx-hero-sub">Premium quality. Exclusive designs. Built for those who refuse to blend in.</p>
-    <div class="hx-hero-actions">
-      <a href="{% url 'shop:product_list' %}" class="hx-btn-primary">Shop Now</a>
-      <a href="{% url 'shop:custom_product_list' %}" class="hx-btn-ghost">Custom Order</a>
+      <div class="hx-split-actions">
+        <a href="{% url 'shop:custom_product_list' %}" class="hx-btn-red">Get started &gt;</a>
+        <a href="{% url 'shop:about' %}" class="hx-link-arrow">Enterprise support &gt;</a>
+      </div>
+
+      <div class="hx-hero-featuring">
+        <span>Featuring:</span>
+        <strong>⚡ HOXOBIL Creative Studio</strong>
+      </div>
     </div>
-  </div>
 
-  <div class="hx-scroll-hint">
-    <div class="hx-scroll-line"></div>
-    Scroll
+    <!-- Right Column: Visual / Model Showcase -->
+    <div class="hx-hero-right">
+      <div class="hx-hero-image-wrapper">
+        {% if video_ads %}
+          <video autoplay loop muted playsinline>
+            <source src="{{ video_ads.0.video_file.url }}" type="video/mp4">
+          </video>
+        {% else %}
+          <!-- Professional high-fashion streetwear models showcase -->
+          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1200&auto=format&fit=crop" alt="Hoxobil Streetwear Models" loading="lazy">
+        {% endif %}
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -697,7 +759,7 @@
     <a href="{% url 'shop:product_list' %}" class="hx-view-all">All Products →</a>
   </div>
   <div class="hx-cat-grid">
-    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+    <a href="{% url 'shop:product_list' %}?category=t-shirts" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=800&auto=format&fit=crop" alt="T-Shirts" loading="lazy">
       <div class="hx-cat-overlay"></div>
       <div class="hx-cat-label">
@@ -705,7 +767,7 @@
         <span class="hx-cat-count">Premium Tees</span>
       </div>
     </a>
-    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+    <a href="{% url 'shop:product_list' %}?category=hoodies" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?q=80&w=800&auto=format&fit=crop" alt="Hoodies" loading="lazy">
       <div class="hx-cat-overlay"></div>
       <div class="hx-cat-label">
@@ -713,7 +775,7 @@
         <span class="hx-cat-count">Stay Warm, Stay Bold</span>
       </div>
     </a>
-    <a href="{% url 'shop:product_list' %}" class="hx-cat-card">
+    <a href="{% url 'shop:product_list' %}?category=jackets" class="hx-cat-card">
       <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=800&auto=format&fit=crop" alt="Jackets" loading="lazy">
       <div class="hx-cat-overlay"></div>
       <div class="hx-cat-label">
@@ -905,10 +967,12 @@
     <span class="hx-newsletter-label">Stay in the Loop</span>
     <h2 class="hx-newsletter-title">Get Early Access to New Drops</h2>
     <p class="hx-newsletter-sub">Join thousands of HOXOBIL members. Be first to know about new releases, exclusive deals, and behind-the-scenes content.</p>
-    <div class="hx-newsletter-form">
-      <input type="email" class="hx-newsletter-input" placeholder="your@email.com">
-      <button type="button" class="hx-newsletter-btn" onclick="handleNewsletterSignup(this)">Subscribe</button>
-    </div>
+    <form id="hx-newsletter-form" class="hx-newsletter-form">
+      {% csrf_token %}
+      <input type="email" name="email" class="hx-newsletter-input" placeholder="your@email.com" required>
+      <button type="submit" class="hx-newsletter-btn hx-btn-primary">SUBSCRIBE</button>
+    </form>
+    <p id="hx-newsletter-msg" style="font-size:12px;margin-top:10px;color:#c0392b;"></p>
     <p class="hx-newsletter-note">No spam. Unsubscribe anytime.</p>
   </div>
 </section>
@@ -932,7 +996,7 @@
     </div>
     <div class="hx-brand-item">
       <div class="hx-brand-icon">
-        <svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+        <svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7h4.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
       </div>
       <div class="hx-brand-title">Custom Orders</div>
       <div class="hx-brand-desc">Your design, your way. Made to order.</div>
@@ -987,22 +1051,6 @@
   }, { threshold: 0.1 });
   reveals.forEach(function(el) { observer.observe(el); });
 
-
-  /* ── Newsletter signup ── */
-  function handleNewsletterSignup(btn) {
-    var input = btn.previousElementSibling;
-    var email = input.value.trim();
-    if (!email || !email.includes('@')) {
-      input.style.borderColor = '#c0392b';
-      input.focus(); return;
-    }
-    btn.textContent = 'Subscribed ✓';
-    btn.style.background = '#27ae60';
-    btn.disabled = true;
-    input.value = '';
-    input.placeholder = "You're on the list!";
-  }
-
   /* ── Count-up animation ── */
   var counters = document.querySelectorAll('[data-count]');
   var countObserver = new IntersectionObserver(function(entries) {
@@ -1025,6 +1073,34 @@
     });
   }, { threshold: 0.5 });
   counters.forEach(function(el) { countObserver.observe(el); });
+
+  document.getElementById('hx-newsletter-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const msgEl = document.getElementById('hx-newsletter-msg');
+    const btn = form.querySelector('button');
+    const csrftoken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    btn.disabled = true;
+    msgEl.textContent = '';
+
+    fetch("{% url 'shop:newsletter_subscribe' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken },
+      body: new FormData(form),
+    })
+      .then(res => res.json())
+      .then(data => {
+        msgEl.textContent = data.message;
+        msgEl.style.color = data.status === 'success' ? '#4caf50' : '#c0392b';
+        if (data.status === 'success') form.reset();
+      })
+      .catch(() => {
+        msgEl.textContent = 'Something went wrong. Please try again.';
+        msgEl.style.color = '#c0392b';
+      })
+      .finally(() => { btn.disabled = false; });
+  });
 </script>
 
 {% endblock content %}

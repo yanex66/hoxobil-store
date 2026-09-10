@@ -248,6 +248,12 @@ footer,
 .hoxo-msg.bot .hoxo-msg-av { background: #1C1C1C; color: #FAF7F2; }
 .hoxo-msg.user .hoxo-msg-av { background: rgba(139,0,0,0.1); color: #8B0000; }
 
+/* ── Important Design Note Crimson Highlight ── */
+.hoxo-design-note {
+    color: #C43030;
+    font-weight: 500;
+}
+
 /* ── Auth prompt link styling inside chat bubble ── */
 .hoxo-bubble .auth-link {
     display: inline-block;
@@ -1244,6 +1250,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Newlines
         parsed = parsed.replace(/\n/g, '<br>');
+
+        // ── TARGET IMPORTANT DESIGN NOTE AND TURN IT RED ──
+        parsed = parsed.replace(
+            /(⚠️\s*<strong>Important Design Note:<\/strong><br>)([\s\S]*?)(?=<br><br>Now|$)/i,
+            '$1<span class="hoxo-design-note">$2</span>'
+        );
 
         return parsed;
     }

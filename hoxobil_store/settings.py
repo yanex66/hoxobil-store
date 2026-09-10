@@ -5,8 +5,7 @@ import dj_database_url
 from decimal import Decimal
 import datetime
 from zoneinfo import ZoneInfo   # stdlib on Python 3.9+, no extra install needed
- 
- 
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,8 +14,36 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ─────────────────────────────────────────────────────────
 #  CORE SETTINGS
 # ─────────────────────────────────────────────────────────
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-18cqg*t%&c=g(te(-z6n=qr*(*-4d+3ig6&pb*f+#0@71otk^j')
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+if not DEBUG:
+    SECRET_KEY = config('SECRET_KEY')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_SECURITY_POLICY = {
+        "default-src": ("'self'",),
+    }
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = config(
+        'CORS_ALLOWED_ORIGINS', 
+        default='', 
+        cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
+    )
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = config('EMAIL_HOST', default='')
+    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+else:
+    SECRET_KEY = config('SECRET_KEY', default='django-insecure-18cqg*t%&c=g(te(-z6n=qr*(*-4d+3ig6&pb*f+#0@71otk^j')
+    CORS_ALLOW_ALL_ORIGINS = True
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='')
 
@@ -31,7 +58,6 @@ ALLOWED_HOSTS = [
     '.onrender.com',
     'hoxobil.store',
     'www.hoxobil.store',
-    
 ]
 
 if RENDER_EXTERNAL_HOSTNAME:
@@ -84,7 +110,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'shop.launch_middleware.LaunchGateMiddleware',   # ← ADD THIS LINE
+    'shop.launch_middleware.LaunchGateMiddleware',   # ← LAUNCH GATE
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -124,8 +150,6 @@ TEMPLATES = [
 # ─────────────────────────────────────────────────────────
 #  DATABASE
 # ─────────────────────────────────────────────────────────
-# Uses PostgreSQL when DATABASE_URL is set (Render / production).
-# Falls back to local SQLite when DATABASE_URL is not set (local dev).
 DATABASE_URL = config('DATABASE_URL', default='')
 
 if DATABASE_URL:
@@ -186,9 +210,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # ─────────────────────────────────────────────────────────
-#  CORS CORS SECURITY SETTINGS
+#  CORS CREDENTIALS CONFIGURATION
 # ─────────────────────────────────────────────────────────
-CORS_ALLOW_ALL_ORIGINS = True  # Allows your HTML5 Canvas context to process pixel assets over localtunnels
 CORS_ALLOW_CREDENTIALS = True
 
 
@@ -202,20 +225,12 @@ LOGOUT_REDIRECT_URL = '/'
 # ─────────────────────────────────────────────────────────
 #  PAYMENT SETTLEMENT / FULFILLMENT DELAY
 # ─────────────────────────────────────────────────────────
-# Paystack/Flutterwave settle funds to our bank account roughly a day after
-# a customer pays (sometimes longer). Printful charges our card the moment
-# an order is submitted. To avoid charging Printful before the customer's
-# money has actually landed, paid orders are held at status
-# 'PENDING_SETTLEMENT' for this many hours before the release_settled_orders
-# management command pushes them to Printful. Adjust based on your actual
-# observed Paystack/Flutterwave settlement times.
 SETTLEMENT_DELAY_HOURS = config('SETTLEMENT_DELAY_HOURS', default=24, cast=int)
 
 
 # ─────────────────────────────────────────────────────────
 #  EMAIL CONFIGURATION
 # ─────────────────────────────────────────────────────────
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='help.hoxobil@gmail.com')
 
 
@@ -243,15 +258,24 @@ FIXER_ACCESS_KEY = config('FIXER_ACCESS_KEY', default='')
 # ─────────────────────────────────────────────────────────
 #  FLUTTERWAVE PAYMENT
 # ─────────────────────────────────────────────────────────
-FLUTTERWAVE_PUBLIC_KEY = config('FLUTTERWAVE_PUBLIC_KEY', default='')
-FLUTTERWAVE_SECRET_KEY = config('FLUTTERWAVE_SECRET_KEY', default='')
+FLW_PUBLIC_KEY = config('FLW_PUBLIC_KEY', default='')
+FLW_SECRET_KEY = config('FLW_SECRET_KEY', default='')
+FLW_SECRET_HASH = config('FLW_SECRET_HASH', default='')
+
+FLUTTERWAVE_PUBLIC_KEY = FLW_PUBLIC_KEY
+FLUTTERWAVE_SECRET_KEY = FLW_SECRET_KEY
 
 
 # ─────────────────────────────────────────────────────────
 #  PAYSTACK PAYMENT
 # ─────────────────────────────────────────────────────────
-PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
-PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
+PAYSTACK_MODE = config('PAYSTACK_MODE', default='test')
+if PAYSTACK_MODE.lower() == 'test':
+    PAYSTACK_PUBLIC_KEY = config('PAYSTACK_TEST_PUBLIC_KEY', default='')
+    PAYSTACK_SECRET_KEY = config('PAYSTACK_TEST_SECRET_KEY', default='')
+else:
+    PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
+    PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
 
 
 # ─────────────────────────────────────────────────────────
@@ -265,27 +289,6 @@ PRINTFUL_BASE_URL = 'https://api.printful.com/'
 PRINTFUL_ACCESS_TOKEN = config('PRINTFUL_ACCESS_TOKEN', default='')
 PRINTFUL_STORE_ID = config('PRINTFUL_STORE_ID', default='')
 
-# Public-facing base URL for this server (no trailing slash).
-# Printful's servers must be able to fetch your uploaded design images,
-# so this MUST be a publicly reachable HTTPS URL — NOT http://127.0.0.1:8000.
-#
-# ── Development ──────────────────────────────────────────────────────────────
-# Start a tunnel, then paste the URL here in your .env file each session:
-#
-#   ngrok:   ngrok http 8000
-#            → PUBLIC_BASE_URL=https://abc123.ngrok-free.app
-#
-#   pinggy:  ssh -p 443 -R0:localhost:8000 a.pinggy.io
-#            → PUBLIC_BASE_URL=https://your-pinggy-subdomain.a.pinggy.link
-#
-#   loca.lt: npx localtunnel --port 8000
-#            → PUBLIC_BASE_URL=https://your-subdomain.loca.lt
-#
-# ── Production ───────────────────────────────────────────────────────────────
-#   PUBLIC_BASE_URL=https://www.hoxobil.com  (or your onrender.com URL)
-#
-# Leave empty to fall back to request.build_absolute_uri() (safe in production,
-# broken for local dev with Printful mockup generation).
 PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='')
 
 
@@ -295,8 +298,8 @@ PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='')
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 SERPER_API_KEY = config('SERPER_API_KEY', default='')
 
-CHATBOT_MAX_TOKENS = 300       
-CHATBOT_USE_WEB_SEARCH = True   
+CHATBOT_MAX_TOKENS = 300        
+CHATBOT_USE_WEB_SEARCH = True    
 
 
 # ─────────────────────────────────────────────────────────
@@ -333,13 +336,10 @@ LOGGING = {
 }
 
 LAUNCH_DATE = datetime.datetime(2026, 7, 9, 0, 0, 0, tzinfo=ZoneInfo("Africa/Lagos"))
- 
-DONATION_GOAL_NGN = Decimal('500000.00')
- 
-# Path *prefixes* always reachable pre-launch (on top of the launch page
-# itself and the donation endpoints, which the middleware allows by name).
-LAUNCH_ALLOWED_PATH_PREFIXES = [
 
+DONATION_GOAL_NGN = Decimal('500000.00')
+
+LAUNCH_ALLOWED_PATH_PREFIXES = [
     '/admin',
     '/static',
     '/media',

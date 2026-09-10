@@ -1,62 +1,275 @@
 {% extends 'shop/base.html' %}
-
 {% block title %}Register{% endblock %}
 
+{% block extra_head %}
+<style>
+    .hox-auth-split {
+        max-width: 1080px;
+        margin: 3rem auto 4rem;
+        padding: 0 1rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+    }
+    .hox-auth-wrap {
+        max-width: 460px;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .hox-auth-visual {
+        position: relative;
+        border-radius: 6px;
+        overflow: hidden;
+        aspect-ratio: 4 / 5;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    .hox-auth-visual img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        filter: grayscale(15%);
+    }
+    .hox-auth-visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 45%);
+    }
+    .hox-auth-visual-caption {
+        position: absolute;
+        left: 1.5rem;
+        bottom: 1.5rem;
+        z-index: 1;
+        color: #fff;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .hox-auth-visual-caption span {
+        display: block;
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.04em;
+        margin-top: 0.35rem;
+        text-transform: none;
+    }
+
+    @media (max-width: 860px) {
+        .hox-auth-split {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .hox-auth-visual { display: none; }
+    }
+
+    .hox-auth-title {
+        font-family: 'Oswald', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--charcoal);
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .hox-auth-card {
+        background: #fff;
+        border: 1px solid rgba(139,0,0,0.12);
+        border-top: 3px solid var(--crimson);
+        border-radius: 6px;
+        padding: 2.5rem 2rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    }
+    .hox-auth-field { margin-bottom: 1.25rem; }
+    .hox-auth-label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.4rem;
+    }
+    .hox-auth-label {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--charcoal);
+    }
+
+    .hox-auth-card input[type="text"],
+    .hox-auth-card input[type="email"],
+    .hox-auth-card input[type="password"] {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(28,28,28,0.15);
+        border-radius: 3px;
+        font-family: 'Raleway', sans-serif;
+        font-size: 0.95rem;
+        color: var(--charcoal);
+        background: var(--ivory);
+        transition: border-color 0.2s;
+    }
+    .hox-auth-card input:focus {
+        outline: none;
+        border-color: var(--crimson);
+    }
+    .hox-auth-error {
+        display: block;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.72rem;
+        color: var(--crimson);
+        margin-top: 0.35rem;
+    }
+    .hox-auth-help {
+        margin-top: 0.4rem;
+        font-family: 'Raleway', sans-serif;
+        font-size: 0.8rem;
+        color: rgba(28,28,28,0.55);
+    }
+    .hox-auth-help p { margin: 0 0 0.2rem; }
+
+    .hox-auth-submit {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .hox-auth-footer {
+        text-align: center;
+        margin-top: 1.75rem;
+        font-family: 'Raleway', sans-serif;
+        font-size: 0.9rem;
+        color: rgba(28,28,28,0.65);
+    }
+    .hox-auth-footer a {
+        color: var(--crimson);
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .hox-auth-footer a:hover { text-decoration: underline; }
+
+    /* Password visibility toggle */
+    .hox-password-wrap {
+        position: relative;
+    }
+    .hox-password-wrap input[type="password"],
+    .hox-password-wrap input[type="text"] {
+        padding-right: 2.75rem;
+    }
+    .hox-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.75rem;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        padding: 0.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(28,28,28,0.45);
+        line-height: 0;
+    }
+    .hox-password-toggle:hover { color: var(--crimson); }
+    .hox-password-toggle svg {
+        width: 20px;
+        height: 20px;
+        display: block;
+    }
+    .hox-password-toggle .hox-eye-off { display: none; }
+    .hox-password-toggle.is-visible .hox-eye { display: none; }
+    .hox-password-toggle.is-visible .hox-eye-off { display: block; }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-lg-5 col-md-7 col-sm-10">
-            <h1 class="text-primary-base text-center mb-4">Create Your Hoxobil Account</h1>
-            
-            <form method="post" class="card p-5 border-3 border-primary-base shadow-lg">
-                {% csrf_token %}
-                
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-                {% endif %}
+<div class="hox-auth-split">
+    <div class="hox-auth-wrap">
+        <h1 class="hox-auth-title">Create Your Account</h1>
 
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-bold text-primary-base">{{ field.label }}</label>
-                        
-                        {% if field.field.widget.input_type == 'password' %}
-                            <div class="input-group">
-                                {{ field }}
-                                <button class="btn btn-outline-secondary border-primary-base" 
-                                        type="button" 
-                                        onclick="togglePasswordVisibility('{{ field.id_for_label }}')">
-                                    👁️
-                                </button>
-                            </div>
-                            
-                            {% if field.label == 'Password' %}
-                                <div class="mt-2 small text-muted">
-                                    {% for validator in field.field.validators %}
-                                        <p class="mb-0">{{ validator.get_help_text }}</p>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+        <form method="post" class="hox-auth-card">
+            {% csrf_token %}
 
-                        {% else %}
-                            {{ field }}
-                        {% endif %}
-                        
-                        {% if field.errors %}
-                            <small class="text-danger">{{ field.errors }}</small>
-                        {% endif %}
+            {% if form.non_field_errors %}
+                <div class="hox-alert alert-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for field in form %}
+                <div class="hox-auth-field">
+                    <div class="hox-auth-label-row">
+                        <label for="{{ field.id_for_label }}" class="hox-auth-label">{{ field.label }}</label>
                     </div>
-                {% endfor %}
-                
-                <button type="submit" class="btn btn-accent btn-lg mt-3">
-                    Register
-                </button>
-            </form>
-            
-            <p class="mt-4 text-center">
-                Already have an account? 
-                <a href="{% url 'login' %}" class="text-accent fw-bold text-decoration-none">
-                    Log In here
-                </a>
-            </p>
+
+                    {% if field.field.widget.input_type == 'password' %}
+                        <div class="hox-password-wrap">
+                            {{ field }}
+                            <button type="button" class="hox-password-toggle" data-target="{{ field.id_for_label }}" aria-label="Show password">
+                                <svg class="hox-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="hox-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {% if field.label == 'Password' %}
+                            <div class="hox-auth-help">
+                                {% for validator in field.field.validators %}
+                                    <p>{{ validator.get_help_text }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.errors %}
+                        <small class="hox-auth-error">{{ field.errors }}</small>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="btn-hox hox-auth-submit">Register</button>
+        </form>
+
+        <p class="hox-auth-footer">
+            Already have an account?
+            <a href="{% url 'login' %}">Log In here</a>
+        </p>
+    </div>
+
+    <div class="hox-auth-visual">
+        <img src="https://images.unsplash.com/photo-1523297467724-f6758d7124c5?auto=format&fit=crop&w=900&q=80"
+             alt="Model in fashion coat"
+             loading="lazy">
+        <div class="hox-auth-visual-caption">
+            Join The List
+            <span>Members Get First Access</span>
         </div>
     </div>
+</div>
+
+<script>
+document.querySelectorAll('.hox-password-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var targetId = btn.getAttribute('data-target');
+        var input = document.getElementById(targetId);
+        if (!input) return;
+
+        var nowVisible = input.type === 'password';
+        input.type = nowVisible ? 'text' : 'password';
+        btn.classList.toggle('is-visible', nowVisible);
+        btn.setAttribute('aria-label', nowVisible ? 'Hide password' : 'Show password');
+    });
+});
+</script>
 {% endblock content %}

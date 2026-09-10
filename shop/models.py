@@ -3,7 +3,10 @@ from djmoney.models.fields import MoneyField
 from django.contrib.auth import get_user_model
 from django.db.models import JSONField
 from django.utils import timezone
-import random
+from django.conf import settings
+from djmoney.money import Money
+import secrets
+import datetime
 
 User = get_user_model()
 
@@ -11,8 +14,11 @@ POD_SERVICES = [('PFT', 'Printful'), ('PFY', 'Printify')]
 ORDER_STATUS_CHOICES = [
     ('PENDING', 'Pending Payment'),
     ('PENDING_SETTLEMENT', 'Paid — Awaiting Settlement'),
+    ('SUBMITTING', 'Submitting to Production'),  # ← ADDED for worker concurrency locking
     ('POD_SENT', 'Sent to POD'),
-    ('FULFILLED', 'Fulfilled by POD'), ('SHIPPED', 'Shipped'), ('CANCELLED', 'Cancelled'),
+    ('FULFILLED', 'Fulfilled by POD'), 
+    ('SHIPPED', 'Shipped'), 
+    ('CANCELLED', 'Cancelled'),
 ]
 
 
@@ -86,8 +92,8 @@ class Product(models.Model):
     is_customizable = models.BooleanField(
         default=False,
         help_text="Auto-set during sync when the Printful title is prefixed with 'c#'. "
-                   "Marks this as a blank garment customers can request custom designs on, "
-                   "instead of a finished admin-designed listing."
+                  "Marks this as a blank garment customers can request custom designs on, "
+                  "instead of a finished admin-designed listing."
     )
 
     def __str__(self):
@@ -106,7 +112,43 @@ class ProductVariant(models.Model):
         return f"{self.product.name} ({self.size} / {self.color})"
 
 
+# ─────────────────────────────────────────────────────────
+# PROXY MODELS FOR SEPARATED ADMIN MANAGEMENT
+# ─────────────────────────────────────────────────────────
+
+class RegularProduct(Product):
+    """Proxy model for already customized / regular storefront products."""
+    class Meta:
+        proxy = True
+        verbose_name = 'Customized Product'
+        verbose_name_plural = 'Customized Products'
+
+
+class CustomizableBlankProduct(Product):
+    """Proxy model for customizable blank garments (c# prefix)."""
+    class Meta:
+        proxy = True
+        verbose_name = 'Customizable Blank Garment'
+        verbose_name_plural = 'Customizable Blank Garments'
+
+
 class Order(models.Model):
+    PAYMENT_STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PAID', 'Paid'),
+        ('FAILED', 'Failed'),
+        ('REFUNDED', 'Refunded'),
+    ]
+    FULFILLMENT_STATUS_CHOICES = [
+        ('AWAITING_PAYMENT', 'Awaiting Payment'),
+        ('PREPARING', 'Preparing - Design Concierge Review'),
+        ('READY_FOR_PRODUCTION', 'Ready for Production'),
+        ('IN_PRODUCTION', 'In Production'),
+        ('SHIPPED', 'Shipped'),
+        ('DELIVERED', 'Delivered'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
     user = models.ForeignKey(User, related_name='orders', on_delete=models.CASCADE)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
@@ -120,6 +162,24 @@ class Order(models.Model):
     shipping_cost = MoneyField(max_digits=14, decimal_places=2, default_currency='USD', default=0)
     paid = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='PENDING')
+    
+    customer_email = models.EmailField(blank=True, default='')
+    customer_name = models.CharField(max_length=150, blank=True, default='')
+    shipping_address = models.TextField(blank=True, default='')
+    total_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, default='USD')
+    paystack_reference = models.CharField(max_length=255, unique=True, db_index=True, null=True, blank=True)
+    flutterwave_reference = models.CharField(max_length=255, unique=True, db_index=True, null=True, blank=True)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default='PENDING',
+    )
+    fulfillment_status = models.CharField(
+        max_length=25,
+        choices=FULFILLMENT_STATUS_CHOICES,
+        default='AWAITING_PAYMENT',
+    )
     abandonment_email_sent_at = models.DateTimeField(
         null=True, blank=True,
         help_text="Set once a cart-abandonment reminder has been sent for this order, to avoid emailing twice."
@@ -139,8 +199,55 @@ class Order(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "-created"]),
+            models.Index(fields=["status", "paid", "settlement_release_at"]),
+        ]
+
     def __str__(self):
         return f'Order {self.id}'
+
+    def mark_paid(self, gateway_reference, gateway_name=''):
+        """Unified, atomic payment completion handler for webhooks and callbacks."""
+        if self.paid:
+            return
+
+        self.paid = True
+        self.status = 'PENDING_SETTLEMENT'
+        self.payment_status = 'PAID'
+        self.fulfillment_status = 'PREPARING'
+        
+        if gateway_name.lower() == 'paystack':
+            self.paystack_reference = gateway_reference
+        elif gateway_name.lower() in ('flutterwave', 'flw'):
+            self.flutterwave_reference = gateway_reference
+
+        delay_hours = getattr(settings, 'SETTLEMENT_DELAY_HOURS', 24)
+        self.settlement_release_at = timezone.now() + datetime.timedelta(hours=delay_hours)
+        self.save(update_fields=[
+            'paid', 'status', 'payment_status', 'fulfillment_status',
+            'paystack_reference', 'flutterwave_reference', 'settlement_release_at', 'updated'
+        ])
+
+    def get_items_subtotal(self):
+        """Return the order-item subtotal in the order's currency."""
+        from .utils import get_converted_money
+
+        return sum(
+            (
+                get_converted_money(item.get_cost(), self.currency)
+                for item in self.items.all()
+            ),
+            Money(0, self.currency),
+        )
+
+    def get_total_cost(self):
+        """Return the item subtotal plus shipping."""
+        from .utils import get_converted_money
+
+        shipping = get_converted_money(self.shipping_cost, self.currency)
+        return self.get_items_subtotal() + shipping
 
 
 class OrderItem(models.Model):
@@ -180,7 +287,8 @@ class PasswordResetOTP(models.Model):
 
     @classmethod
     def generate_code(cls, user):
-        return cls.objects.create(user=user, code=f"{random.randint(100000, 999999)}")
+        secure_code = secrets.randbelow(900000) + 100000
+        return cls.objects.create(user=user, code=str(secure_code))
 
     def is_valid(self):
         return not self.is_used and timezone.now() <= self.created_at + timezone.timedelta(minutes=5)
@@ -225,10 +333,6 @@ class DesignSubmission(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-# ─────────────────────────────────────────────────────────
-# CUSTOM DESIGN TICKET MODEL (For the Design Team)
-# ─────────────────────────────────────────────────────────
-
 class CustomDesignTicket(models.Model):
     STATUS_CHOICES = (
         ('Pending Design Team Review', 'Pending Design Team Review'),
@@ -240,12 +344,10 @@ class CustomDesignTicket(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     session_key = models.CharField(max_length=150, null=True, blank=True)
 
-    # The Blank Garment Specs
     garment_item = models.CharField(max_length=100, help_text="e.g. Premium Polo Shirt, Streetwear Cap")
     garment_color = models.CharField(max_length=50, null=True, blank=True)
     garment_size = models.CharField(max_length=20, null=True, blank=True)
 
-    # The Customer's Custom Request
     custom_text = models.TextField(help_text="The exact text the customer wants printed/embroidered.")
     typography_style = models.CharField(max_length=100, null=True, blank=True, help_text="e.g. Minimalist, Streetwear Gothic")
     placement = models.CharField(max_length=100, null=True, blank=True, help_text="e.g. Left Chest, Center Back")
@@ -267,44 +369,27 @@ class CustomDesignTicket(models.Model):
         return f"Design Ticket #{self.id} | {self.garment_item} ({self.status})" 
 
 
-# ─────────────────────────────────────────────────────────
-# SIGNAL: Auto-push admin mockup into the customer's chat
-# ─────────────────────────────────────────────────────────
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
 @receiver(post_save, sender=CustomDesignTicket)
 def push_mockup_to_chat(sender, instance, **kwargs):
-    """
-    When an admin uploads a design_team_mockup to a CustomDesignTicket,
-    automatically write a ChatMessage into the customer's SupportChat so
-    the image appears inline in their chat window.
-
-    Fires on every save but only acts when:
-      1. A mockup image is present on the ticket
-      2. The ticket belongs to a real user (not anonymous)
-      3. That exact mockup URL hasn't already been posted into this chat
-    """
     if not instance.design_team_mockup:
         return
     if not instance.user:
         return
 
-    # Build the public-facing URL for the uploaded mockup file
     try:
-        mockup_url = instance.design_team_mockup.url  # e.g. /media/design_mockups/proof.png
+        mockup_url = instance.design_team_mockup.url
     except Exception:
         return
 
-    # Resolve the customer's support chat
     try:
         chat = SupportChat.objects.get(user=instance.user)
     except SupportChat.DoesNotExist:
         return
 
-    # De-duplication guard — never post the same image URL twice
     already_sent = chat.messages.filter(
         sender_type='admin',
         text__contains=mockup_url,
@@ -312,7 +397,6 @@ def push_mockup_to_chat(sender, instance, **kwargs):
     if already_sent:
         return
 
-    # Build a readable specs line from whatever fields are filled in
     parts = [p for p in [instance.garment_color, instance.garment_size, instance.placement] if p]
     specs_line = f"**Specs:** {' · '.join(parts)}\n\n" if parts else ''
 
@@ -334,9 +418,6 @@ def push_mockup_to_chat(sender, instance, **kwargs):
         text=message_text,
     )
 
-# ─────────────────────────────────────────────────────────
-# SELF-LEARNING BOT MODELS
-# ─────────────────────────────────────────────────────────
 
 class BotKnowledge(models.Model):
     keywords = models.TextField(
@@ -384,10 +465,18 @@ class UnknownQuestion(models.Model):
         return f"Unknown #{self.id}: {self.message[:80]}"
 
 
-# ─────────────────────────────────────────────────────────
-# DONATIONS (Launch Fund)
-# ─────────────────────────────────────────────────────────
+class NewsletterSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ['-subscribed_at']
+
+    def __str__(self):
+        return self.email
+     
+     
 class Donation(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -402,7 +491,6 @@ class Donation(models.Model):
     name = models.CharField(max_length=150, blank=True)
     email = models.EmailField(blank=True)
 
-    # Stored in NGN — donations are naira-only, no currency conversion needed.
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)

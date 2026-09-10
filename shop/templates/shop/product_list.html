@@ -16,10 +16,19 @@
                     <li class="breadcrumb-item active text-crimson">CATALOG</li>
                 </ol>
             </nav>
-            <h1 class="fw-900 text-uppercase tracking-tight font-display" style="font-size: 2.5rem; color: var(--charcoal);">
-                All <span class="text-crimson-gradient">Products</span>
-            </h1>
-            <p class="text-muted small font-mono">Select a product to view the drop collection</p>
+            <div class="d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-3">
+                <div>
+                    <h1 class="fw-900 text-uppercase tracking-tight font-display" style="font-size: 2.5rem; color: var(--charcoal);">
+                        All <span class="text-crimson-gradient">Products</span>
+                    </h1>
+                    <p class="text-muted small font-mono mb-0">Select a product to view the drop collection</p>
+                </div>
+                <a href="{% url 'shop:custom_product_list' %}"
+                   class="btn btn-hox-catalog px-4 py-3 font-display text-nowrap"
+                   style="box-shadow: 0 4px 12px rgba(196,48,48,0.18);">
+                    🎨 Customize Your Product
+                </a>
+            </div>
 
             <!-- ── SEARCH BAR ── -->
             <form method="get" action="{% url 'shop:product_list' %}" class="hox-search-form mt-3">
@@ -65,7 +74,7 @@
                         </li>
                         {% for cat in categories %}
                         <li>
-                            <a href="{% url 'shop:product_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                            <a href="{% url 'shop:product_list' %}?category={{ cat.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
                                class="filter-link {% if request.GET.category == cat.slug %}active{% endif %}">
                                 {{ cat.name }}
                             </a>
@@ -133,7 +142,7 @@
                         All
                     </a>
                     {% for cat in categories %}
-                    <a href="{% url 'shop:product_list' %}?category={{ cat.slug }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}"
+                    <a href="{% url 'shop:product_list' %}?category={{ cat.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}"
                        class="btn btn-sm {% if request.GET.category == cat.slug %}btn-hox-catalog{% else %}btn-light text-dark border{% endif %} rounded-pill px-4 text-nowrap font-mono">
                         {{ cat.name }}
                     </a>
@@ -182,25 +191,6 @@
                 {% if products %}
                     {% for product in products %}
 
-                    {# ── Inject mid-grid ad after every 8th product ── #}
-                    {% if forloop.counter == 9 and video_ads|length > 1 %}
-                    <div class="col-12">
-                        <div class="mid-grid-ad">
-                            {% for mid_ad in video_ads|slice:"-1:" %}
-                            <video autoplay muted loop playsinline class="mid-grid-ad-video">
-                                <source src="{{ mid_ad.video_file.url }}" type="video/mp4">
-                            </video>
-                            {% if mid_ad.link_url %}
-                            <a href="{{ mid_ad.link_url }}" class="mid-grid-ad-btn font-display" target="_blank" rel="noopener">
-                                {{ mid_ad.button_text|default:"SHOP NOW" }}
-                                <i class="bi bi-arrow-right-short"></i>
-                            </a>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-
                     <div class="col-6 col-md-4 col-xl-3">
                         <div class="p-card">
                             <a href="{% url 'shop:product_detail' product.slug %}" class="p-img-box">
@@ -215,7 +205,7 @@
                                 {% else %}
                                 <div class="d-flex align-items-center justify-content-center h-100 bg-light text-muted font-mono small">NO IMAGE</div>
                                 {% endif %}
-                                <div class="p-tag font-mono">{{ product.category.name|upper }}</div>
+                                <div class="p-tag font-mono">{{ product.categories.first.name|upper }}</div>
                             </a>
                             <div class="p-info">
                                 <h3 class="p-title font-display">
@@ -234,8 +224,13 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12 text-center py-5">
+                        {% if active_category %}
+                        <h2 class="display-6 fw-900 opacity-25 font-display text-uppercase">CATEGORY EMPTY</h2>
+                        <p class="text-muted small font-mono">No products found in this category yet.</p>
+                        {% else %}
                         <h2 class="display-6 fw-900 opacity-25 font-display text-uppercase">DROP UNRELEASED</h2>
                         <p class="text-muted small font-mono">No matching items found for this selection.</p>
+                        {% endif %}
                         <a href="{% url 'shop:product_list' %}" class="btn btn-outline-dark mt-2 btn-sm rounded-pill px-4 font-mono">Reset Catalog</a>
                     </div>
                 {% endif %}
@@ -454,23 +449,6 @@
         display: flex; align-items: center; gap: 0.25rem;
     }
     .catalog-banner-btn:hover { background: #A52020; color: #FAF7F2; transform: translateY(-1px); }
-
-    /* Mid-grid ad (injected after 8 products) */
-    .mid-grid-ad {
-        position: relative; border-radius: 12px; overflow: hidden;
-        background: #000; border: 1px solid rgba(139,0,0,0.1);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.07);
-    }
-    .mid-grid-ad-video { width: 100%; display: block; max-height: 200px; object-fit: cover; }
-    .mid-grid-ad-btn {
-        position: absolute; bottom: 14px; right: 14px;
-        background: #8B0000; color: #FAF7F2; padding: 0.45rem 1.1rem;
-        border-radius: 4px; font-size: 0.7rem; font-weight: 700;
-        letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
-        box-shadow: 0 4px 12px rgba(139,0,0,0.4); transition: all 0.2s;
-        display: flex; align-items: center; gap: 0.25rem;
-    }
-    .mid-grid-ad-btn:hover { background: #A52020; color: #FAF7F2; }
 
     /* Bottom banner ad */
     .bottom-banner-ad { border-radius: 16px; overflow: hidden; background: #1C1C1C; }
