@@ -67,14 +67,10 @@ if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.loca.lt',
-    'https://*.ngrok-free.dev',
-    'https://*.pinggy.link',
-    'https://*.trycloudflare.com',
-    'https://*.onrender.com',
-    'https://hoxobil-store.onrender.com',
     'https://hoxobil.store',
     'https://www.hoxobil.store',
+    'https://*.onrender.com',
+    'https://hoxobil-store.onrender.com',
 ]
 
 
