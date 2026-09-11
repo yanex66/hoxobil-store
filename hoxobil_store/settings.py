@@ -28,6 +28,7 @@ if not DEBUG:
     SECURE_CONTENT_SECURITY_POLICY = {
         "default-src": ("'self'",),
     }
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = config(
         'CORS_ALLOWED_ORIGINS', 
@@ -69,6 +70,7 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.pinggy.link',
     'https://*.trycloudflare.com',
     'https://*.onrender.com',
+    'https://hoxobil-store.onrender.com',
     'https://hoxobil.store',
     'https://www.hoxobil.store',
 ]
