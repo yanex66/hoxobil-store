@@ -4,7 +4,7 @@ import os
 import dj_database_url
 from decimal import Decimal
 import datetime
-from zoneinfo import ZoneInfo   # stdlib on Python 3.9+, no extra install needed
+from zoneinfo import ZoneInfo    # stdlib on Python 3.9+, no extra install needed
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -12,9 +12,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ─────────────────────────────────────────────────────────
-#  CORE SETTINGS
+#   CORE SETTINGS
 # ─────────────────────────────────────────────────────────
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Global setting so Render's proxy HTTPS requests are always trusted
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 if not DEBUG:
     SECRET_KEY = config('SECRET_KEY')
@@ -28,7 +31,6 @@ if not DEBUG:
     SECURE_CONTENT_SECURITY_POLICY = {
         "default-src": ("'self'",),
     }
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = config(
         'CORS_ALLOWED_ORIGINS', 
@@ -77,7 +79,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 
 # ─────────────────────────────────────────────────────────
-#  INSTALLED APPS
+#   INSTALLED APPS
 # ─────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -102,7 +104,7 @@ INSTALLED_APPS = [
 
 
 # ─────────────────────────────────────────────────────────
-#  MIDDLEWARE
+#   MIDDLEWARE
 # ─────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -112,21 +114,21 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'shop.launch_middleware.LaunchGateMiddleware',   # ← LAUNCH GATE
+    'shop.launch_middleware.LaunchGateMiddleware',    # ← LAUNCH GATE
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 
 # ─────────────────────────────────────────────────────────
-#  URLS & WSGI
+#   URLS & WSGI
 # ─────────────────────────────────────────────────────────
 ROOT_URLCONF = 'hoxobil_store.urls'
 WSGI_APPLICATION = 'hoxobil_store.wsgi.application'
 
 
 # ─────────────────────────────────────────────────────────
-#  TEMPLATES
+#   TEMPLATES
 # ─────────────────────────────────────────────────────────
 TEMPLATES = [
     {
@@ -150,7 +152,7 @@ TEMPLATES = [
 
 
 # ─────────────────────────────────────────────────────────
-#  DATABASE
+#   DATABASE
 # ─────────────────────────────────────────────────────────
 DATABASE_URL = config('DATABASE_URL', default='')
 
@@ -172,7 +174,7 @@ else:
 
 
 # ─────────────────────────────────────────────────────────
-#  PASSWORD VALIDATION
+#   PASSWORD VALIDATION
 # ─────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -183,7 +185,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # ─────────────────────────────────────────────────────────
-#  INTERNATIONALISATION
+#   INTERNATIONALISATION
 # ─────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -192,7 +194,7 @@ USE_TZ = True
 
 
 # ─────────────────────────────────────────────────────────
-#  STATIC & MEDIA FILES
+#   STATIC & MEDIA FILES
 # ─────────────────────────────────────────────────────────
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
@@ -216,32 +218,32 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # ─────────────────────────────────────────────────────────
-#  CORS CREDENTIALS CONFIGURATION
+#   CORS CREDENTIALS CONFIGURATION
 # ─────────────────────────────────────────────────────────
 CORS_ALLOW_CREDENTIALS = True
 
 
 # ─────────────────────────────────────────────────────────
-#  USER ACCOUNT SETTINGS
+#   USER ACCOUNT SETTINGS
 # ─────────────────────────────────────────────────────────
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
 
 # ─────────────────────────────────────────────────────────
-#  PAYMENT SETTLEMENT / FULFILLMENT DELAY
+#   PAYMENT SETTLEMENT / FULFILLMENT DELAY
 # ─────────────────────────────────────────────────────────
 SETTLEMENT_DELAY_HOURS = config('SETTLEMENT_DELAY_HOURS', default=24, cast=int)
 
 
 # ─────────────────────────────────────────────────────────
-#  EMAIL CONFIGURATION
+#   EMAIL CONFIGURATION
 # ─────────────────────────────────────────────────────────
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='help.hoxobil@gmail.com')
 
 
 # ─────────────────────────────────────────────────────────
-#  CURRENCY SETTINGS
+#   CURRENCY SETTINGS
 # ─────────────────────────────────────────────────────────
 DEFAULT_CURRENCY = 'USD'
 CURRENCIES = ('USD', 'EUR', 'GBP', 'NGN', 'CAD', 'AUD', 'JPY')
@@ -262,7 +264,7 @@ FIXER_ACCESS_KEY = config('FIXER_ACCESS_KEY', default='')
 
 
 # ─────────────────────────────────────────────────────────
-#  FLUTTERWAVE PAYMENT
+#   FLUTTERWAVE PAYMENT
 # ─────────────────────────────────────────────────────────
 FLW_PUBLIC_KEY = config('FLW_PUBLIC_KEY', default='')
 FLW_SECRET_KEY = config('FLW_SECRET_KEY', default='')
@@ -273,7 +275,7 @@ FLUTTERWAVE_SECRET_KEY = FLW_SECRET_KEY
 
 
 # ─────────────────────────────────────────────────────────
-#  PAYSTACK PAYMENT
+#   PAYSTACK PAYMENT
 # ─────────────────────────────────────────────────────────
 PAYSTACK_MODE = config('PAYSTACK_MODE', default='test')
 if PAYSTACK_MODE.lower() == 'test':
@@ -285,7 +287,7 @@ else:
 
 
 # ─────────────────────────────────────────────────────────
-#  PRINT-ON-DEMAND (POD)
+#   PRINT-ON-DEMAND (POD)
 # ─────────────────────────────────────────────────────────
 PRINTIFY_BASE_URL = 'https://api.printify.com/v1/'
 PRINTIFY_ACCESS_TOKEN = config('PRINTIFY_ACCESS_TOKEN', default='')
@@ -299,7 +301,7 @@ PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='')
 
 
 # ─────────────────────────────────────────────────────────
-#  AI & CHATBOT SETTINGS
+#   AI & CHATBOT SETTINGS
 # ─────────────────────────────────────────────────────────
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 SERPER_API_KEY = config('SERPER_API_KEY', default='')
@@ -309,7 +311,7 @@ CHATBOT_USE_WEB_SEARCH = True
 
 
 # ─────────────────────────────────────────────────────────
-#  DEEP DEBUG LOGGING CONFIGURATION
+#   DEEP DEBUG LOGGING CONFIGURATION
 # ─────────────────────────────────────────────────────────
 LOGGING = {
     'version': 1,
