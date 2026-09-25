@@ -1,5 +1,52 @@
 from django import forms
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
+from django.db.models import Q
 from .models import Order, Review
+
+User = get_user_model()
+
+
+class EmailRegistrationForm(UserCreationForm):
+    email = forms.EmailField(
+        label='Email address',
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'you@example.com',
+            'autocomplete': 'email',
+        }),
+    )
+    first_name = forms.CharField(
+        label='First name',
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Your first name',
+            'autocomplete': 'given-name',
+        }),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ('email', 'first_name', 'password1', 'password2')
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).exists():
+            raise forms.ValidationError('An account with this email already exists.')
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        email = self.cleaned_data['email']
+        user.email = email
+        user.first_name = self.cleaned_data.get('first_name', '').strip()
+        user.username = email
+        if commit:
+            user.save()
+        return user
+
 
 class CheckoutForm(forms.ModelForm):
     """

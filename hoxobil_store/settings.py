@@ -262,8 +262,14 @@ FIXER_ACCESS_KEY = config('FIXER_ACCESS_KEY', default='')
 # ─────────────────────────────────────────────────────────
 #   FLUTTERWAVE PAYMENT
 # ─────────────────────────────────────────────────────────
-FLW_PUBLIC_KEY = config('FLW_PUBLIC_KEY', default='')
-FLW_SECRET_KEY = config('FLW_SECRET_KEY', default='')
+FLW_PUBLIC_KEY = config(
+    'FLW_PUBLIC_KEY',
+    default=config('FLUTTERWAVE_PUBLIC_KEY', default=''),
+)
+FLW_SECRET_KEY = config(
+    'FLW_SECRET_KEY',
+    default=config('FLUTTERWAVE_SECRET_KEY', default=''),
+)
 FLW_SECRET_HASH = config('FLW_SECRET_HASH', default='')
 
 FLUTTERWAVE_PUBLIC_KEY = FLW_PUBLIC_KEY

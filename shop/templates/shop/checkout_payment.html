@@ -70,7 +70,7 @@
             <div class="hox-notice mt-3">
                 <i class="bi bi-info-circle me-2"></i>
                 {% if currency == 'NGN' %}
-                    You will be charged in <strong>Nigerian Naira (NGN)</strong> since your delivery address is in Nigeria.
+                    You will be charged in your selected local currency for this destination.
                 {% else %}
                     You will be charged in <strong>US Dollars (USD)</strong>. International cards accepted.
                 {% endif %}
@@ -348,6 +348,15 @@
     var flwConfig = JSON.parse(document.getElementById('flw-config').textContent);
 
     document.getElementById('pay-btn').addEventListener('click', function () {
+        if (!flwConfig.publicKey || flwConfig.publicKey.indexOf('REPLACE_WITH') !== -1) {
+            alert('Flutterwave is not configured yet. Please contact support or choose Paystack.');
+            return;
+        }
+        if (typeof FlutterwaveCheckout !== 'function') {
+            alert('Flutterwave could not load. Check your connection and try again.');
+            return;
+        }
+
         this.disabled = true;
         this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Opening payment...';
 

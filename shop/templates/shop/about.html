@@ -1,5 +1,4 @@
 {% extends 'shop/base.html' %}
-{% load static %}
 {% block title %}About | HOXOBIL{% endblock %}
 
 {% block content %}
@@ -103,71 +102,20 @@
         </div>
     </section>
 
-    <!-- ── MEET THE BOARD ── -->
-    <section class="mb-6">
-        <div class="text-center mb-5">
-            <h3 class="font-display text-uppercase fw-bold mb-1" style="color: var(--charcoal); font-size: 1.8rem;">Meet the Board</h3>
-            <p class="font-mono text-muted small text-uppercase tracking-widest">The structural visionaries driving the enterprise.</p>
-        </div>
-        
-        <div class="row g-4 text-center justify-content-center">
-            <!-- Founder -->
-            <div class="col-sm-6 col-md-4">
-                <div class="p-4 rounded-4 border bg-white h-100 shadow-sm transition-card">
-                    <div class="mb-3">
-                        <div class="rounded-circle mx-auto shadow-sm overflow-hidden border border-2 border-light" style="width: 90px; height: 90px;">
-                            <img src="{% static 'images/DSC_0417~2.jpg' %}" alt="Iyanuoluwa Darasimi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
-                        </div>
-                    </div>
-                    <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Iyanuoluwa Darasimi</h5>
-                    <p class="font-mono text-crimson small text-uppercase fw-bold mb-3" style="font-size: 0.68rem;">Founder / CEO</p>
-                    <span class="badge font-mono rounded-pill bg-dark text-white px-3 py-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">70% EQUITY SHARE</span>
-                </div>
-            </div>
-            
-            <!-- Co-Founder -->
-            <div class="col-sm-6 col-md-4">
-                <div class="p-4 rounded-4 border bg-white h-100 shadow-sm transition-card">
-                    <div class="mb-3">
-                        <div class="rounded-circle mx-auto shadow-sm overflow-hidden border border-2 border-light" style="width: 90px; height: 90px;">
-                            <img src="{% static 'images/IMG_20260505_201736.jpg' %}" alt="Akinfewa Feranmi" class="w-100 h-100" style="object-fit: cover; object-position: center 25%;">
-                        </div>
-                    </div>
-                    <h5 class="font-display fw-bold mb-1 text-uppercase" style="color: var(--charcoal);">Akinfewa Feranmi</h5>
-                    <p class="font-mono text-gold small text-uppercase fw-bold mb-3" style="font-size: 0.68rem;">Co-Founder & Shareholder</p>
-                    <span class="badge font-mono rounded-pill bg-dark text-white px-3 py-2" style="font-size: 0.62rem; letter-spacing: 0.08em;">30% EQUITY SHARE</span>
-                </div>
-            </div>
-
-            <!-- Open Slot -->
-            <div class="col-sm-6 col-md-4">
-                <div class="p-4 rounded-4 h-100 d-flex flex-column align-items-center justify-content-center bg-white border border-dashed" style="border-style: dashed !important; border-color: rgba(28,28,28,0.2) !important;">
-                    <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center text-muted bg-light border mb-3" style="width: 50px; height: 50px; font-size: 1.25rem;">
-                        +
-                    </div>
-                    <h5 class="font-display fw-bold text-muted text-uppercase mb-1" style="font-size: 1rem;">Distribution Head</h5>
-                    <p class="font-mono text-muted small text-uppercase mb-2" style="font-size: 0.62rem;">General Management</p>
-                    <span class="badge font-mono rounded-pill bg-light text-secondary border px-3 py-2" style="font-size: 0.6rem;">AVAILABLE SLOT</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ── CORPORATE COMPLIANCE BADGE PANEL ── -->
     <section class="mb-6 p-4 p-md-5 rounded-4 border bg-white shadow-sm">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <span class="badge bg-success font-mono text-uppercase" style="font-size: 0.6rem;">Verified Legal Entity</span>
-                    <span class="font-mono text-muted small">Federal Republic of Nigeria</span>
+                    <span class="font-mono text-muted small">Global enterprise</span>
                 </div>
                 <h4 class="font-display text-uppercase fw-bold mb-3" style="color: var(--charcoal); font-size: 1.35rem;">Corporate Registration & Transparency</h4>
                 <div class="row g-2 font-mono text-dark" style="font-size: 0.78rem;">
-                    <div class="col-sm-6"><strong>Entity:</strong> Hoxobil Enterprise[cite: 1, 2]</div>
-                    <div class="col-sm-6"><strong>CAC Reg:</strong> BN 9705319[cite: 1, 2]</div>
-                    <div class="col-sm-6"><strong>TIN:</strong> 2622419169130[cite: 1]</div>
-                    <div class="col-sm-6"><strong>SMEDAN SUID:</strong> SUID-1963-4833-2438-8840[cite: 3]</div>
-                    <div class="col-12 mt-1 text-muted"><strong>Office:</strong> 8, LUTH Lagos, Mushin, Lagos, Nigeria[cite: 1, 2]</div>
+                    <div class="col-sm-6"><strong>Entity:</strong> Hoxobil Enterprise</div>
+                    <div class="col-sm-6"><strong>Model:</strong> On-demand production</div>
+                    <div class="col-sm-6"><strong>Reach:</strong> Worldwide delivery</div>
+                    <div class="col-sm-6"><strong>Focus:</strong> Apparel and technology</div>
                 </div>
             </div>
             <div class="col-lg-4 text-lg-end text-center">
@@ -175,7 +123,7 @@
                     <div class="font-mono small fw-bold text-success mb-1">
                         <i class="bi bi-shield-fill-check me-1"></i> Active Compliance
                     </div>
-                    <p class="text-muted mb-0" style="font-size: 0.72rem;">Fully certified under CAMA 2020 & SMEDAN guidelines[cite: 1, 3].</p>
+                    <p class="text-muted mb-0" style="font-size: 0.72rem;">Built for transparent, responsible global commerce.</p>
                 </div>
             </div>
         </div>

@@ -726,16 +726,16 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             )
 
         if customer_order:
-            recipient_country = customer_order.country or 'NG'
-            recipient_zip     = customer_order.postal_code or '100001'
+            recipient_country = customer_order.country or ''
+            recipient_zip     = customer_order.postal_code or ''
             recipient_state   = customer_order.state or ''
-            recipient_city    = customer_order.city or 'Lagos'
+            recipient_city    = customer_order.city or ''
             recipient_address = customer_order.address or 'N/A'
         else:
-            recipient_country = 'NG'
-            recipient_zip     = '100001'
+            recipient_country = ''
+            recipient_zip     = ''
             recipient_state   = ''
-            recipient_city    = 'Lagos'
+            recipient_city    = ''
             recipient_address = 'N/A'
 
         shipping_item = None
@@ -744,7 +744,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         elif sync_variant_id:
             shipping_item = {"sync_variant_id": sync_variant_id, "quantity": 1}
 
-        if shipping_item:
+        if shipping_item and customer_order and recipient_country and recipient_city:
             try:
                 shipping_payload = {
                     "recipient": {
@@ -823,7 +823,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
         if customer_order:
             parts.append(f"Ship-to: {recipient_city}, {recipient_country}")
         else:
-            parts.append("No customer order on file — defaulted to Lagos, NG")
+            parts.append("No customer shipping details on file — shipping estimate skipped")
 
         self.message_user(request, "✅ " + " · ".join(parts), level='success')
         return HttpResponseRedirect(redirect_url)

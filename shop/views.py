@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from django.views.generic import ListView, DetailView, TemplateView
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
+from django.contrib.auth import login
+from django.contrib.auth.forms import PasswordChangeForm
 from django.http import JsonResponse, QueryDict, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -26,6 +27,7 @@ import requests as http_requests
 from django.utils.text import slugify
 from django.urls import reverse
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 from django.conf import settings
 from django.db.models import Avg
@@ -33,7 +35,7 @@ from .models import Product, Order, OrderItem, ProductVariant, VideoAd, Category
 from .filters import ProductFilter
 from .pod_api import PodApiClient
 from .cart import Cart
-from .forms import CheckoutForm, ReviewForm
+from .forms import CheckoutForm, EmailRegistrationForm, ReviewForm
 from .ai_bot import bot
 from PIL import Image
 logger = logging.getLogger(__name__)
@@ -524,13 +526,53 @@ def set_currency(request):
 # ─────────────────────────────────────────────────────────
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = EmailRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('login')
+            with transaction.atomic():
+                user = form.save()
+                transaction.on_commit(lambda: _send_welcome_email(user))
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            messages.success(request, "Welcome to Hoxobil Enterprise — you're now a co-creator.")
+            return redirect('shop:home')
     else:
-        form = UserCreationForm()
+        form = EmailRegistrationForm()
     return render(request, 'registration/register.html', {'form': form})
+
+
+def _send_welcome_email(user):
+    """Send the welcome email after the user row is safely committed."""
+    recipient = user.email
+    if not recipient:
+        logger.warning("welcome_email | User %s has no email address", user.pk)
+        return
+
+    first_name = user.first_name or user.username
+    context = {
+        'first_name': first_name,
+        'username': user.username,
+        'site_url': 'https://hoxobil.store',
+    }
+    html_message = render_to_string('shop/emails/welcome_email.html', context)
+    plain_message = (
+        f"Welcome to Hoxobil Enterprise, {first_name}!\n\n"
+        "You are now part of a community of co-creators shaping the future "
+        "of modern apparel and technology.\n\n"
+        "Meet Hoxobot, our AI assistant that helps you design and customize "
+        "your own apparel pieces live.\n\n"
+        "Visit us at https://hoxobil.store"
+    )
+
+    try:
+        send_mail(
+            subject='Welcome to Hoxobil Enterprise — Co-create what is next',
+            message=plain_message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'help.hoxobil@gmail.com'),
+            recipient_list=[recipient],
+            fail_silently=False,
+            html_message=html_message,
+        )
+    except Exception:
+        logger.exception("welcome_email | Failed sending email to user %s", user.pk)
 
 
 # ─────────────────────────────────────────────────────────
