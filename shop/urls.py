@@ -19,6 +19,7 @@ urlpatterns = [
 
     # Static Pages
     path('about/', views.AboutUsView.as_view(), name='about'),
+    path('team/', views.TeamView.as_view(), name='team'),
     path('contact/', views.ContactUsView.as_view(), name='contact'),
 
     # Sync (superuser only)

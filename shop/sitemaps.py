@@ -23,7 +23,7 @@ class StaticViewSitemap(Sitemap):
 
     def items(self):
         # Add any static view names you want indexed (must exist in shop:urls.py)
-        return ['home', 'product_list', 'about', 'contact', 'faq']
+        return ['home', 'product_list', 'about', 'team', 'contact', 'faq']
 
     def location(self, item):
         return reverse(f'shop:{item}')

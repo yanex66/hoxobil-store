@@ -1,0 +1,42 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+{% block title %}Meet the Team | HOXOBIL{% endblock %}
+
+{% block content %}
+<div class="container py-5 page-fade">
+    <section class="text-center mb-5">
+        <p class="font-mono text-crimson small text-uppercase tracking-widest">The people behind the platform</p>
+        <h1 class="font-display display-3 text-uppercase">Meet the Team</h1>
+        <p class="text-muted mx-auto" style="max-width:620px;line-height:1.8;">
+            A multidisciplinary group shaping modern apparel, intelligent customization, and a borderless co-creation experience.
+        </p>
+    </section>
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-sm-6 col-lg-4">
+            <article class="p-4 rounded-4 border bg-white h-100 text-center shadow-sm">
+                <img src="{% static 'images/DSC_0417~2.jpg' %}" alt="Iyanuoluwa Darasimi" class="rounded-circle mb-3" style="width:110px;height:110px;object-fit:cover;object-position:center 25%;">
+                <h2 class="font-display h4 text-uppercase">Iyanuoluwa Darasimi</h2>
+                <p class="font-mono text-crimson small text-uppercase">Founder &amp; CEO</p>
+                <p class="text-muted">Leads the vision connecting expressive apparel, technology, and global community.</p>
+            </article>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <article class="p-4 rounded-4 border bg-white h-100 text-center shadow-sm">
+                <img src="{% static 'images/IMG_20260505_201736.jpg' %}" alt="Akinfewa Feranmi" class="rounded-circle mb-3" style="width:110px;height:110px;object-fit:cover;object-position:center 25%;">
+                <h2 class="font-display h4 text-uppercase">Akinfewa Feranmi</h2>
+                <p class="font-mono text-gold small text-uppercase">Co-Founder</p>
+                <p class="text-muted">Helps turn creative ideas into a refined, accessible co-creation experience.</p>
+            </article>
+        </div>
+        <div class="col-sm-6 col-lg-4">
+            <article class="p-4 rounded-4 border bg-white h-100 text-center shadow-sm">
+                <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center bg-light border" style="width:110px;height:110px;font-size:2rem;">HX</div>
+                <h2 class="font-display h4 text-uppercase">Hoxobot Studio</h2>
+                <p class="font-mono text-crimson small text-uppercase">AI Co-Creation</p>
+                <p class="text-muted">Our intelligent creative layer helps you design and customize apparel live.</p>
+            </article>
+        </div>
+    </div>
+</div>
+{% endblock %}

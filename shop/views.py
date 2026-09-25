@@ -581,6 +581,8 @@ def _send_welcome_email(user):
 @login_required
 def password_change_custom(request):
     form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    recipient = request.user.email or getattr(request.user, 'phone', '') or request.user.username
+    masked_recipient = _mask_recipient(recipient)
 
     if request.method == 'POST':
         logger.debug("password_change_custom | POST received")
@@ -655,7 +657,22 @@ def password_change_custom(request):
                 status=400,
             )
 
-    return render(request, 'registration/password_change_form.html', {'form': form})
+    return render(request, 'registration/password_change_form.html', {
+        'form': form,
+        'masked_recipient': masked_recipient,
+    })
+
+
+def _mask_recipient(recipient):
+    """Keep the OTP destination recognizable without exposing the full value."""
+    if '@' in recipient:
+        local, domain = recipient.split('@', 1)
+        visible = local[:2] if len(local) > 2 else local[:1]
+        return f"{visible}{'*' * max(len(local) - len(visible), 1)}@{domain}"
+    digits = ''.join(character for character in recipient if character.isdigit())
+    if len(digits) >= 4:
+        return f"{'*' * (len(digits) - 4)}{digits[-4:]}"
+    return recipient
 
 
 @login_required
@@ -823,7 +840,7 @@ def checkout_shipping_methods(request, order_id):
     return render(request, 'shop/checkout_shipping_methods.html', {
         'order': order,
         'shipping_rates': shipping_rates,
-        'CURRENT_CURRENCY': request.session.get('currency_code', 'NGN'),
+        'CURRENT_CURRENCY': request.session.get('currency_code', settings.DEFAULT_CURRENCY),
         'items_total': items_total,
     })
 
@@ -887,15 +904,15 @@ def checkout_payment(request, order_id):
 
     if session_currency in supported:
         currency = session_currency
-    elif order.country.upper() == 'NG':
-        currency = 'NGN'
+    elif order.currency in supported:
+        currency = order.currency
     else:
-        currency = 'USD'
+        currency = settings.DEFAULT_CURRENCY
 
     FLW_SUPPORTED = {'NGN', 'USD', 'GHS', 'KES', 'ZAR', 'GBP', 'EUR'}
     flw_currency = currency if currency in FLW_SUPPORTED else 'USD'
 
-    PAYSTACK_SUPPORTED = {'NGN', 'USD', 'GHS', 'ZAR'}
+    PAYSTACK_SUPPORTED = {'NGN'}
     paystack_currency = currency if currency in PAYSTACK_SUPPORTED else None
 
     rates = settings.CASH_EXCHANGE_BACKEND.get('USD', {})
@@ -990,16 +1007,8 @@ def flutterwave_callback(request, order_id):
         paid_amount = Decimal(str(tx_data['amount']))
         paid_currency = tx_data['currency']
 
-        session_currency = request.session.get('currency_code', '')
         FLW_SUPPORTED = {'NGN', 'USD', 'GHS', 'KES', 'ZAR', 'GBP', 'EUR'}
-        supported = list(settings.CASH_EXCHANGE_BACKEND.get('USD', {}).keys())
-
-        if session_currency in supported and session_currency in FLW_SUPPORTED:
-            expected_currency = session_currency
-        elif order.country.upper() == 'NG':
-            expected_currency = 'NGN'
-        else:
-            expected_currency = 'USD'
+        expected_currency = order.currency
 
         if expected_currency not in FLW_SUPPORTED:
             expected_currency = 'USD'
@@ -1077,19 +1086,10 @@ def paystack_callback(request, order_id):
         paid_amount = Decimal(str(tx_data['amount'])) / Decimal('100')
         paid_currency = tx_data['currency']
 
-        session_currency = request.session.get('currency_code', '')
-        PAYSTACK_SUPPORTED = {'NGN', 'USD', 'GHS', 'ZAR'}
-        supported = list(settings.CASH_EXCHANGE_BACKEND.get('USD', {}).keys())
-
-        if session_currency in supported and session_currency in PAYSTACK_SUPPORTED:
-            expected_currency = session_currency
-        elif order.country.upper() == 'NG':
-            expected_currency = 'NGN'
-        else:
-            expected_currency = 'USD'
-
-        if expected_currency not in PAYSTACK_SUPPORTED:
-            expected_currency = 'NGN'
+        expected_currency = order.currency
+        if expected_currency not in {'NGN'}:
+            messages.error(request, "Paystack is available only for NGN transactions.")
+            return redirect('shop:checkout_payment', order_id=order.id)
 
         rates = settings.CASH_EXCHANGE_BACKEND.get('USD', {})
         rate = Decimal(str(rates.get(expected_currency, 1.0)))
@@ -1634,6 +1634,10 @@ class AboutUsView(TemplateView):
     template_name = 'shop/about.html'
 
 
+class TeamView(TemplateView):
+    template_name = 'shop/team.html'
+
+
 class ContactUsView(TemplateView):
     template_name = 'shop/contact.html'
 
@@ -1818,7 +1822,7 @@ def custom_order_payment(request, order_id, ticket_id):
         reverse('shop:custom_order_payment_paystack_callback', args=[order.id, ticket.id])
     )
 
-    PAYSTACK_SUPPORTED = {'NGN', 'USD', 'GHS', 'ZAR'}
+    PAYSTACK_SUPPORTED = {'NGN'}
     paystack_currency = currency if currency in PAYSTACK_SUPPORTED else None
 
     return render(request, 'shop/custom_order_payment.html', {
