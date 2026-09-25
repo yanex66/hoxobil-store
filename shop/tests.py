@@ -3,8 +3,7 @@ import hashlib
 import json
 from decimal import Decimal
 from django.test import TestCase, Client
-from django.test import override_settings
-from django.core import mail
+from unittest.mock import patch
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -112,8 +111,9 @@ class HoxobilSecurityAndPaymentTestCase(TestCase):
 
         self.assertEqual(cart.cart[str(self.variant.id)]['quantity'], 50)
 
-    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
-    def test_registration_logs_in_and_sends_welcome_email_after_commit(self):
+    @patch('shop.views.send_hoxobil_email')
+    def test_registration_logs_in_and_sends_welcome_email_after_commit(self, send_email):
+        send_email.return_value = {'id': 'test-email'}
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(
                 reverse('shop:register'),
@@ -128,6 +128,7 @@ class HoxobilSecurityAndPaymentTestCase(TestCase):
         self.assertRedirects(response, reverse('shop:home'))
         self.assertTrue(response.wsgi_request.user.is_authenticated)
         self.assertEqual(response.wsgi_request.user.email, 'newcreator@example.com')
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('Welcome to Hoxobil Enterprise', mail.outbox[0].subject)
-        self.assertIn('Hoxobot', mail.outbox[0].alternatives[0][0])
+        send_email.assert_called_once()
+        self.assertEqual(send_email.call_args.args[0], 'newcreator@example.com')
+        self.assertIn('Welcome to Hoxobil Enterprise', send_email.call_args.args[1])
+        self.assertIn('Hoxobot', send_email.call_args.args[2])

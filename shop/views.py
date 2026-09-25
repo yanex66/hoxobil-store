@@ -20,13 +20,13 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
 import json
 import requests as http_requests
 from django.utils.text import slugify
 from django.urls import reverse
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
 from django.conf import settings
@@ -36,6 +36,7 @@ from .filters import ProductFilter
 from .pod_api import PodApiClient
 from .cart import Cart
 from .forms import CheckoutForm, EmailRegistrationForm, ReviewForm
+from .utils import send_hoxobil_email
 from .ai_bot import bot
 from PIL import Image
 logger = logging.getLogger(__name__)
@@ -553,24 +554,13 @@ def _send_welcome_email(user):
         'site_url': 'https://hoxobil.store',
     }
     html_message = render_to_string('shop/emails/welcome_email.html', context)
-    plain_message = (
-        f"Welcome to Hoxobil Enterprise, {first_name}!\n\n"
-        "You are now part of a community of co-creators shaping the future "
-        "of modern apparel and technology.\n\n"
-        "Meet Hoxobot, our AI assistant that helps you design and customize "
-        "your own apparel pieces live.\n\n"
-        "Visit us at https://hoxobil.store"
-    )
-
     try:
-        send_mail(
-            subject='Welcome to Hoxobil Enterprise — Co-create what is next',
-            message=plain_message,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'help.hoxobil@gmail.com'),
-            recipient_list=[recipient],
-            fail_silently=False,
-            html_message=html_message,
-        )
+        if send_hoxobil_email(
+            recipient,
+            'Welcome to Hoxobil Enterprise — Co-create what is next',
+            html_message,
+        ) is None:
+            logger.error("welcome_email | Resend rejected email for user %s", user.pk)
     except Exception:
         logger.exception("welcome_email | Failed sending email to user %s", user.pk)
 

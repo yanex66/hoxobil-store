@@ -37,16 +37,12 @@ if not DEBUG:
         default='', 
         cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
     )
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = config('EMAIL_HOST', default='')
-    EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 else:
     SECRET_KEY = config('SECRET_KEY', default='django-insecure-18cqg*t%&c=g(te(-z6n=qr*(*-4d+3ig6&pb*f+#0@71otk^j')
     CORS_ALLOW_ALL_ORIGINS = True
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_BACKEND = 'shop.email_backend.ResendEmailBackend'
+RESEND_API_KEY = config('RESEND_API_KEY', default='')
 
 RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default='')
 

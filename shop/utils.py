@@ -2,9 +2,31 @@
 from django.conf import settings
 from decimal import Decimal
 from djmoney.money import Money
+import logging
+import resend
 
 from .models import ExchangeRate
 
+logger = logging.getLogger(__name__)
+
+
+def send_hoxobil_email(to_email, subject, html_content):
+    """Send email through Resend's HTTPS API."""
+    if not settings.RESEND_API_KEY:
+        logger.error("Resend API key missing; email not sent to %s", to_email)
+        return None
+
+    resend.api_key = settings.RESEND_API_KEY
+    try:
+        return resend.Emails.send({
+            'from': 'Hoxobil Support <support@hoxobil.store>',
+            'to': [to_email],
+            'subject': subject,
+            'html': html_content,
+        })
+    except Exception:
+        logger.exception("Resend API error while sending email to %s", to_email)
+        return None
 
 def _get_rate_table():
     """
