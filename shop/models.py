@@ -298,6 +298,7 @@ class PasswordResetOTP(models.Model):
 
 class SupportChat(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='support_chat')
+    human_escalated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -307,14 +308,18 @@ class ChatMessage(models.Model):
     sender_type = models.CharField(max_length=10, choices=[('user', 'User'), ('admin', 'Admin')])
     text = models.TextField()
     twilio_message_sid = models.CharField(max_length=34, unique=True, null=True, blank=True)
-    image_field = models.ImageField(upload_to='chat_uploads/', blank=True, null=True)
+    image_field = models.FileField(upload_to='chat_uploads/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     submission = models.ForeignKey('DesignSubmission', on_delete=models.SET_NULL, null=True, blank=True)
 
 
 @receiver(post_save, sender=ChatMessage)
 def notify_admin_of_customer_chat_message(sender, instance, created, **kwargs):
-    if not created or instance.sender_type != 'user':
+    if not created:
+        return
+
+    SupportChat.objects.filter(pk=instance.chat_id).update(updated_at=timezone.now())
+    if instance.sender_type != 'user':
         return
 
     user = instance.chat.user
@@ -329,6 +334,7 @@ def notify_admin_of_customer_chat_message(sender, instance, created, **kwargs):
         customer_email,
         message_content,
         message_id=instance.pk,
+        chat_id=instance.chat_id,
     )
 
 
@@ -404,14 +410,11 @@ def push_mockup_to_chat(sender, instance, **kwargs):
     except Exception:
         return
 
-    try:
-        chat = SupportChat.objects.get(user=instance.user)
-    except SupportChat.DoesNotExist:
-        return
+    chat, _ = SupportChat.objects.get_or_create(user=instance.user)
 
-    already_sent = chat.messages.filter(
-        sender_type='admin',
-        text__contains=mockup_url,
+    already_sent = chat.messages.filter(sender_type='admin').filter(
+        Q(text__contains=mockup_url)
+        | Q(text__contains='Your Custom Mockup Proof is Ready!')
     ).exists()
     if already_sent:
         return
@@ -419,14 +422,11 @@ def push_mockup_to_chat(sender, instance, **kwargs):
     parts = [p for p in [instance.garment_color, instance.garment_size, instance.placement] if p]
     specs_line = f"**Specs:** {' · '.join(parts)}\n\n" if parts else ''
 
-    garment_label = instance.garment_item or 'your garment'
-
     message_text = (
         f"🎨 **Your Custom Mockup Proof is Ready!**\n\n"
         f"Our design team has reviewed your asset specifications and cooked up your layout draft. "
         f"Take a close look at the layout mockup below.\n\n"
         f"{specs_line}"
-        f"![{garment_label} Mockup]({mockup_url})\n\n"
         f"👉 Reply with **'Approve'** to send it directly to production!\n"
         f"👉 Or type any tweaks or positioning changes you want adjusted."
     )
@@ -435,16 +435,44 @@ def push_mockup_to_chat(sender, instance, **kwargs):
         chat=chat,
         sender_type='admin',
         text=message_text,
+        image_field=instance.design_team_mockup,
+    )
+    from .services import notify_customer_of_admin_reply
+
+    notify_customer_of_admin_reply(chat, 'Your custom design proof is ready to review in your Hoxobil chat.')
+
+
+@receiver(post_save, sender=CustomDesignTicket)
+def notify_new_design_request(sender, instance, created, **kwargs):
+    if not created or not instance.user:
+        return
+    chat = SupportChat.objects.filter(user=instance.user).first()
+    if not chat:
+        return
+
+    from .whatsapp import queue_whatsapp_notification
+
+    specs = ', '.join(
+        value for value in (instance.garment_item, instance.garment_color, instance.garment_size, instance.placement)
+        if value
+    )
+    queue_whatsapp_notification(
+        instance.user.get_full_name().strip() or instance.user.get_username(),
+        instance.user.email,
+        f'New design request submitted: {specs}. Request: {instance.custom_text}',
+        chat_id=chat.pk,
     )
 
 
 class BotKnowledge(models.Model):
+    title = models.CharField(max_length=200, blank=True)
     keywords = models.TextField(
         help_text="Comma-separated keywords that trigger this answer. e.g. 'delivery time, how long, when will i get'"
     )
     answer = models.TextField(
         help_text="The exact response the bot will give when a customer asks this."
     )
+    category = models.CharField(max_length=80, default='general')
     times_used = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -456,7 +484,7 @@ class BotKnowledge(models.Model):
         ordering = ['-times_used']
 
     def __str__(self):
-        return f"KB #{self.id}: {self.keywords[:60]}"
+        return self.title or f"KB #{self.id}: {self.keywords[:60]}"
 
     def get_keywords_list(self):
         return [k.strip().lower() for k in self.keywords.split(',') if k.strip()]

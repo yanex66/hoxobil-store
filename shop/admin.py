@@ -1,6 +1,7 @@
 import json
 import logging
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 from django.shortcuts import get_object_or_404, redirect, render
@@ -68,6 +69,9 @@ def _drop_invoice_into_chat(ticket, request=None, base_url=None):
             f"[ADD_TO_CART:{ticket.id}:{invoice_amount}]"
         )
     )
+    from .services import notify_customer_of_admin_reply
+
+    notify_customer_of_admin_reply(chat, 'Your custom order invoice is ready in your Hoxobil chat.')
 
     ticket.status = 'Approved & Ready for Production'
     ticket.invoice_sent = True
@@ -84,12 +88,6 @@ class ProductVariantInline(admin.TabularInline):
     extra = 1
     fields = ('size', 'color', 'price', 'pod_id', 'available')
     readonly_fields = ('pod_id',)
-
-
-class ChatMessageInline(admin.TabularInline):
-    model = ChatMessage
-    extra = 0
-    readonly_fields = ('created_at',)
 
 
 class DesignSubmissionInline(admin.TabularInline):
@@ -222,31 +220,6 @@ class BaseProductAdmin(admin.ModelAdmin):
                     f'Product saved locally, but Printful sync failed: {error}',
                     messages.ERROR,
                 )
-
-        if 'design_team_mockup' in form.changed_data and obj.design_team_mockup:
-            chat = None
-            if obj.user:
-                chat = SupportChat.objects.filter(user=obj.user).first()
-
-            if chat:
-                obj.status = 'Sent to Customer for Approval'
-                obj.save(update_fields=['status'])
-
-                notification_text = (
-                    "🎨 **Your Custom Mockup Proof is Ready!**\n\n"
-                    "Our design team has reviewed your asset specifications and cooked up your layout draft. "
-                    "Take a close look at the layout mockup below.\n\n"
-                    "👉 Reply with **'Approve'** to send it directly to production!\n"
-                    "👉 Or type any tweaks or positioning changes you want adjusted."
-                )
-
-                msg = ChatMessage.objects.create(
-                    chat=chat,
-                    sender_type='admin',
-                    text=notification_text
-                )
-                msg.image_field = obj.design_team_mockup
-                msg.save()
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
@@ -388,9 +361,17 @@ class CustomOrderRequestAdmin(admin.ModelAdmin):
 
 @admin.register(SupportChat)
 class SupportChatAdmin(admin.ModelAdmin):
-    list_display = ['user', 'created_at', 'updated_at']
+    list_display = ['user', 'human_escalated', 'created_at', 'updated_at', 'open_chat']
     search_fields = ['user__username', 'user__email', 'user__first_name']
-    inlines = [ChatMessageInline, DesignSubmissionInline]
+    list_filter = ['human_escalated', 'created_at']
+    inlines = [DesignSubmissionInline]
+
+    def open_chat(self, obj):
+        return format_html(
+            '<a class="button" href="{}">Open conversation</a>',
+            reverse('admin_chat_detail', args=[obj.pk]),
+        )
+    open_chat.short_description = 'Conversation'
 
 
 @admin.register(DesignSubmission)
@@ -515,9 +496,12 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
     def chat_button(self, obj):
         if not obj.user:
             return '—'
-        url = reverse('admin:shop_customdesignticket_change', args=[obj.id])
+        chat = SupportChat.objects.filter(user=obj.user).first()
+        if not chat:
+            return '—'
+        url = reverse('admin_chat_detail', args=[chat.pk])
         return format_html(
-            '<a class="button" href="{}#chat-panel" style="'
+            '<a class="button" href="{}" style="'
             'background:#1a7a4a;color:#fff;padding:4px 10px;'
             'border-radius:4px;text-decoration:none;font-size:12px;">'
             '💬 Open Chat</a>',
@@ -544,7 +528,20 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             label = '🛠 Design Team' if is_admin else f'👤 {obj.user.first_name or obj.user.username}'
             time_str = msg.created_at.strftime('%d %b, %H:%M') if msg.created_at else ''
 
-            image_html = format_html('<br><img src="{}" style="max-width:260px;border-radius:8px;margin-top:8px;">', msg.image_field.url) if msg.image_field else ''
+            attachment_html = ''
+            if msg.image_field:
+                attachment_name = Path(msg.image_field.name).name
+                attachment_html = format_html(
+                    '<br><a href="{}" target="_blank" rel="noopener" download>{}</a>',
+                    msg.image_field.url,
+                    attachment_name,
+                )
+                if Path(attachment_name).suffix.lower() in {'.avif', '.gif', '.jpeg', '.jpg', '.png', '.webp'}:
+                    attachment_html += format_html(
+                        '<br><img src="{}" alt="{}" style="max-width:260px;border-radius:8px;margin-top:8px;">',
+                        msg.image_field.url,
+                        attachment_name,
+                    )
 
             bubbles_html += format_html(
                 '<div style="display:flex;justify-content:{};margin-bottom:12px;">'
@@ -553,7 +550,7 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
                 '{}'
                 '{}'
                 '</div></div>',
-                align, bg, color, label, time_str, msg.text, image_html
+                align, bg, color, label, time_str, msg.text, attachment_html
             )
 
         if not messages_qs.exists():
@@ -897,25 +894,6 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             ticket.status = 'Sent to Customer for Approval'
             ticket.save(update_fields=['design_team_mockup', 'status', 'invoice_amount'])
 
-            if ticket.user:
-                chat, _ = SupportChat.objects.get_or_create(user=ticket.user)
-                parts = [p for p in [ticket.garment_color, ticket.garment_size, ticket.placement] if p]
-                specs_line = f"**Specs:** {' · '.join(parts)}\n\n" if parts else ''
-                msg = ChatMessage.objects.create(
-                    chat=chat,
-                    sender_type='admin',
-                    text=(
-                        f"🎨 **Your Custom Mockup Proof is Ready!**\n\n"
-                        f"Our design team has built your custom **{ticket.garment_item}** on Printful. "
-                        f"Here's your mockup proof — take a close look!\n\n"
-                        f"{specs_line}"
-                        f"👉 Reply with **'Approve'** to confirm and receive your payment link!\n"
-                        f"👉 Or type any changes you'd like adjusted."
-                    )
-                )
-                msg.image_field = ticket.design_team_mockup
-                msg.save()
-
             self.message_user(
                 request,
                 "Mockup fetched from Printful and sent to customer's chat successfully.",
@@ -956,9 +934,11 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
     @method_decorator(require_POST)
     def admin_reply_view(self, request, ticket_id):
         from django.http import JsonResponse as _JsonResponse
+        from .services import learn_from_admin_reply, notify_customer_of_admin_reply
 
         text = request.POST.get('message', '').strip()
-        if not text:
+        attachment = request.FILES.get('attachment')
+        if not text and not attachment:
             return _JsonResponse({'status': 'error', 'message': 'Empty message'}, status=400)
 
         try:
@@ -970,7 +950,18 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
             return _JsonResponse({'status': 'error', 'message': 'No user on ticket'}, status=400)
 
         chat, _ = SupportChat.objects.get_or_create(user=ticket.user)
-        ChatMessage.objects.create(chat=chat, sender_type='admin', text=text)
+        ChatMessage.objects.create(
+            chat=chat,
+            sender_type='admin',
+            text=text,
+            image_field=attachment,
+        )
+        if text:
+            learn_from_admin_reply(chat, text)
+        notify_customer_of_admin_reply(chat, text or 'A file was attached to the conversation.')
+        if chat.human_escalated:
+            chat.human_escalated = False
+            chat.save(update_fields=['human_escalated', 'updated_at'])
         return _JsonResponse({'status': 'ok'})
 
 
@@ -980,13 +971,16 @@ class CustomDesignTicketAdmin(admin.ModelAdmin):
 
 @admin.register(BotKnowledge)
 class BotKnowledgeAdmin(admin.ModelAdmin):
-    list_display = ('keywords', 'answer_preview', 'times_used', 'is_active', 'created_at')
-    list_filter = ('is_active',)
-    search_fields = ('keywords', 'answer')
+    list_display = ('title', 'category', 'keywords', 'answer_preview', 'times_used', 'is_active', 'created_at')
+    list_filter = ('category', 'is_active')
+    search_fields = ('title', 'keywords', 'answer', 'category')
     readonly_fields = ('times_used', 'created_at')
     list_editable = ('is_active',)
 
     fieldsets = (
+        ('Knowledge Entry', {
+            'fields': ('title', 'category', 'is_active'),
+        }),
         ('Trigger Keywords', {
             'fields': ('keywords',),
             'description': (
@@ -1000,7 +994,7 @@ class BotKnowledgeAdmin(admin.ModelAdmin):
             'description': 'What the bot will say when a matching keyword is detected. Write in the bot\'s voice.',
         }),
         ('Status', {
-            'fields': ('is_active', 'times_used', 'created_at'),
+            'fields': ('times_used', 'created_at'),
         }),
     )
 
@@ -1065,12 +1059,20 @@ class UnknownQuestionAdmin(admin.ModelAdmin):
             return HttpResponseRedirect(reverse('admin:shop_unknownquestion_changelist'))
 
         if request.method == 'POST':
+            title = request.POST.get('title', '').strip()
+            category = request.POST.get('category', 'learned').strip() or 'learned'
             keywords = request.POST.get('keywords', '').strip()
             answer = request.POST.get('answer', '').strip()
             if keywords and answer:
-                BotKnowledge.objects.create(keywords=keywords, answer=answer)
-                question.status = 'resolved'
-                question.save(update_fields=['status'])
+                knowledge = BotKnowledge.objects.create(
+                    title=title or question.message[:200],
+                    category=category,
+                    keywords=keywords,
+                    answer=answer,
+                )
+                question.status = 'answered'
+                question.converted_to = knowledge
+                question.save(update_fields=['status', 'converted_to'])
                 self.message_user(
                     request,
                     "✅ Bot taught successfully! It will now answer similar questions automatically.",
@@ -1088,6 +1090,7 @@ class UnknownQuestionAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             'question': question,
+            'suggested_title': question.message[:200],
             'suggested_keywords': suggested_keywords,
             'title': 'Teach the Bot',
             'opts': self.model._meta,

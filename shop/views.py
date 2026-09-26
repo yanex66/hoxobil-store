@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json as _json
 import io
+from pathlib import Path
 from decimal import Decimal, InvalidOperation
 from datetime import timedelta
 from django.utils import timezone
@@ -37,7 +38,12 @@ from .pod_api import PodApiClient
 from .cart import Cart
 from .forms import CheckoutForm, EmailRegistrationForm, NewsletterSubscriptionForm, ReviewForm
 from .utils import send_hoxobil_email
-from .services import get_printful_order_tracking
+from .services import (
+    escalate_chat_to_human,
+    get_printful_order_tracking,
+    learn_from_admin_reply,
+    notify_customer_of_admin_reply,
+)
 from .ai_tools import detect_and_run_tool, TOOL_DEFINITIONS
 from .ai_bot import bot
 from .whatsapp import is_admin_whatsapp_number, verify_twilio_request
@@ -1413,7 +1419,14 @@ def _tool_reply(tool_name, result):
 @require_POST
 def send_support_message(request):
     text = request.POST.get('message', '').strip()
-    tool_name, tool_result = detect_and_run_tool(request, text) if text else (None, None)
+    chat_context = request.session.get('hoxo_chat_context', {})
+    if text.lower().strip() == 'b' and chat_context.get('current_step', 'awaiting_intent') == 'awaiting_intent':
+        tool_name = 'get_cart_contents'
+        from .ai_tools import get_cart_contents
+
+        tool_result = get_cart_contents(request)
+    else:
+        tool_name, tool_result = detect_and_run_tool(request, text) if text else (None, None)
     if tool_name:
         if request.user.is_authenticated:
             chat, _ = SupportChat.objects.get_or_create(user=request.user)
@@ -1483,9 +1496,12 @@ def send_support_message(request):
     else:
         if not text:
             return JsonResponse({'status': 'error', 'message': 'Empty message payloads rejected.'}, status=400)
-        ChatMessage.objects.create(chat=chat, sender_type='user', text=text)
+        msg = ChatMessage.objects.create(chat=chat, sender_type='user', text=text)
 
     auto_reply_text, updated_context, trigger_upload = bot.get_response(text, context=session_context, user=request.user)
+    knowledge_gap = updated_context.pop('knowledge_gap', None)
+    if knowledge_gap:
+        escalate_chat_to_human(chat, knowledge_gap)
 
     if trigger_upload and updated_context.get('current_step') == 'ticket_ready':
         active_ticket = CustomDesignTicket.objects.filter(
@@ -1589,11 +1605,16 @@ def twilio_whatsapp_webhook(request):
         )
 
     if source_message:
-        ChatMessage.objects.create(
+        reply = ChatMessage.objects.create(
             chat=source_message.chat,
             sender_type='admin',
             text=message_text,
         )
+        learn_from_admin_reply(source_message.chat, message_text, question_message=source_message)
+        notify_customer_of_admin_reply(source_message.chat, message_text)
+        if source_message.chat.human_escalated:
+            source_message.chat.human_escalated = False
+            source_message.chat.save(update_fields=['human_escalated', 'updated_at'])
     else:
         logger.warning('WhatsApp admin reply received without an active customer chat.')
 
@@ -1721,6 +1742,12 @@ def fetch_support_messages(request):
             'sender_type': m.sender_type,
             'text': m.text,
             'created_at': m.created_at.strftime('%H:%M · %d %b'),
+            'attachment_url': m.image_field.url if m.image_field else '',
+            'attachment_name': Path(m.image_field.name).name if m.image_field else '',
+            'attachment_is_image': (
+                Path(m.image_field.name).suffix.lower() in {'.avif', '.gif', '.jpeg', '.jpg', '.png', '.webp'}
+                if m.image_field else False
+            ),
         }
         for m in chat.messages.filter(id__gt=after_id).order_by('id')
     ]

@@ -28,6 +28,8 @@
             </button>
         </div>
 
+        <div class="chat-response-time font-mono">⚡ We typically reply within 10 minutes</div>
+
         <div id="hoxoPinnedProductDeck" class="pinned-product-deck font-mono" style="display: none;">
             <div class="deck-inner">
                 <div class="deck-product-info">
@@ -87,7 +89,7 @@
                         <span class="d-block text-muted small">Drop your PNG/JPG asset to lock in your official mockup proofing blueprint.</span>
                     </div>
                 </div>
-                <input type="file" id="hoxoImageFile" class="form-control form-control-sm hoxo-file-field" accept="image/*">
+                <input type="file" id="hoxoImageFile" class="form-control form-control-sm hoxo-file-field">
                 <div id="hoxoUploadPreviewWrap" style="display:none; margin-top:8px;">
                     <p class="upload-preview-label">Preview:</p>
                     <img id="hoxoUploadPreview" src="" alt="Upload preview" class="upload-preview-img">
@@ -156,6 +158,7 @@ footer,
     border-bottom: 4px solid #8B0000;
     flex-shrink: 0;
 }
+.chat-response-time { padding: 9px 18px; background: #fff7e6; color: #7c4a03; border-bottom: 1px solid #f0dfbd; text-align: center; font-size: 0.76rem; font-weight: 700; flex-shrink: 0; }
 
 .header-back-btn {
     width: 36px;
@@ -240,6 +243,7 @@ footer,
     font-size: 0.95rem;
     line-height: 1.6;
     box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    white-space: pre-line;
 }
 .hoxo-msg.bot .hoxo-bubble { background: #fff; color: #1C1C1C; border-bottom-left-radius: 2px; border: 1px solid #eef0f2; }
 .hoxo-msg.user .hoxo-bubble { background: #8B0000; color: #FAF7F2; border-bottom-right-radius: 2px; }
@@ -296,6 +300,8 @@ footer,
     letter-spacing: 0.04em;
     text-align: left;
 }
+.hoxo-chat-attachment { display: block; margin-top: 10px; color: inherit; font-size: 0.82rem; overflow-wrap: anywhere; }
+.hoxo-chat-file-image { display: block; max-width: min(100%, 360px); max-height: 280px; margin-bottom: 5px; border-radius: 8px; }
 .hoxo-msg.user .hoxo-chat-img-wrap {
     border-color: rgba(255,255,255,0.25);
     background: rgba(0,0,0,0.3);
@@ -928,6 +934,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         if (msg.id <= lastChatMessageId) return;
                         if (msg.sender_type === 'user') addUserMsg(msg.text);
                         else addBotMsg(msg.text);
+                        addAttachmentToLatestMessage(msg);
                         lastChatMessageId = msg.id;
                     });
                     lastChatMessageId = Math.max(lastChatMessageId, data.latest_message_id || 0);
@@ -995,6 +1002,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (data.status === 'success' && data.messages.length > 0) {
                     data.messages.forEach(msg => {
                         msg.sender_type === 'user' ? addUserMsg(msg.text) : addBotMsg(msg.text);
+                        addAttachmentToLatestMessage(msg);
                     });
                 } else {
                     addBotMsg("Hey! 👋 I'm HOXO, your HOXOBIL store assistant. What would you like help with today?\\n\\n👉 **[A]** Shop products and new drops\\n👉 **[B]** View or manage my cart\\n👉 **[C]** Track an order\\n👉 **[D]** Design with Hoxobot\\n👉 **[E]** Shipping, returns, or payments");
@@ -1012,6 +1020,7 @@ document.addEventListener("DOMContentLoaded", function() {
         div.innerHTML = `<div class="hoxo-msg-av">U</div><div class="hoxo-bubble">${escapeHtml(text)}</div>`;
         chatWindow.appendChild(div);
         scrollToBottom();
+        return div;
     }
 
     function addUserMsgWithImage(text, dataUrl, fileName) {
@@ -1027,6 +1036,30 @@ document.addEventListener("DOMContentLoaded", function() {
                          <div class="hoxo-bubble">${escapeHtml(text)}${imgHtml}</div>`;
         chatWindow.appendChild(div);
         scrollToBottom();
+        return div;
+    }
+
+    function addAttachmentToLatestMessage(message) {
+        if (!message.attachment_url) return;
+        const chatMessages = chatWindow.querySelectorAll('.hoxo-msg');
+        const latestMessage = chatMessages[chatMessages.length - 1];
+        const lastMessage = latestMessage && latestMessage.querySelector('.hoxo-bubble');
+        if (!lastMessage) return;
+        const link = document.createElement('a');
+        link.href = message.attachment_url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.download = message.attachment_name || '';
+        link.className = 'hoxo-chat-attachment';
+        link.textContent = message.attachment_name || 'Download attachment';
+        if (message.attachment_is_image) {
+            const image = document.createElement('img');
+            image.src = message.attachment_url;
+            image.alt = message.attachment_name || 'Chat attachment';
+            image.className = 'hoxo-chat-file-image';
+            link.prepend(image);
+        }
+        lastMessage.appendChild(link);
     }
 
     function addBotMsg(text, isAuthPrompt) {
@@ -1386,7 +1419,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         inputField.value = '';
 
-        if (uploadedFile) {
+        if (uploadedFile && uploadedFile.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 addUserMsgWithImage(
@@ -1397,13 +1430,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 doFetch(text, uploadedFile);
             };
             reader.onerror = function() {
-                addUserMsg(text || `[Uploaded Design Layer Asset: ${uploadedFile.name}]`);
+                addUserMsg(text || `[Attached file: ${uploadedFile.name}]`);
                 doFetch(text, uploadedFile);
             };
             reader.readAsDataURL(uploadedFile);
         } else {
-            addUserMsg(text);
-            doFetch(text, null);
+            addUserMsg(text || `[Attached file: ${uploadedFile.name}]`);
+            if (uploadedFile) {
+                const localUrl = URL.createObjectURL(uploadedFile);
+                addAttachmentToLatestMessage({
+                    attachment_url: localUrl,
+                    attachment_name: uploadedFile.name,
+                    attachment_is_image: false
+                });
+            }
+            doFetch(text, uploadedFile);
         }
     }
 

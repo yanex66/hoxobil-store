@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.contrib.sitemaps.views import sitemap
 from shop.sitemaps import ProductSitemap, StaticViewSitemap
+from shop import admin_views
 
 sitemaps = {
     'products': ProductSitemap,
@@ -53,6 +54,9 @@ urlpatterns = [
              template_name='registration/password_change_done.html',
          ),
          name='password_change_done'),
+
+    # Custom staff conversation dashboard must precede Django's admin catch-all.
+    path('admin/shop/chat/<int:chat_id>/', admin_views.chat_detail, name='admin_chat_detail'),
 
     # Admin Site
     path('admin/', admin.site.urls),

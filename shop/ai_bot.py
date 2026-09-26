@@ -269,6 +269,33 @@ class HoxobilChatbot:
         words = set(re.findall(r'\b[a-z0-9]+\b', raw_msg))
         current_step = context.get('current_step', 'awaiting_intent')
 
+        if (
+            raw_msg in {'help', 'what can you do', 'what can you help with'}
+            or raw_msg.startswith(('help ', 'i need help', 'can you help'))
+            or any(phrase in raw_msg for phrase in ('what can you do', 'how can you help', 'what are your capabilities'))
+        ):
+            return (
+                "I can help you shop products, view and update your cart, check order tracking, "
+                "answer store policy questions, and guide you through creating a custom design. "
+                "You can switch topics at any time by asking directly."
+            ), context, False
+
+        asks_question = (
+            '?' in raw_msg
+            or bool(re.match(r'^(what|why|how|when|where|who|which|can|could|do|does|is|are|will|would|should|tell me|explain)\b', raw_msg))
+        )
+        if asks_question:
+            from .services import find_bot_knowledge_answer, record_bot_knowledge_gap
+
+            kb_answer = find_bot_knowledge_answer(raw_msg)
+            if kb_answer:
+                return kb_answer, context, False
+            record_bot_knowledge_gap(raw_msg, user=user, session_step=current_step)
+            context['knowledge_gap'] = raw_msg[:500]
+            return (
+                "Connecting you with an agent... A Hoxobil support specialist will reply here shortly."
+            ), context, False
+
         APPROVAL_WORDS = {
             'approve', 'approved', 'yes', 'yep', 'yup', 'yeah',
             'looks good', 'perfect', 'go ahead', 'confirm', 'confirmed',
@@ -687,7 +714,13 @@ class HoxobilChatbot:
         if kb_answer:
             return kb_answer, context, False
 
-        return self.search_web(user_message), context, False
+        context['knowledge_gap'] = raw_msg[:500]
+        from .services import record_bot_knowledge_gap
+
+        record_bot_knowledge_gap(raw_msg, user=user, session_step=current_step)
+        return (
+            "Connecting you with an agent... A Hoxobil support specialist will reply here shortly."
+        ), context, False
 
 
     def _check_knowledge_base(self, raw_msg, user=None, step=''):
@@ -696,29 +729,9 @@ class HoxobilChatbot:
         Returns the answer string if found, None otherwise.
         Logs to UnknownQuestion if no match found.
         """
-        try:
-            from .models import BotKnowledge, UnknownQuestion
+        from .services import find_bot_knowledge_answer
 
-            entries = BotKnowledge.objects.filter(is_active=True)
-            for entry in entries:
-                for keyword in entry.get_keywords_list():
-                    if keyword in raw_msg:
-                        entry.times_used += 1
-                        entry.save(update_fields=['times_used'])
-                        return entry.answer
-
-            if len(raw_msg) > 5 and raw_msg not in {'a', 'b', 'c', 'd', 'yes', 'no', 'ok'}:
-                UnknownQuestion.objects.get_or_create(
-                    message=raw_msg[:500],
-                    status='pending',
-                    defaults={
-                        'user': user,
-                        'session_step': step,
-                    }
-                )
-        except Exception:
-            pass
-        return None
+        return find_bot_knowledge_answer(raw_msg)
 
 
 bot = HoxobilChatbot()

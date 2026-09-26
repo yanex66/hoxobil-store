@@ -3,6 +3,7 @@ import hashlib
 import base64
 import json
 import os
+import tempfile
 from decimal import Decimal
 from django.test import TestCase, Client, RequestFactory, override_settings
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -15,6 +16,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from shop.models import (
     Product, ProductVariant, Order, OrderItem, CustomDesignTicket,
     NewsletterSubscriber, PasswordResetOTP, SupportChat, ChatMessage,
+    BotKnowledge, UnknownQuestion,
 )
 from shop.cart import Cart
 from shop.whatsapp import send_whatsapp_notification
@@ -183,6 +185,7 @@ class WhatsAppNotificationTests(TestCase):
         'TWILIO_WHATSAPP_FROM': 'whatsapp:+14155238886',
     }, clear=True)
     @patch('shop.whatsapp.urlopen')
+    @override_settings(PUBLIC_BASE_URL='https://hoxobil.store')
     def test_notification_uses_twilio_whatsapp_api(self, mocked_urlopen):
         response = MagicMock()
         response.status = 201
@@ -194,6 +197,7 @@ class WhatsAppNotificationTests(TestCase):
             'Test Customer',
             'customer@example.com',
             'I need help with my design.',
+            chat_id=34,
         )
 
         self.assertEqual(result, 'SM' + '1' * 32)
@@ -203,6 +207,7 @@ class WhatsAppNotificationTests(TestCase):
         self.assertEqual(payload['To'], ['whatsapp:+2349130273282'])
         self.assertIn('customer@example.com', payload['Body'][0])
         self.assertIn('I need help with my design.', payload['Body'][0])
+        self.assertIn('https://hoxobil.store/admin/shop/chat/34/', payload['Body'][0])
         self.assertEqual(mocked_urlopen.call_args.kwargs['timeout'], 5)
 
     @patch.dict(os.environ, {
@@ -271,6 +276,7 @@ class WhatsAppNotificationTests(TestCase):
             'chat@example.com',
             'Please help with my order.',
             message_id=ChatMessage.objects.get(chat=chat).pk,
+            chat_id=chat.pk,
         )
 
     @override_settings(SECURE_SSL_REDIRECT=False)
@@ -419,3 +425,213 @@ class WhatsAppNotificationTests(TestCase):
                 text='Reply to the first customer.',
             ).exists()
         )
+
+    @override_settings(SECURE_SSL_REDIRECT=False, PUBLIC_BASE_URL='https://hoxobil.store')
+    @patch.dict(os.environ, {
+        'TWILIO_AUTH_TOKEN': 'webhook-secret',
+        'TWILIO_WHATSAPP_ADMIN_NUMBER': '+2349130273282',
+    }, clear=True)
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    @patch('shop.utils.send_hoxobil_email')
+    def test_whatsapp_reply_teaches_bot_and_emails_customer(
+        self,
+        send_email,
+        queue_notification,
+    ):
+        user = User.objects.create_user(username='learncustomer', email='learn@example.com')
+        chat = SupportChat.objects.create(user=user)
+        question = ChatMessage.objects.create(
+            chat=chat,
+            sender_type='user',
+            text='Does the canvas tote have an inside pocket?',
+            twilio_message_sid='SM' + '4' * 32,
+        )
+        unknown = UnknownQuestion.objects.create(
+            user=user,
+            message='does the canvas tote have an inside pocket',
+            session_step='awaiting_intent',
+        )
+        url = reverse('shop:whatsapp_webhook')
+        payload = {
+            'From': 'whatsapp:+2349130273282',
+            'Body': 'Yes, the canvas tote has one interior pocket.',
+            'OriginalRepliedMessageSid': question.twilio_message_sid,
+        }
+        signature = self._twilio_signature(
+            f'http://testserver{url}',
+            payload,
+            'webhook-secret',
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(url, payload, HTTP_X_TWILIO_SIGNATURE=signature)
+
+        self.assertEqual(response.status_code, 200)
+        knowledge = BotKnowledge.objects.get(category='learned')
+        self.assertEqual(knowledge.keywords, unknown.message)
+        self.assertEqual(knowledge.answer, payload['Body'])
+        unknown.refresh_from_db()
+        self.assertEqual(unknown.status, 'answered')
+        send_email.assert_called_once()
+        self.assertEqual(send_email.call_args.args[0], user.email)
+        self.assertIn('https://hoxobil.store/support/chat/', send_email.call_args.args[2])
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class HoxobotSupportWorkflowTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username='workflowcustomer',
+            email='workflow@example.com',
+            password='SecurePassword123!',
+        )
+        self.chat = SupportChat.objects.create(user=self.customer)
+        self.client.force_login(self.customer)
+
+    def test_knowledge_answer_bypasses_active_design_step(self):
+        BotKnowledge.objects.create(
+            title='Shipping schedule',
+            category='shipping',
+            keywords='shipping schedule, delivery timeline',
+            answer='Orders ship after production is complete.',
+        )
+        context = {
+            'current_step': 'awaiting_placement',
+            'garment': 'Hoodie',
+            'color': 'Black',
+            'size': 'L',
+        }
+
+        from shop.ai_bot import bot
+
+        answer, updated_context, upload = bot.get_response(
+            'What is the shipping schedule?',
+            context=context,
+            user=self.customer,
+        )
+
+        self.assertEqual(answer, 'Orders ship after production is complete.')
+        self.assertEqual(updated_context['current_step'], 'awaiting_placement')
+        self.assertFalse(upload)
+        self.assertEqual(BotKnowledge.objects.get(category='shipping').times_used, 1)
+
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    def test_unanswered_question_escalates_and_alerts_admin(self, queue_notification):
+        session = self.client.session
+        session['hoxo_chat_context'] = {
+            'current_step': 'awaiting_placement',
+            'garment': 'Hoodie',
+            'color': 'Black',
+            'size': 'L',
+        }
+        session.save()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse('shop:send_support_message'),
+                {'message': 'What is the warranty on this material?'},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Connecting you with an agent', response.json()['auto_reply'])
+        self.chat.refresh_from_db()
+        self.assertTrue(self.chat.human_escalated)
+        self.assertTrue(
+            UnknownQuestion.objects.filter(
+                user=self.customer,
+                status='pending',
+                message='what is the warranty on this material',
+            ).exists()
+        )
+        self.assertTrue(any(
+            'Human support requested' in call.args[2]
+            for call in queue_notification.call_args_list
+        ))
+
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    def test_cart_menu_choice_returns_structured_cart_card(self, queue_notification):
+        response = self.client.post(
+            reverse('shop:send_support_message'),
+            {'message': 'B'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['tool_result']['name'], 'get_cart_contents')
+        self.assertEqual(response.json()['tool_result']['data']['items'], [])
+
+    @patch('shop.utils.send_hoxobil_email')
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    @override_settings(PUBLIC_BASE_URL='https://hoxobil.store')
+    def test_admin_chat_dashboard_sends_file_reply_and_teaches_bot(
+        self,
+        queue_notification,
+        send_email,
+    ):
+        customer_question = 'what is the warranty on this material'
+        ChatMessage.objects.create(
+            chat=self.chat,
+            sender_type='user',
+            text=customer_question,
+        )
+        unknown = UnknownQuestion.objects.create(
+            user=self.customer,
+            message=customer_question,
+            session_step='awaiting_placement',
+        )
+        admin = User.objects.create_superuser(
+            username='supportadmin',
+            email='admin@example.com',
+            password='SecurePassword123!',
+        )
+        self.client.force_login(admin)
+        dashboard_url = reverse('admin_chat_detail', args=[self.chat.pk])
+        dashboard_response = self.client.get(dashboard_url)
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertContains(dashboard_response, 'Support chat')
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.client.post(
+                        dashboard_url,
+                        {
+                            'message': 'The fabric warranty is one year.',
+                            'attachment': SimpleUploadedFile(
+                                'fabric-guide.pdf',
+                                b'PDF test attachment',
+                                content_type='application/pdf',
+                            ),
+                        },
+                    )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()['message']['attachment_name'], 'fabric-guide.pdf')
+                self.assertEqual(response.json()['message']['sender_type'], 'admin')
+                knowledge = BotKnowledge.objects.get(category='learned')
+                self.assertEqual(knowledge.keywords, customer_question)
+                self.assertEqual(knowledge.answer, 'The fabric warranty is one year.')
+                unknown.refresh_from_db()
+                self.assertEqual(unknown.status, 'answered')
+                self.assertEqual(unknown.converted_to, knowledge)
+
+        send_email.assert_called_once()
+        self.assertEqual(send_email.call_args.args[0], self.customer.email)
+        self.assertEqual(send_email.call_args.args[1], 'New reply from Hoxobil Support')
+        self.assertIn('https://hoxobil.store/support/chat/', send_email.call_args.args[2])
+
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    def test_new_design_request_sends_chat_linked_whatsapp_alert(self, queue_notification):
+        with self.captureOnCommitCallbacks(execute=True):
+            ticket = CustomDesignTicket.objects.create(
+                user=self.customer,
+                garment_item='Custom hoodie',
+                garment_color='Black',
+                garment_size='L',
+                custom_text='Create a geometric print',
+                placement='Front',
+            )
+
+        queue_notification.assert_called_once()
+        self.assertEqual(queue_notification.call_args.kwargs['chat_id'], self.chat.pk)
+        self.assertIn('New design request submitted', queue_notification.call_args.args[2])
+        self.assertIsNotNone(ticket.pk)

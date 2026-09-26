@@ -10,7 +10,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from django.conf import settings
 from django.db import transaction
+from django.urls import reverse
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ def verify_twilio_request(request):
     return hmac.compare_digest(received_signature, expected_signature)
 
 
-def send_whatsapp_notification(customer_name, customer_email, message_content, message_id=None):
+def send_whatsapp_notification(customer_name, customer_email, message_content, message_id=None, chat_id=None):
     account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
     auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
     whatsapp_from = os.environ.get('TWILIO_WHATSAPP_FROM', '').strip()
@@ -70,6 +72,9 @@ def send_whatsapp_notification(customer_name, customer_email, message_content, m
         f'Email: {customer_email.strip() or "Not provided"}\n'
         f'Message: {preview or "(empty message)"}'
     )
+    if chat_id is not None:
+        base_url = getattr(settings, 'PUBLIC_BASE_URL', '').rstrip('/') or 'https://hoxobil.store'
+        body += f'\nOpen chat: {base_url}{reverse("admin_chat_detail", args=[chat_id])}'
     url = f'https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json'
     credentials = base64.b64encode(f'{account_sid}:{auth_token}'.encode('utf-8')).decode('ascii')
     request = Request(
@@ -115,23 +120,24 @@ def send_whatsapp_notification(customer_name, customer_email, message_content, m
     return None
 
 
-def _send_notification_in_background(customer_name, customer_email, message_content, message_id=None):
+def _send_notification_in_background(customer_name, customer_email, message_content, message_id=None, chat_id=None):
     try:
         send_whatsapp_notification(
             customer_name,
             customer_email,
             message_content,
             message_id=message_id,
+            chat_id=chat_id,
         )
     except Exception:
         logger.exception('Unexpected error while sending a WhatsApp support notification.')
 
 
-def queue_whatsapp_notification(customer_name, customer_email, message_content, message_id=None):
+def queue_whatsapp_notification(customer_name, customer_email, message_content, message_id=None, chat_id=None):
     def start_worker():
         worker = threading.Thread(
             target=_send_notification_in_background,
-            args=(customer_name, customer_email, message_content, message_id),
+            args=(customer_name, customer_email, message_content, message_id, chat_id),
             name='hoxobil-whatsapp-notification',
             daemon=True,
         )
