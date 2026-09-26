@@ -268,6 +268,7 @@ class HoxobilChatbot:
         raw_msg = user_message.lower().strip()
         words = set(re.findall(r'\b[a-z0-9]+\b', raw_msg))
         current_step = context.get('current_step', 'awaiting_intent')
+        from .services import is_greeting_or_small_talk, is_local_chat_turn
 
         if (
             raw_msg in {'help', 'what can you do', 'what can you help with'}
@@ -281,15 +282,25 @@ class HoxobilChatbot:
             ), context, False
 
         asks_question = (
-            '?' in raw_msg
-            or bool(re.match(r'^(what|why|how|when|where|who|which|can|could|do|does|is|are|will|would|should|tell me|explain)\b', raw_msg))
+            not is_local_chat_turn(raw_msg, current_step)
+            and (
+                '?' in raw_msg
+                or bool(re.match(r'^(what|why|how|when|where|who|which|can|could|do|does|is|are|will|would|should|tell me|explain)\b', raw_msg))
+            )
         )
         if asks_question:
-            from .services import find_bot_knowledge_answer, record_bot_knowledge_gap
+            from .services import (
+                find_bot_knowledge_answer,
+                record_bot_knowledge_gap,
+                search_web_answer,
+            )
 
             kb_answer = find_bot_knowledge_answer(raw_msg)
             if kb_answer:
                 return kb_answer, context, False
+            web_answer = search_web_answer(raw_msg)
+            if web_answer:
+                return web_answer, context, False
             record_bot_knowledge_gap(raw_msg, user=user, session_step=current_step)
             context['knowledge_gap'] = raw_msg[:500]
             return (
@@ -316,8 +327,7 @@ class HoxobilChatbot:
                     "We'll ping you here with an update once it's done. Thank you! 🙌"
                 ), context, False
 
-            small_talk = {'hi', 'hello', 'hey', 'yo', 'thanks', 'thank', 'cool', 'nice', 'sup', 'bye'}
-            if words & small_talk and len(words) <= 3:
+            if is_greeting_or_small_talk(raw_msg):
                 return (
                     "Hey! 👋 Your design ticket is live with the team. They'll drop your mockup here shortly.\n\n"
                     "Once it arrives, reply **'Approve'** to confirm or type any changes you want made."
@@ -331,7 +341,7 @@ class HoxobilChatbot:
             ), context, False
 
         # ── 1. GLOBAL COMMAND MATCHES ──────────────────────────────────────────────
-        if words & {'hi', 'hello', 'hey', 'yo', 'start', 'restart', 'menu'}:
+        if is_greeting_or_small_talk(raw_msg) or words & {'hi', 'hello', 'hey', 'yo', 'start', 'restart', 'menu'}:
             context.update({
                 'current_step': 'awaiting_intent',
                 'garment': None, 'color': None, 'size': None, 'placement': None

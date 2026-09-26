@@ -327,6 +327,11 @@ def notify_admin_of_customer_chat_message(sender, instance, created, **kwargs):
     customer_email = user.email
     message_content = instance.text
 
+    from .services import is_local_chat_turn
+
+    if is_local_chat_turn(message_content):
+        return
+
     from .whatsapp import queue_whatsapp_notification
 
     queue_whatsapp_notification(

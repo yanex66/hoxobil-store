@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 from html import escape
@@ -9,9 +10,117 @@ from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
+SERPER_SEARCH_URL = 'https://google.serper.dev/search'
+_LOCAL_CHAT_MESSAGES = {
+    'hi', 'hi there', 'hello', 'hello there', 'hey', 'hey there', 'yo', 'sup',
+    'whats up', 'what s up', 'what is up', 'good morning', 'good afternoon', 'good evening',
+    'thanks', 'thank you', 'thank you so much', 'cheers', 'cool', 'nice',
+    'awesome', 'great', 'bye', 'goodbye',
+}
+_SEARCH_STOP_WORDS = {
+    'a', 'an', 'and', 'are', 'can', 'could', 'do', 'does', 'for', 'how',
+    'i', 'in', 'is', 'it', 'me', 'my', 'of', 'on', 'or', 'please', 'the',
+    'this', 'to', 'what', 'when', 'where', 'which', 'who', 'why', 'with',
+    'would', 'you', 'your',
+}
+
 
 def _normalize_knowledge_text(text):
     return re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', ' ', (text or '').lower())).strip()
+
+
+def is_greeting_or_small_talk(message):
+    return _normalize_knowledge_text(message) in _LOCAL_CHAT_MESSAGES
+
+
+def is_local_chat_turn(message, current_step=None):
+    """Identify greetings, small talk, and menu letters that should stay in chat."""
+    normalized = _normalize_knowledge_text(message)
+    if is_greeting_or_small_talk(message):
+        return True
+    return normalized in {'a', 'b', 'c', 'd', 'e'} and (
+        current_step is None or current_step == 'awaiting_intent'
+    )
+
+
+def search_web_answer(question):
+    """Return a relevant Serper result, or None when search cannot answer reliably."""
+    api_key = str(getattr(settings, 'SERPER_API_KEY', '') or '').strip()
+    if not api_key:
+        logger.info('Web search skipped: SERPER_API_KEY is not configured.')
+        return None
+
+    query_terms = {
+        word for word in _normalize_knowledge_text(question).split()
+        if len(word) > 2 and word not in _SEARCH_STOP_WORDS
+    }
+    if not query_terms:
+        return None
+
+    try:
+        response = requests.post(
+            SERPER_SEARCH_URL,
+            headers={'X-API-KEY': api_key, 'Content-Type': 'application/json'},
+            json={'q': question[:500]},
+            timeout=(3, 6),
+        )
+        response.raise_for_status()
+        data = response.json()
+    except requests.RequestException:
+        logger.exception('Serper web search request failed.')
+        return None
+    except (TypeError, ValueError):
+        logger.exception('Serper returned an invalid web search response.')
+        return None
+
+    if not isinstance(data, dict):
+        logger.warning('Serper returned a web search response with an unexpected shape.')
+        return None
+
+    answer_box = data.get('answerBox') or {}
+    candidates = []
+    if isinstance(answer_box, dict) and (answer_box.get('answer') or answer_box.get('snippet')):
+        candidates.append((
+            answer_box.get('answer') or answer_box.get('snippet'),
+            answer_box.get('link') or answer_box.get('sourceLink') or '',
+            answer_box.get('title') or '',
+        ))
+
+    knowledge_graph = data.get('knowledgeGraph') or {}
+    if isinstance(knowledge_graph, dict) and knowledge_graph.get('description'):
+        candidates.append((
+            knowledge_graph['description'],
+            knowledge_graph.get('website') or '',
+            knowledge_graph.get('title') or '',
+        ))
+
+    organic_results = data.get('organic')
+    if not isinstance(organic_results, list):
+        organic_results = []
+    for result in organic_results[:3]:
+        if not isinstance(result, dict):
+            continue
+        snippet = result.get('snippet')
+        if snippet:
+            candidates.append((
+                snippet,
+                result.get('link') or '',
+                result.get('title') or '',
+            ))
+
+    for answer, link, title in candidates:
+        plain_answer = re.sub(r'<[^>]+>', ' ', html.unescape(str(answer)))
+        plain_answer = re.sub(r'\s+', ' ', plain_answer).strip()
+        searchable_result = _normalize_knowledge_text(f'{title} {plain_answer}')
+        if not plain_answer or not query_terms.intersection(searchable_result.split()):
+            continue
+
+        result_text = f'Here is what I found online: {plain_answer[:1500]}'
+        source_url = str(link).strip()
+        if source_url.startswith('https://') and not any(char.isspace() for char in source_url):
+            result_text += f'\nSource: {source_url}'
+        return result_text
+    return None
 
 
 PRINTFUL_API_URL = 'https://api.printful.com'
@@ -98,7 +207,7 @@ def record_bot_knowledge_gap(question, user=None, session_step=''):
     from .models import UnknownQuestion
 
     normalized = _normalize_knowledge_text(question)
-    if not normalized or len(normalized) < 6:
+    if not normalized or len(normalized) < 6 or is_local_chat_turn(question, session_step):
         return None
     unknown, _ = UnknownQuestion.objects.get_or_create(
         user=user if getattr(user, 'is_authenticated', False) else None,
@@ -111,6 +220,10 @@ def record_bot_knowledge_gap(question, user=None, session_step=''):
 
 def escalate_chat_to_human(chat, question):
     from .whatsapp import queue_whatsapp_notification
+
+    if is_local_chat_turn(question):
+        logger.info('Human escalation skipped for local chat message.')
+        return False
 
     was_escalated = chat.human_escalated
     if not was_escalated:

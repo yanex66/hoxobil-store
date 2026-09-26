@@ -516,7 +516,12 @@ class HoxobotSupportWorkflowTests(TestCase):
         self.assertEqual(BotKnowledge.objects.get(category='shipping').times_used, 1)
 
     @patch('shop.whatsapp.queue_whatsapp_notification')
-    def test_unanswered_question_escalates_and_alerts_admin(self, queue_notification):
+    @patch('shop.services.search_web_answer', return_value=None)
+    def test_unanswered_question_escalates_and_alerts_admin(
+        self,
+        search_web_answer,
+        queue_notification,
+    ):
         session = self.client.session
         session['hoxo_chat_context'] = {
             'current_step': 'awaiting_placement',
@@ -547,6 +552,80 @@ class HoxobotSupportWorkflowTests(TestCase):
             'Human support requested' in call.args[2]
             for call in queue_notification.call_args_list
         ))
+        search_web_answer.assert_called_once_with('what is the warranty on this material?')
+
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    def test_greetings_and_menu_selections_do_not_send_whatsapp_alerts(self, queue_notification):
+        messages = ['hi', 'hello', 'whats up', "what's up", 'hey', 'A', 'B', 'C', 'D', 'E']
+
+        for message in messages:
+            session = self.client.session
+            session['hoxo_chat_context'] = {'current_step': 'awaiting_intent'}
+            session.save()
+            with self.subTest(message=message):
+                response = self.client.post(
+                    reverse('shop:send_support_message'),
+                    {'message': message},
+                )
+                self.assertEqual(response.status_code, 200)
+
+        self.chat.refresh_from_db()
+        self.assertFalse(self.chat.human_escalated)
+        queue_notification.assert_not_called()
+        self.assertFalse(UnknownQuestion.objects.filter(user=self.customer).exists())
+
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    @patch('shop.services.search_web_answer', return_value='Here is what I found online: The warranty lasts one year.')
+    def test_web_search_answer_prevents_knowledge_gap_escalation(
+        self,
+        search_web_answer,
+        queue_notification,
+    ):
+        response = self.client.post(
+            reverse('shop:send_support_message'),
+            {'message': 'What is the warranty on this material?'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('The warranty lasts one year', response.json()['auto_reply'])
+        self.chat.refresh_from_db()
+        self.assertFalse(self.chat.human_escalated)
+        self.assertFalse(UnknownQuestion.objects.filter(user=self.customer).exists())
+        search_web_answer.assert_called_once_with('what is the warranty on this material?')
+        self.assertFalse(any(
+            'Human support requested' in call.args[2]
+            for call in queue_notification.call_args_list
+        ))
+
+    @override_settings(SERPER_API_KEY='serper-test-key')
+    @patch('shop.services.requests.post')
+    def test_web_search_returns_relevant_answer_and_ignores_unrelated_results(self, post):
+        from shop.services import search_web_answer
+
+        response = MagicMock()
+        response.json.return_value = {
+            'organic': [{
+                'title': 'Cotton fabric warranty',
+                'snippet': 'The cotton fabric warranty lasts one year.',
+                'link': 'https://example.com/warranty',
+            }],
+        }
+        post.return_value = response
+
+        answer = search_web_answer('What is the warranty on cotton fabric?')
+
+        self.assertIn('warranty lasts one year', answer)
+        self.assertIn('https://example.com/warranty', answer)
+        self.assertEqual(post.call_args.kwargs['timeout'], (3, 6))
+
+        response.json.return_value = {
+            'organic': [{
+                'title': 'Weather today',
+                'snippet': 'Expect rain in the afternoon.',
+                'link': 'https://example.com/weather',
+            }],
+        }
+        self.assertIsNone(search_web_answer('What is the warranty on cotton fabric?'))
 
     @patch('shop.whatsapp.queue_whatsapp_notification')
     def test_cart_menu_choice_returns_structured_cart_card(self, queue_notification):
