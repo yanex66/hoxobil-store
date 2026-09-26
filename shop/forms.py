@@ -48,6 +48,20 @@ class EmailRegistrationForm(UserCreationForm):
         return user
 
 
+class NewsletterSubscriptionForm(forms.Form):
+    email = forms.EmailField(
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            'name': 'email',
+            'autocomplete': 'email',
+            'inputmode': 'email',
+        }),
+    )
+
+    def clean_email(self):
+        return self.cleaned_data['email'].strip().lower()
+
+
 class CheckoutForm(forms.ModelForm):
     """
     Form for capturing global shipping details.

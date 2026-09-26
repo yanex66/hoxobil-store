@@ -261,13 +261,13 @@ class HoxobilChatbot:
 
         if context is None:
             context = {
-                'current_step': 'awaiting_garment',
+                'current_step': 'awaiting_intent',
                 'garment': None, 'color': None, 'size': None, 'placement': None
             }
 
         raw_msg = user_message.lower().strip()
         words = set(re.findall(r'\b[a-z0-9]+\b', raw_msg))
-        current_step = context.get('current_step', 'awaiting_garment')
+        current_step = context.get('current_step', 'awaiting_intent')
 
         APPROVAL_WORDS = {
             'approve', 'approved', 'yes', 'yep', 'yup', 'yeah',
@@ -305,48 +305,47 @@ class HoxobilChatbot:
 
         # ── 1. GLOBAL COMMAND MATCHES ──────────────────────────────────────────────
         if words & {'hi', 'hello', 'hey', 'yo', 'start', 'restart', 'menu'}:
-            if context.get('garment'):
-                _, menu = self._placement_menu(context['garment'])
-                if context.get('size') and context.get('color'):
-                    context['current_step'] = 'awaiting_placement'
-                    reply = (
-                        f"Hey there! 👋 Your pinned custom **{context['garment']}** is still locked in.\n"
-                        f"• Sizing fit: **Size {context['size']}**\n"
-                        f"• Fabric Colorway: **{context['color']}**\n\n"
-                        f"Where are we running your design layout placement?\n\n{menu}"
-                    )
-                elif context.get('size'):
-                    context['current_step'] = 'awaiting_color'
-                    reply = (
-                        f"Hey there! 👋 Keeping your pinned **{context['garment']}** (Size {context['size']}).\n\n"
-                        "Which fabric premium base colorway are we running with?\n\n"
-                        "👉 **[A] Jet Black**\n👉 **[B] Chalk White**\n👉 **[C] Classic Navy**\n👉 **[D] Charcoal Grey**"
-                    )
-                else:
-                    context['current_step'] = 'awaiting_size'
-                    reply = (
-                        f"Hey there! 👋 Keeping your pinned **{context['garment']}** selection.\n\n"
-                        "What sizing profile are we cutting this for?\n\n"
-                        "👉 **[A] Standard Medium (M)**\n"
-                        "👉 **[B] Streetwear Oversized Large (L)**\n"
-                        "👉 **[C] Boxy Heavyweight XL**\n"
-                        "👉 **[D] View Other Sizing Layouts** (XS, S, XXL, 3XL)"
-                    )
-                return reply, context, False
-
             context.update({
-                'current_step': 'awaiting_garment',
+                'current_step': 'awaiting_intent',
                 'garment': None, 'color': None, 'size': None, 'placement': None
             })
             reply = (
-                "Hey! 👋 Welcome to HOXOBIL. I'm HOXO, your custom design assistant.\n"
-                "What premium piece are we cooking up today? Select an option letter:\n\n"
-                + self._garment_menu_text(currency_code)
+                "Hey! 👋 Welcome to HOXOBIL. I'm HOXO, your store assistant.\n\n"
+                "What would you like help with today?\n\n"
+                "👉 **[A] Shop products and new drops**\n"
+                "👉 **[B] View or manage my cart**\n"
+                "👉 **[C] Track an order or get order help**\n"
+                "👉 **[D] Design and customize apparel with Hoxobot**\n"
+                "👉 **[E] Shipping, returns, or payments**"
             )
             return reply, context, False
 
         if words & {'thanks', 'thank', 'cheers', 'dope', 'cool', 'awesome'}:
             return "Always a pleasure! Can't wait to see your design go live. Head over to /custom-order/ to submit your configurations! 🙌", context, False
+
+        if current_step == 'awaiting_intent':
+            if 'd' in words or 'design' in raw_msg or 'custom' in raw_msg or 'hoxobot' in raw_msg:
+                context['current_step'] = 'awaiting_garment'
+                return (
+                    "Great — let's create something together. What would you like to customize?\n\n"
+                    + self._garment_menu_text(currency_code)
+                ), context, False
+            if 'a' in words or 'shop' in raw_msg or 'product' in raw_msg or 'drop' in raw_msg:
+                return "Tell me what you are looking for and I will search the live collection for you.", context, False
+            if 'b' in words or 'cart' in raw_msg:
+                return "Ask me to show your cart, add a product, remove an item, or change a quantity.", context, False
+            if 'c' in words or 'order' in raw_msg or 'track' in raw_msg:
+                return "Share your order number and I will check its current status and fulfillment tracking.", context, False
+            if 'e' in words or any(term in raw_msg for term in ('shipping', 'return', 'payment', 'policy')):
+                return "Ask me about shipping, returns, payment gateways, or any store policy.", context, False
+            return (
+                "Please choose an area I can help with:\n\n"
+                "👉 **[A] Shop products and new drops**\n"
+                "👉 **[B] View or manage my cart**\n"
+                "👉 **[C] Track an order or get order help**\n"
+                "👉 **[D] Design and customize apparel with Hoxobot**\n"
+                "👉 **[E] Shipping, returns, or payments**"
+            ), context, False
 
         # --- STEP 1: GARMENT ---
         if current_step == 'awaiting_garment':

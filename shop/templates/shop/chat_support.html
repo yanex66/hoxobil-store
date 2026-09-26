@@ -16,7 +16,7 @@
             </a>
             <div class="hoxo-avatar-wrap">
                 <span class="hoxo-avatar-dot"></span>
-                <div class="hoxo-avatar">✦</div>
+                <img class="hoxo-avatar" src="{% static 'images/image.png' %}" alt="HOXOBIL logo">
             </div>
             <div class="header-text-block">
                 <h1 class="chat-title font-display">HOXO Support</h1>
@@ -112,13 +112,12 @@ body { margin: 0 !important; padding: 0 !important; overflow-x: hidden; }
    Breaks out of any centered/max-width parent container (e.g. Bootstrap .container)
    so the chat fills the true viewport edge-to-edge, regardless of surrounding markup. */
 .hoxo-fullpage {
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding: 0;
+    width: min(100%, 1120px);
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
     display: flex;
-    background: #0e0e0e;
+    background: transparent;
     box-sizing: border-box;
 }
 
@@ -135,15 +134,15 @@ footer,
 .chat-page-container {
     flex: 1;
     width: 100%;
-    margin: 0;
+    margin: 0 auto;
     background: #fff;
     border-radius: 0;
     box-shadow: none;
     border: none;
     display: flex;
     flex-direction: column;
-    height: 100dvh;        /* ← was 100vh */
-    min-height: 100dvh;    /* ← was 100vh */
+    height: min(78dvh, 780px);
+    min-height: 560px;
     overflow: hidden;
     box-sizing: border-box;
 }
@@ -195,7 +194,7 @@ footer,
 .header-clear-btn:hover { background: #8B0000; border-color: #8B0000; color: #fff; }
 
 .hoxo-avatar-wrap { position: relative; flex-shrink: 0; }
-.hoxo-avatar { width: 44px; height: 44px; background: #8B0000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FAF7F2; font-size: 1.1rem; font-weight: 700; box-shadow: 0 0 0 3px rgba(139,0,0,0.18); }
+.hoxo-avatar { width: 44px; height: 44px; background: #FAF7F2; border-radius: 50%; display: block; object-fit: contain; padding: 4px; box-sizing: border-box; box-shadow: 0 0 0 3px rgba(139,0,0,0.18); }
 .hoxo-avatar-dot { position: absolute; bottom: 0; right: 0; width: 12px; height: 12px; background: #22C55E; border-radius: 50%; border: 2px solid #1C1C1C; }
 .chat-title { font-size: 1.3rem; color: #FAF7F2; margin: 0 0 2px 0; letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chat-subtitle { font-size: 0.76rem; color: rgba(250,247,242,0.6); margin: 0; letter-spacing: 0.05em; }
@@ -244,8 +243,8 @@ footer,
 }
 .hoxo-msg.bot .hoxo-bubble { background: #fff; color: #1C1C1C; border-bottom-left-radius: 2px; border: 1px solid #eef0f2; }
 .hoxo-msg.user .hoxo-bubble { background: #8B0000; color: #FAF7F2; border-bottom-right-radius: 2px; }
-.hoxo-msg-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }
-.hoxo-msg.bot .hoxo-msg-av { background: #1C1C1C; color: #FAF7F2; }
+.hoxo-msg-av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }
+.hoxo-msg.bot .hoxo-msg-av { background: #FAF7F2; color: #1C1C1C; padding: 0; box-sizing: border-box; object-fit: cover; border: 1px solid rgba(139,0,0,0.18); }
 .hoxo-msg.user .hoxo-msg-av { background: rgba(139,0,0,0.1); color: #8B0000; }
 
 /* ── Important Design Note Crimson Highlight ── */
@@ -503,6 +502,17 @@ footer,
     border-radius: 12px;
     overflow: hidden;
 }
+.hoxo-tool-result { margin: 0.5rem 0 1rem 40px; max-width: 560px; background: #fff; border: 1px solid #e8e8ee; border-radius: 12px; padding: 12px; color: #1c1c1c; }
+.hoxo-product-card { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eee; }
+.hoxo-product-card:last-child { border-bottom: 0; }
+.hoxo-product-card img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; background: #f5f1eb; }
+.hoxo-product-card-body { display: flex; flex: 1; flex-direction: column; gap: 5px; font-size: 0.82rem; }
+.hoxo-product-card-body span, .hoxo-order-live span { color: #8b0000; font-family: 'Space Mono', monospace; font-size: 0.72rem; }
+.hoxo-tool-button { align-self: flex-start; border: 0; border-radius: 5px; background: #8b0000; color: #fff; padding: 6px 10px; font-size: 0.72rem; cursor: pointer; }
+.hoxo-cart-line, .hoxo-cart-total { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.8rem; }
+.hoxo-cart-total { border-bottom: 0; font-weight: 700; padding-bottom: 0; }
+.hoxo-cart-total a, .hoxo-order-live a { color: #8b0000; text-decoration: none; }
+.hoxo-order-live { display: flex; flex-direction: column; gap: 8px; font-size: 0.84rem; }
 .hoxo-cart-summary {
     display: flex;
     justify-content: space-between;
@@ -553,6 +563,7 @@ footer,
 
 /* ── RESPONSIVE ── */
 @media (max-width: 576px) {
+        .hoxo-fullpage { width: 100%; padding: 0; }
     .chat-page-header { padding: 12px 14px; gap: 10px; }
     .chat-title { font-size: 1.1rem; }
     .chat-subtitle { font-size: 0.7rem; }
@@ -901,6 +912,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const pendingGreeting = {{ pending_greeting_json|safe }};
     const currentGarment  = "{{ current_garment|default:''|escapejs }}";
     const currentImage    = "{{ current_image|default:''|escapejs }}";
+    const currentStep     = "{{ current_step|default:'awaiting_intent'|escapejs }}";
 
     if (pendingGreeting || currentGarment) {
         const deckName = pendingGreeting ? pendingGreeting.product : currentGarment;
@@ -931,6 +943,15 @@ document.addEventListener("DOMContentLoaded", function() {
             greeting += `Awesome choice! We have loaded your specifications:\n• **Size:** ${pinnedSize}\n• **Colorway:** ${pinnedColor}\n\nWhere are we running your custom design placement?\n\n👉 **[A] High Contrast Front Centre**\n👉 **[B] Oversized Statement Full Back**\n👉 **[C] Low-Key Minimalist Left Chest**`;
         } else if (pinnedSize) {
             greeting += `Sizing preset loaded to **Size ${pinnedSize}**. Which fabric premium base colorway are we running with?\n\n👉 **[A] Jet Black**\n👉 **[B] Chalk White**\n👉 **[C] Classic Navy**\n👉 **[D] Charcoal Grey**`;
+        } else if (currentStep === 'awaiting_intent') {
+            addBotMsg(
+                "Hey! 👋 I'm HOXO, your HOXOBIL store assistant. What would you like help with today?\\n\\n" +
+                "👉 **[A]** Shop products and new drops\\n" +
+                "👉 **[B]** View or manage my cart\\n" +
+                "👉 **[C]** Track an order\\n" +
+                "👉 **[D]** Design with Hoxobot\\n" +
+                "👉 **[E]** Shipping, returns, or payments"
+            );
         } else {
             greeting += `Let's customize this piece! What sizing profile are we cutting this garment for?\n\n👉 **[A] Standard Medium (M)**\n👉 **[B] Streetwear Oversized Large (L)**\n👉 **[C] Boxy Heavyweight XL**\n👉 **[D] View Other Sizing Layouts** (XS, S, XXL, 3XL)`;
         }
@@ -945,7 +966,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         msg.sender_type === 'user' ? addUserMsg(msg.text) : addBotMsg(msg.text);
                     });
                 } else {
-                    addBotMsg("Hey! ?? I'm HOXO, your HOXOBIL assistant. Ask me anything about our products, or tell me what you'd like to customize!");
+                    addBotMsg("Hey! 👋 I'm HOXO, your HOXOBIL store assistant. What would you like help with today?\\n\\n👉 **[A]** Shop products and new drops\\n👉 **[B]** View or manage my cart\\n👉 **[C]** Track an order\\n👉 **[D]** Design with Hoxobot\\n👉 **[E]** Shipping, returns, or payments");
                 }
             });
     }
@@ -979,6 +1000,26 @@ document.addEventListener("DOMContentLoaded", function() {
         const div = document.createElement('div');
         div.className = 'hoxo-msg bot';
 
+        let storedToolResult = null;
+        try {
+            const parsed = JSON.parse(text);
+            if (parsed && parsed.tool && parsed.result) {
+                storedToolResult = { name: parsed.tool, data: parsed.result };
+                const toolLabels = {
+                    get_cart_contents: 'Here is your current cart:',
+                    add_to_cart: 'Done — I updated your cart:',
+                    remove_from_cart: 'Done — I removed that item:',
+                    search_products: 'Here are the live products I found:',
+                    get_order_status: 'Here is the latest live order status:',
+                    get_store_policies: 'Here are the current Hoxobil policies:',
+                    guide_hoxobot_customization: 'Here is how Hoxobot customization works:'
+                };
+                text = toolLabels[parsed.tool] || 'Here is the latest information from Hoxobil.';
+            }
+        } catch (error) {
+            // Ordinary assistant messages are not JSON tool records.
+        }
+
         let rendered = parseMarkdown(text);
 
         if (isAuthPrompt || text.includes('__LOGIN_BUTTONS__')) {
@@ -990,11 +1031,54 @@ document.addEventListener("DOMContentLoaded", function() {
             );
         }
 
+        function renderToolResult(name, data) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'hoxo-tool-result';
+            if (name === 'search_products') {
+                wrapper.innerHTML = (data.products || []).map(product => `
+                    <article class="hoxo-product-card">
+                        ${product.image_url ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">` : ''}
+                        <div class="hoxo-product-card-body">
+                            <strong>${escapeHtml(product.name)}</strong>
+                            <span>${escapeHtml(product.price.amount)} ${escapeHtml(product.price.currency)}</span>
+                            <button type="button" class="hoxo-tool-button" data-product-id="${product.id}">Add to cart</button>
+                        </div>
+                    </article>`).join('') || '<p>No active products matched that search.</p>';
+                wrapper.querySelectorAll('[data-product-id]').forEach(button => {
+                    button.addEventListener('click', () => doFetch(`Add product ${button.dataset.productId} to cart`, null));
+                });
+            } else if (name === 'get_cart_contents' || name === 'add_to_cart' || name === 'remove_from_cart') {
+                const total = data.total || {amount: '0.00', currency: ''};
+                wrapper.innerHTML = (data.items || []).map(item => `
+                    <div class="hoxo-cart-line">
+                        <span>${escapeHtml(item.name)} × ${item.quantity}</span>
+                        <strong>${escapeHtml(item.unit_price.amount)} ${escapeHtml(item.unit_price.currency)}</strong>
+                    </div>`).join('') || '<p>Your cart is empty.</p>';
+                wrapper.innerHTML += `<div class="hoxo-cart-total">${data.item_count || data.count || 0} item(s) · ${data.total_quantity || 0} total unit(s)<br>Total: ${escapeHtml(total.amount)} ${escapeHtml(total.currency)}
+                    <a href="/cart/">View cart</a></div>`;
+            } else if (name === 'get_order_status') {
+                wrapper.innerHTML = `<div class="hoxo-order-live"><strong>Order #${data.order_id}</strong>
+                    <span>${escapeHtml(data.printful_status || data.fulfillment_status || data.local_status || 'Processing')}</span>
+                    ${(data.shipments || []).map(s => s.tracking_url
+                        ? `<a href="${escapeHtml(s.tracking_url)}" target="_blank" rel="noopener">${escapeHtml(s.carrier || 'Track shipment')}</a>`
+                        : `<small>${escapeHtml(s.carrier || 'Preparing shipment')} ${escapeHtml(s.tracking_number || '')}</small>`).join('')}</div>`;
+            } else if (name === 'get_store_policies') {
+                wrapper.innerHTML = `<p><strong>Shipping:</strong> ${escapeHtml(data.shipping)}</p><p><strong>Returns:</strong> ${escapeHtml(data.returns)}</p><p><strong>Payments:</strong> ${escapeHtml(data.payments)}</p>`;
+            } else if (name === 'guide_hoxobot_customization') {
+                wrapper.innerHTML = `<ol>${(data.steps || []).map(step => `<li>${escapeHtml(step)}</li>`).join('')}</ol>`;
+            }
+            document.getElementById('hoxoMessages').appendChild(wrapper);
+            scrollToBottom();
+        }
+
         rendered = rendered.replace(/\[FONT_PICKER\]/g, '');
         rendered = rendered.replace(/\[ADD_TO_CART:[^\]]+\]/g, '');
 
-        div.innerHTML = `<div class="hoxo-msg-av">✦</div><div class="hoxo-bubble">${rendered}</div>`;
+        div.innerHTML = `<img class="hoxo-msg-av" src="{% static 'images/image.png' %}" alt="HOXOBIL logo"><div class="hoxo-bubble">${rendered}</div>`;
         chatWindow.appendChild(div);
+        if (storedToolResult) {
+            renderToolResult(storedToolResult.name, storedToolResult.data);
+        }
 
         if (text.includes('[FONT_PICKER]')) {
             const bubble = div.querySelector('.hoxo-bubble');
@@ -1073,7 +1157,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function addTypingIndicator() {
         const div = document.createElement('div');
         div.className = 'hoxo-msg bot typing-indicator';
-        div.innerHTML = `<div class="hoxo-msg-av">✦</div><div class="hoxo-bubble"><div class="hoxo-typing"><div class="hoxo-dot"></div><div class="hoxo-dot"></div><div class="hoxo-dot"></div></div></div>`;
+        div.innerHTML = `<img class="hoxo-msg-av" src="{% static 'images/image.png' %}" alt="HOXOBIL logo"><div class="hoxo-bubble"><div class="hoxo-typing"><div class="hoxo-dot"></div><div class="hoxo-dot"></div><div class="hoxo-dot"></div></div></div>`;
         chatWindow.appendChild(div);
         scrollToBottom();
         return div;
@@ -1263,14 +1347,6 @@ document.addEventListener("DOMContentLoaded", function() {
     function sendMessage() {
         if (isTyping) return;
 
-        if (!userIsAuthenticated) {
-            addBotMsg(
-                "🔐 **Login required**\n\nPlease log in or create an account to start your custom order.\n\n__LOGIN_BUTTONS__",
-                true
-            );
-            return;
-        }
-
         const text         = inputField.value.trim();
         const uploadedFile = fileInputField.files[0];
         if (!text && !uploadedFile) return;
@@ -1327,6 +1403,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (data.status === 'success' && data.auto_reply) {
                 addBotMsg(data.auto_reply);
+                if (data.tool_result) {
+                    renderToolResult(data.tool_result.name, data.tool_result.data);
+                }
                 uploadWrapper.style.display = data.trigger_upload ? 'block' : 'none';
                 if (!data.trigger_upload) {
                     fileInputField.value = '';

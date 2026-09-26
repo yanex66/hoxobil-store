@@ -293,6 +293,7 @@ PRINTIFY_SHOP_ID = config('PRINTIFY_SHOP_ID', default='')
 
 PRINTFUL_BASE_URL = 'https://api.printful.com/'
 PRINTFUL_ACCESS_TOKEN = config('PRINTFUL_ACCESS_TOKEN', default='')
+PRINTFUL_API_KEY = config('PRINTFUL_API_KEY', default=PRINTFUL_ACCESS_TOKEN)
 PRINTFUL_STORE_ID = config('PRINTFUL_STORE_ID', default='')
 
 PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default='')

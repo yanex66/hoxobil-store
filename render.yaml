@@ -65,6 +65,14 @@ services:
         sync: false
       - key: SERPER_API_KEY
         sync: false
+
+      # Twilio WhatsApp support notifications - SET IN RENDER DASHBOARD
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
       
       # Base URL for frontend
       - key: PUBLIC_BASE_URL

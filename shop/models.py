@@ -2,6 +2,8 @@ from django.db import models
 from djmoney.models.fields import MoneyField
 from django.contrib.auth import get_user_model
 from django.db.models import JSONField
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 from django.conf import settings
 from djmoney.money import Money
@@ -309,6 +311,21 @@ class ChatMessage(models.Model):
     submission = models.ForeignKey('DesignSubmission', on_delete=models.SET_NULL, null=True, blank=True)
 
 
+@receiver(post_save, sender=ChatMessage)
+def notify_admin_of_customer_chat_message(sender, instance, created, **kwargs):
+    if not created or instance.sender_type != 'user':
+        return
+
+    user = instance.chat.user
+    customer_name = user.get_full_name().strip() or user.get_username()
+    customer_email = user.email
+    message_content = instance.text
+
+    from .whatsapp import queue_whatsapp_notification
+
+    queue_whatsapp_notification(customer_name, customer_email, message_content)
+
+
 class DesignSubmission(models.Model):
     STATUS_CHOICES = (
         ('PENDING_REVIEW', 'Pending Admin Review'),
@@ -367,10 +384,6 @@ class CustomDesignTicket(models.Model):
 
     def __str__(self):
         return f"Design Ticket #{self.id} | {self.garment_item} ({self.status})" 
-
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 
 @receiver(post_save, sender=CustomDesignTicket)

@@ -155,6 +155,7 @@
         <p class="sub">
             Placed {{ order.created|date:"F j, Y" }} &middot;
             {{ order.items.count }} item{{ order.items.count|pluralize }}
+            {% if printful_status %}&middot; Printful status: {{ printful_status|title }}{% endif %}
         </p>
     </div>
 
@@ -164,18 +165,18 @@
             <span class="track-step-label">Order<br>Placed</span>
         </div>
         <div class="track-step
-            {% if order.status == 'POD_SENT' %}active
-            {% elif order.status == 'FULFILLED' or order.status == 'SHIPPED' %}done{% endif %}">
+            {% if progress_stage == 'processing' %}active
+            {% elif progress_stage == 'printed' or progress_stage == 'shipped' %}done{% endif %}">
             <div class="track-step-dot"><i class="bi bi-gear"></i></div>
             <span class="track-step-label">Processing</span>
         </div>
         <div class="track-step
-            {% if order.status == 'FULFILLED' %}active
-            {% elif order.status == 'SHIPPED' %}done{% endif %}">
+            {% if progress_stage == 'printed' %}active
+            {% elif progress_stage == 'shipped' %}done{% endif %}">
             <div class="track-step-dot"><i class="bi bi-box-seam"></i></div>
-            <span class="track-step-label">Fulfilled</span>
+            <span class="track-step-label">Printed</span>
         </div>
-        <div class="track-step {% if order.status == 'SHIPPED' %}active{% endif %}">
+        <div class="track-step {% if progress_stage == 'shipped' %}active{% endif %}">
             <div class="track-step-dot"><i class="bi bi-truck"></i></div>
             <span class="track-step-label">Shipped</span>
         </div>

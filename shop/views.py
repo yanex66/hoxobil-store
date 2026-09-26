@@ -35,14 +35,14 @@ from .models import Product, Order, OrderItem, ProductVariant, VideoAd, Category
 from .filters import ProductFilter
 from .pod_api import PodApiClient
 from .cart import Cart
-from .forms import CheckoutForm, EmailRegistrationForm, ReviewForm
+from .forms import CheckoutForm, EmailRegistrationForm, NewsletterSubscriptionForm, ReviewForm
 from .utils import send_hoxobil_email
+from .services import get_printful_order_tracking
+from .ai_tools import detect_and_run_tool, TOOL_DEFINITIONS
 from .ai_bot import bot
 from PIL import Image
 logger = logging.getLogger(__name__)
 
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 from .models import NewsletterSubscriber 
 
 
@@ -1173,10 +1173,11 @@ class OrderDetailView(LoginRequiredMixin, DetailView):
 #  10. ORDER TRACKING
 # ─────────────────────────────────────────────────────────
 @login_required
-def order_tracking(request, order_id):
+def _legacy_order_tracking(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     tracking_events = []
     error = None
+    printful_status = ''
 
     if order.pod_order_id:
         try:
@@ -1225,6 +1226,52 @@ def order_tracking(request, order_id):
         'order': order,
         'tracking_events': tracking_events,
         'error': error,
+    })
+
+
+@login_required
+def order_tracking(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    tracking_events = []
+    error = None
+    printful_status = ''
+
+    if order.pod_order_id:
+        tracking = get_printful_order_tracking(order.pod_order_id)
+        printful_status = tracking['status']
+        tracking_events = tracking['shipments']
+        error = tracking['error']
+
+        first_shipment = next(
+            (shipment for shipment in tracking_events if shipment['tracking_number']),
+            None,
+        )
+        if first_shipment:
+            order.tracking_number = first_shipment['tracking_number']
+            order.tracking_url = first_shipment['tracking_url'] or None
+            order.carrier = first_shipment['carrier'] or None
+            if order.status not in {'SHIPPED', 'FULFILLED'}:
+                order.status = 'SHIPPED'
+            order.save(update_fields=[
+                'tracking_number', 'tracking_url', 'carrier', 'status', 'updated',
+            ])
+        elif not error:
+            error = "Your order is being prepared. Tracking will be available once it ships."
+    else:
+        error = "This order has not been submitted to fulfillment yet."
+
+    status_key = (printful_status or order.status or '').lower()
+    progress_stage = (
+        'shipped' if tracking_events else
+        'printed' if status_key in {'draft', 'pending', 'inprocess', 'in_process', 'partial'} else
+        'processing'
+    )
+    return render(request, 'shop/order_tracking.html', {
+        'order': order,
+        'tracking_events': tracking_events,
+        'error': error,
+        'printful_status': printful_status,
+        'progress_stage': progress_stage,
     })
 
 
@@ -1320,11 +1367,15 @@ def chat_support_page(request):
 
     pending_greeting = request.session.pop('hoxo_pending_greeting', None)
     current_context = request.session.get('hoxo_chat_context', {})
+    if current_context.get('current_step') == 'awaiting_garment' and not current_context.get('garment'):
+        current_context['current_step'] = 'awaiting_intent'
+        request.session['hoxo_chat_context'] = current_context
 
     return render(request, 'shop/chat_support.html', {
         'pending_greeting_json': _json.dumps(pending_greeting) if pending_greeting else 'null',
         'current_garment':        current_context.get('garment', ''),
         'current_image':          pending_greeting.get('image', '') if pending_greeting else '',
+        'current_step':           current_context.get('current_step', 'awaiting_intent'),
     })
 
 
@@ -1343,8 +1394,40 @@ def _build_editor_token(garment_url, design_url, file_url, pf_width=1500, pf_hei
 # ─────────────────────────────────────────────────────────
 #  SEND SUPPORT MESSAGE — auth check returns JSON, no redirect
 # ─────────────────────────────────────────────────────────
+def _tool_reply(tool_name, result):
+    if result.get('error'):
+        return result['error']
+    labels = {
+        'search_products': 'Here are the live products I found:',
+        'get_cart_contents': 'Here is your current cart:',
+        'add_to_cart': 'Done — I updated your cart:',
+        'remove_from_cart': 'Done — I removed that item:',
+        'get_order_status': 'Here is the latest live order status:',
+        'get_store_policies': 'Here are the current Hoxobil policies:',
+        'guide_hoxobot_customization': 'Here is how Hoxobot customization works:',
+    }
+    return labels.get(tool_name, 'Here is the latest information from Hoxobil.')
+
+
 @require_POST
 def send_support_message(request):
+    text = request.POST.get('message', '').strip()
+    tool_name, tool_result = detect_and_run_tool(request, text) if text else (None, None)
+    if tool_name:
+        if request.user.is_authenticated:
+            chat, _ = SupportChat.objects.get_or_create(user=request.user)
+            ChatMessage.objects.create(chat=chat, sender_type='user', text=text)
+            ChatMessage.objects.create(
+                chat=chat,
+                sender_type='admin',
+                text=json.dumps({'tool': tool_name, 'result': tool_result}),
+            )
+        return JsonResponse({
+            'status': 'success',
+            'auto_reply': _tool_reply(tool_name, tool_result),
+            'tool_result': {'name': tool_name, 'data': tool_result},
+        })
+
     if not request.user.is_authenticated:
         return JsonResponse({
             'status': 'auth_required',
@@ -1355,13 +1438,12 @@ def send_support_message(request):
             )
         }, status=200)
 
-    text           = request.POST.get('message', '').strip()
     image_file = request.FILES.get('image')
 
     chat, created = SupportChat.objects.get_or_create(user=request.user)
 
     session_context = request.session.get('hoxo_chat_context', {
-        'current_step': 'awaiting_garment', 'garment': None, 'color': None, 'size': None, 'placement': None
+        'current_step': 'awaiting_intent', 'garment': None, 'color': None, 'size': None, 'placement': None
     })
 
     TERMINAL_STEPS = {
@@ -2097,23 +2179,37 @@ def custom_order_add_to_cart(request):
 
 @require_POST
 def newsletter_subscribe(request):
-    email = request.POST.get('email', '').strip().lower()
+    form = NewsletterSubscriptionForm(request.POST)
+    if not form.is_valid():
+        message = form.errors.get('email', ['Please enter a valid email address.'])[0]
+        return JsonResponse({'status': 'error', 'message': message}, status=400)
 
-    if not email:
-        return JsonResponse({'status': 'error', 'message': 'Please enter an email address.'}, status=400)
-
-    try:
-        validate_email(email)
-    except ValidationError:
-        return JsonResponse({'status': 'error', 'message': 'That email address doesn\'t look right.'}, status=400)
-
+    email = form.cleaned_data['email']
     subscriber, created = NewsletterSubscriber.objects.get_or_create(email=email)
 
     if not created and subscriber.is_active:
         return JsonResponse({'status': 'success', 'message': 'You\'re already subscribed!'})
 
-    if not created and not subscriber.is_active:
+    reactivated = not created and not subscriber.is_active
+    if reactivated:
         subscriber.is_active = True
         subscriber.save()
 
+    if created or reactivated:
+        transaction.on_commit(lambda: _send_newsletter_confirmation(email))
+
     return JsonResponse({'status': 'success', 'message': 'You\'re in! Watch your inbox.'})
+
+
+def _send_newsletter_confirmation(email):
+    html_message = render_to_string('shop/emails/newsletter_confirmation.html', {
+        'email': email,
+        'site_url': 'https://hoxobil.store',
+        'logo_url': 'https://hoxobil.store/static/images/image.png',
+    })
+    if send_hoxobil_email(
+        email,
+        'You are in — early access from Hoxobil',
+        html_message,
+    ) is None:
+        logger.error("newsletter_confirmation | Resend rejected email for %s", email)

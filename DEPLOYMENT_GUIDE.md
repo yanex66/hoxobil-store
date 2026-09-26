@@ -55,8 +55,13 @@ PRINTFUL_ACCESS_TOKEN=<your-token>
 PRINTFUL_STORE_ID=<your-store-id>
 ANTHROPIC_API_KEY=<your-key>
 SERPER_API_KEY=<your-key>
+TWILIO_ACCOUNT_SID=<your-twilio-account-sid>
+TWILIO_AUTH_TOKEN=<your-twilio-auth-token>
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 PUBLIC_BASE_URL=https://hoxobil.store
 ```
+
+Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_WHATSAPP_FROM` as secret environment variables in the Render dashboard. The WhatsApp destination is configured in the application as `+2349130273282`; the sender must be an enabled Twilio WhatsApp number or sandbox sender.
 
 ---
 

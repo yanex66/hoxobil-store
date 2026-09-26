@@ -371,6 +371,10 @@
     display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden;
   }
+  .hx-custom-printing-image {
+    width: 100%; height: 100%; display: block;
+    object-fit: cover; object-position: center;
+  }
   .hx-custom-visual-text {
     font-family: 'Oswald', sans-serif;
     font-size: 5rem; font-weight: 900;
@@ -1044,8 +1048,7 @@
       </a>
     </div>
     <div class="hx-custom-visual">
-      <div class="hx-custom-visual-text">YOUR<br>BRAND</div>
-      <div class="hx-custom-visual-badge">Custom Made</div>
+      <img src="{% static 'images/custom-printing.png' %}" alt="Custom apparel printing and branding" class="hx-custom-printing-image">
     </div>
   </div>
 </section>
