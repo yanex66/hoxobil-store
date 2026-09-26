@@ -306,6 +306,7 @@ class ChatMessage(models.Model):
     chat = models.ForeignKey(SupportChat, on_delete=models.CASCADE, related_name='messages')
     sender_type = models.CharField(max_length=10, choices=[('user', 'User'), ('admin', 'Admin')])
     text = models.TextField()
+    twilio_message_sid = models.CharField(max_length=34, unique=True, null=True, blank=True)
     image_field = models.ImageField(upload_to='chat_uploads/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     submission = models.ForeignKey('DesignSubmission', on_delete=models.SET_NULL, null=True, blank=True)
@@ -323,7 +324,12 @@ def notify_admin_of_customer_chat_message(sender, instance, created, **kwargs):
 
     from .whatsapp import queue_whatsapp_notification
 
-    queue_whatsapp_notification(customer_name, customer_email, message_content)
+    queue_whatsapp_notification(
+        customer_name,
+        customer_email,
+        message_content,
+        message_id=instance.pk,
+    )
 
 
 class DesignSubmission(models.Model):

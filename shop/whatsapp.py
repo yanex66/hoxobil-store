@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import threading
+import json
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -49,7 +50,7 @@ def verify_twilio_request(request):
     return hmac.compare_digest(received_signature, expected_signature)
 
 
-def send_whatsapp_notification(customer_name, customer_email, message_content):
+def send_whatsapp_notification(customer_name, customer_email, message_content, message_id=None):
     account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '').strip()
     auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
     whatsapp_from = os.environ.get('TWILIO_WHATSAPP_FROM', '').strip()
@@ -88,29 +89,49 @@ def send_whatsapp_notification(customer_name, customer_email, message_content):
     try:
         with urlopen(request, timeout=TWILIO_API_TIMEOUT_SECONDS) as response:
             if 200 <= response.status < 300:
-                logger.info('WhatsApp support notification sent.')
-                return True
+                try:
+                    result = json.loads(response.read().decode('utf-8'))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    logger.error('Twilio returned an invalid message response.')
+                    return False
+                message_sid = result.get('sid')
+                if not message_sid:
+                    logger.error('Twilio response did not contain a message SID.')
+                    return False
+                if message_id is not None:
+                    from .models import ChatMessage
+
+                    ChatMessage.objects.filter(pk=message_id).update(
+                        twilio_message_sid=message_sid,
+                    )
+                logger.info('WhatsApp support notification sent with SID %s.', message_sid)
+                return message_sid
             logger.error('WhatsApp notification failed with HTTP status %s.', response.status)
-            return False
+            return None
     except HTTPError as error:
         logger.error('WhatsApp notification failed with HTTP status %s.', error.code)
     except (URLError, TimeoutError, OSError) as error:
         logger.error('WhatsApp notification request failed: %s', error)
-    return False
+    return None
 
 
-def _send_notification_in_background(customer_name, customer_email, message_content):
+def _send_notification_in_background(customer_name, customer_email, message_content, message_id=None):
     try:
-        send_whatsapp_notification(customer_name, customer_email, message_content)
+        send_whatsapp_notification(
+            customer_name,
+            customer_email,
+            message_content,
+            message_id=message_id,
+        )
     except Exception:
         logger.exception('Unexpected error while sending a WhatsApp support notification.')
 
 
-def queue_whatsapp_notification(customer_name, customer_email, message_content):
+def queue_whatsapp_notification(customer_name, customer_email, message_content, message_id=None):
     def start_worker():
         worker = threading.Thread(
             target=_send_notification_in_background,
-            args=(customer_name, customer_email, message_content),
+            args=(customer_name, customer_email, message_content, message_id),
             name='hoxobil-whatsapp-notification',
             daemon=True,
         )

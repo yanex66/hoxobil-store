@@ -1558,22 +1558,39 @@ def twilio_whatsapp_webhook(request):
 
     sender = request.POST.get('From', '').strip()
     message_text = request.POST.get('Body', '').strip()
+    replied_message_sid = request.POST.get('OriginalRepliedMessageSid', '').strip()
     if not is_admin_whatsapp_number(sender):
         logger.warning('Rejected WhatsApp webhook message from an unauthorized sender.')
         return HttpResponse(status=403)
     if not message_text:
         return HttpResponse(status=400)
 
-    latest_customer_message = (
-        ChatMessage.objects
-        .filter(sender_type='user')
-        .select_related('chat')
-        .order_by('-created_at', '-id')
-        .first()
-    )
-    if latest_customer_message:
+    source_message = None
+    if replied_message_sid:
+        source_message = (
+            ChatMessage.objects
+            .filter(sender_type='user', twilio_message_sid=replied_message_sid)
+            .select_related('chat')
+            .first()
+        )
+        if not source_message:
+            logger.warning(
+                'No customer chat message found for replied Twilio SID %s; using latest-chat fallback.',
+                replied_message_sid,
+            )
+
+    if source_message is None:
+        source_message = (
+            ChatMessage.objects
+            .filter(sender_type='user')
+            .select_related('chat')
+            .order_by('-created_at', '-id')
+            .first()
+        )
+
+    if source_message:
         ChatMessage.objects.create(
-            chat=latest_customer_message.chat,
+            chat=source_message.chat,
             sender_type='admin',
             text=message_text,
         )

@@ -187,6 +187,7 @@ class WhatsAppNotificationTests(TestCase):
         response = MagicMock()
         response.status = 201
         response.__enter__.return_value = response
+        response.read.return_value = json.dumps({'sid': 'SM' + '1' * 32}).encode()
         mocked_urlopen.return_value = response
 
         result = send_whatsapp_notification(
@@ -195,7 +196,7 @@ class WhatsAppNotificationTests(TestCase):
             'I need help with my design.',
         )
 
-        self.assertTrue(result)
+        self.assertEqual(result, 'SM' + '1' * 32)
         request = mocked_urlopen.call_args.args[0]
         self.assertTrue(request.full_url.startswith('https://api.twilio.com/'))
         payload = parse_qs(request.data.decode())
@@ -203,6 +204,39 @@ class WhatsAppNotificationTests(TestCase):
         self.assertIn('customer@example.com', payload['Body'][0])
         self.assertIn('I need help with my design.', payload['Body'][0])
         self.assertEqual(mocked_urlopen.call_args.kwargs['timeout'], 5)
+
+    @patch.dict(os.environ, {
+        'TWILIO_ACCOUNT_SID': 'AC123',
+        'TWILIO_AUTH_TOKEN': 'secret-token',
+        'TWILIO_WHATSAPP_FROM': 'whatsapp:+14155238886',
+    }, clear=True)
+    @patch('shop.whatsapp.urlopen')
+    def test_notification_stores_returned_sid_on_customer_message(self, mocked_urlopen):
+        response = MagicMock()
+        response.status = 201
+        response.__enter__.return_value = response
+        response.read.return_value = json.dumps({'sid': 'SM' + '3' * 32}).encode()
+        mocked_urlopen.return_value = response
+        chat = SupportChat.objects.create(user=User.objects.create_user(
+            username='sidcustomer',
+            email='sid@example.com',
+        ))
+        message = ChatMessage.objects.create(
+            chat=chat,
+            sender_type='user',
+            text='Please contact me about my order.',
+        )
+
+        result = send_whatsapp_notification(
+            'SID Customer',
+            'sid@example.com',
+            message.text,
+            message_id=message.pk,
+        )
+
+        self.assertEqual(result, 'SM' + '3' * 32)
+        message.refresh_from_db()
+        self.assertEqual(message.twilio_message_sid, 'SM' + '3' * 32)
 
     @patch.dict(os.environ, {}, clear=True)
     @patch('shop.whatsapp.urlopen')
@@ -236,6 +270,7 @@ class WhatsAppNotificationTests(TestCase):
             'Chat Customer',
             'chat@example.com',
             'Please help with my order.',
+            message_id=ChatMessage.objects.get(chat=chat).pk,
         )
 
     @override_settings(SECURE_SSL_REDIRECT=False)
@@ -329,3 +364,58 @@ class WhatsAppNotificationTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(ChatMessage.objects.filter(sender_type='admin').exists())
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    @patch.dict(os.environ, {
+        'TWILIO_AUTH_TOKEN': 'webhook-secret',
+        'TWILIO_WHATSAPP_ADMIN_NUMBER': '+2349130273282',
+    }, clear=True)
+    def test_twilio_reply_sid_routes_reply_to_matching_customer_chat(self):
+        first_chat = SupportChat.objects.create(user=User.objects.create_user(
+            username='firstcustomer',
+            email='first@example.com',
+        ))
+        first_message = ChatMessage.objects.create(
+            chat=first_chat,
+            sender_type='user',
+            text='First customer question',
+            twilio_message_sid='SM' + '1' * 32,
+        )
+        second_chat = SupportChat.objects.create(user=User.objects.create_user(
+            username='secondcustomer',
+            email='second@example.com',
+        ))
+        ChatMessage.objects.create(
+            chat=second_chat,
+            sender_type='user',
+            text='Second customer question',
+            twilio_message_sid='SM' + '2' * 32,
+        )
+
+        url = reverse('shop:whatsapp_webhook')
+        payload = {
+            'From': 'whatsapp:+2349130273282',
+            'Body': 'Reply to the first customer.',
+            'OriginalRepliedMessageSid': first_message.twilio_message_sid,
+        }
+        signature = self._twilio_signature(
+            f'http://testserver{url}',
+            payload,
+            'webhook-secret',
+        )
+
+        response = self.client.post(url, payload, HTTP_X_TWILIO_SIGNATURE=signature)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            first_chat.messages.filter(
+                sender_type='admin',
+                text='Reply to the first customer.',
+            ).exists()
+        )
+        self.assertFalse(
+            second_chat.messages.filter(
+                sender_type='admin',
+                text='Reply to the first customer.',
+            ).exists()
+        )
