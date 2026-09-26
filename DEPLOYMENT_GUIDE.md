@@ -63,6 +63,8 @@ PUBLIC_BASE_URL=https://hoxobil.store
 
 Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_WHATSAPP_FROM` as secret environment variables in the Render dashboard. The WhatsApp destination is configured in the application as `+2349130273282`; the sender must be an enabled Twilio WhatsApp number or sandbox sender.
 
+For two-way support replies, optionally set `TWILIO_WHATSAPP_ADMIN_NUMBER` (defaults to `+2349130273282`) and configure the Twilio WhatsApp sender's inbound message webhook as `https://hoxobil.store/whatsapp/webhook/` using `POST`. Twilio request signatures are validated with `TWILIO_AUTH_TOKEN`.
+
 ---
 
 ## Step 3: Update settings.py for Additional Security

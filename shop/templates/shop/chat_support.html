@@ -913,6 +913,28 @@ document.addEventListener("DOMContentLoaded", function() {
     const currentGarment  = "{{ current_garment|default:''|escapejs }}";
     const currentImage    = "{{ current_image|default:''|escapejs }}";
     const currentStep     = "{{ current_step|default:'awaiting_intent'|escapejs }}";
+    let lastChatMessageId = 0;
+    let chatPollTimer = null;
+
+    function startChatPolling() {
+        if (chatPollTimer || !userIsAuthenticated) return;
+        chatPollTimer = window.setInterval(() => {
+            if (isTyping) return;
+            fetch(`{% url 'shop:fetch_support_messages' %}?after_id=${lastChatMessageId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== 'success') return;
+                    data.messages.forEach(msg => {
+                        if (msg.id <= lastChatMessageId) return;
+                        if (msg.sender_type === 'user') addUserMsg(msg.text);
+                        else addBotMsg(msg.text);
+                        lastChatMessageId = msg.id;
+                    });
+                    lastChatMessageId = Math.max(lastChatMessageId, data.latest_message_id || 0);
+                })
+                .catch(error => console.error('Chat update failed:', error));
+        }, 5000);
+    }
 
     if (pendingGreeting || currentGarment) {
         const deckName = pendingGreeting ? pendingGreeting.product : currentGarment;
@@ -956,6 +978,15 @@ document.addEventListener("DOMContentLoaded", function() {
             greeting += `Let's customize this piece! What sizing profile are we cutting this garment for?\n\n👉 **[A] Standard Medium (M)**\n👉 **[B] Streetwear Oversized Large (L)**\n👉 **[C] Boxy Heavyweight XL**\n👉 **[D] View Other Sizing Layouts** (XS, S, XXL, 3XL)`;
         }
         addBotMsg(greeting);
+        fetch("{% url 'shop:fetch_support_messages' %}?latest_only=1")
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    lastChatMessageId = data.latest_message_id || 0;
+                    startChatPolling();
+                }
+            })
+            .catch(error => console.error('Could not initialize chat updates:', error));
     } else {
         // Normal load / refresh: always show real chat history so nothing gets lost
         fetch("{% url 'shop:fetch_support_messages' %}")
@@ -968,6 +999,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 } else {
                     addBotMsg("Hey! 👋 I'm HOXO, your HOXOBIL store assistant. What would you like help with today?\\n\\n👉 **[A]** Shop products and new drops\\n👉 **[B]** View or manage my cart\\n👉 **[C]** Track an order\\n👉 **[D]** Design with Hoxobot\\n👉 **[E]** Shipping, returns, or payments");
                 }
+                lastChatMessageId = data.latest_message_id || 0;
+                startChatPolling();
             });
     }
 
@@ -1402,6 +1435,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             if (data.status === 'success' && data.auto_reply) {
+                lastChatMessageId = Math.max(lastChatMessageId, data.latest_message_id || 0);
                 addBotMsg(data.auto_reply);
                 if (data.tool_result) {
                     renderToolResult(data.tool_result.name, data.tool_result.data);

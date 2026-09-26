@@ -78,6 +78,7 @@ urlpatterns = [
     path('support/chat/', views.chat_support_page, name='chat_support'),
     path('support/chat/send/', views.send_support_message, name='send_support_message'),
     path('support/chat/fetch/', views.fetch_support_messages, name='fetch_support_messages'),
+    path('whatsapp/webhook/', views.twilio_whatsapp_webhook, name='whatsapp_webhook'),
     path('support/chat/clear/', views.clear_chat_history, name='clear_chat_history'),
     path('support/chat/adjust-position/', views.adjust_mockup_position, name='adjust_mockup_position'),
     path('support/chat/PENDING_UPLOAD', views.pending_upload_status, name='pending_upload_status'),

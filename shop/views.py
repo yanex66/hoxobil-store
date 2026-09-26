@@ -12,7 +12,7 @@ from django.views.generic import ListView, DetailView, TemplateView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.forms import PasswordChangeForm
-from django.http import JsonResponse, QueryDict, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, QueryDict, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
@@ -40,6 +40,7 @@ from .utils import send_hoxobil_email
 from .services import get_printful_order_tracking
 from .ai_tools import detect_and_run_tool, TOOL_DEFINITIONS
 from .ai_bot import bot
+from .whatsapp import is_admin_whatsapp_number, verify_twilio_request
 from PIL import Image
 logger = logging.getLogger(__name__)
 
@@ -1426,6 +1427,10 @@ def send_support_message(request):
             'status': 'success',
             'auto_reply': _tool_reply(tool_name, tool_result),
             'tool_result': {'name': tool_name, 'data': tool_result},
+            'latest_message_id': (
+                chat.messages.order_by('-id').values_list('id', flat=True).first()
+                if request.user.is_authenticated else None
+            ),
         })
 
     if not request.user.is_authenticated:
@@ -1539,8 +1544,43 @@ def send_support_message(request):
         'trigger_upload': trigger_upload,
         'pinned_garment': updated_context.get('garment', ''),
         'pinned_size': updated_context.get('size', ''),
-        'pinned_color': updated_context.get('color', '')
+        'pinned_color': updated_context.get('color', ''),
+        'latest_message_id': chat.messages.order_by('-id').values_list('id', flat=True).first(),
     })
+
+
+@csrf_exempt
+@require_POST
+def twilio_whatsapp_webhook(request):
+    if not verify_twilio_request(request):
+        logger.warning('Rejected WhatsApp webhook with an invalid Twilio signature.')
+        return HttpResponse(status=403)
+
+    sender = request.POST.get('From', '').strip()
+    message_text = request.POST.get('Body', '').strip()
+    if not is_admin_whatsapp_number(sender):
+        logger.warning('Rejected WhatsApp webhook message from an unauthorized sender.')
+        return HttpResponse(status=403)
+    if not message_text:
+        return HttpResponse(status=400)
+
+    latest_customer_message = (
+        ChatMessage.objects
+        .filter(sender_type='user')
+        .select_related('chat')
+        .order_by('-created_at', '-id')
+        .first()
+    )
+    if latest_customer_message:
+        ChatMessage.objects.create(
+            chat=latest_customer_message.chat,
+            sender_type='admin',
+            text=message_text,
+        )
+    else:
+        logger.warning('WhatsApp admin reply received without an active customer chat.')
+
+    return HttpResponse('<Response></Response>', content_type='text/xml')
 
 
 @login_required
@@ -1652,16 +1692,26 @@ def adjust_mockup_position(request):
 @login_required
 def fetch_support_messages(request):
     chat, _ = SupportChat.objects.get_or_create(user=request.user)
+    try:
+        after_id = int(request.GET.get('after_id', '0'))
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid message cursor.'}, status=400)
 
-    messages_data = [
+    latest_message_id = chat.messages.order_by('-id').values_list('id', flat=True).first()
+    messages_data = [] if request.GET.get('latest_only') == '1' else [
         {
+            'id': m.id,
             'sender_type': m.sender_type,
             'text': m.text,
             'created_at': m.created_at.strftime('%H:%M · %d %b'),
         }
-        for m in chat.messages.all()
+        for m in chat.messages.filter(id__gt=after_id).order_by('id')
     ]
-    return JsonResponse({'status': 'success', 'messages': messages_data})
+    return JsonResponse({
+        'status': 'success',
+        'messages': messages_data,
+        'latest_message_id': latest_message_id,
+    })
 
 
 @login_required

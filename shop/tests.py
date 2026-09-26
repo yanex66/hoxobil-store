@@ -1,5 +1,6 @@
 import hmac
 import hashlib
+import base64
 import json
 import os
 from decimal import Decimal
@@ -167,6 +168,15 @@ class HoxobilSecurityAndPaymentTestCase(TestCase):
 
 
 class WhatsAppNotificationTests(TestCase):
+    def _twilio_signature(self, url, payload, auth_token):
+        signed_data = url + ''.join(
+            key + value
+            for key in sorted(payload)
+            for value in (payload[key] if isinstance(payload[key], list) else [payload[key]])
+        )
+        digest = hmac.new(auth_token.encode(), signed_data.encode(), hashlib.sha1).digest()
+        return base64.b64encode(digest).decode()
+
     @patch.dict(os.environ, {
         'TWILIO_ACCOUNT_SID': 'AC123',
         'TWILIO_AUTH_TOKEN': 'secret-token',
@@ -227,3 +237,95 @@ class WhatsAppNotificationTests(TestCase):
             'chat@example.com',
             'Please help with my order.',
         )
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    @patch.dict(os.environ, {
+        'TWILIO_AUTH_TOKEN': 'webhook-secret',
+        'TWILIO_WHATSAPP_ADMIN_NUMBER': '+2349130273282',
+    }, clear=True)
+    @patch('shop.whatsapp.queue_whatsapp_notification')
+    def test_twilio_webhook_saves_admin_reply_to_most_recent_customer_chat(self, queue_notification):
+        earlier_chat = SupportChat.objects.create(user=User.objects.create_user(
+            username='earliercustomer',
+            email='earlier@example.com',
+        ))
+        ChatMessage.objects.create(chat=earlier_chat, sender_type='user', text='Earlier question')
+
+        latest_chat = SupportChat.objects.create(user=User.objects.create_user(
+            username='latestcustomer',
+            email='latest@example.com',
+        ))
+        latest_customer_message = ChatMessage.objects.create(
+            chat=latest_chat,
+            sender_type='user',
+            text='Latest question',
+        )
+        notifications_before_admin_reply = queue_notification.call_count
+
+        url = reverse('shop:whatsapp_webhook')
+        payload = {
+            'From': 'whatsapp:+2349130273282',
+            'Body': 'We are looking into this for you.',
+        }
+        signature = self._twilio_signature(
+            f'http://testserver{url}',
+            payload,
+            'webhook-secret',
+        )
+
+        response = self.client.post(
+            url,
+            payload,
+            HTTP_X_TWILIO_SIGNATURE=signature,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/xml')
+        self.assertEqual(response.content, b'<Response></Response>')
+        reply = ChatMessage.objects.get(
+            chat=latest_chat,
+            sender_type='admin',
+            text='We are looking into this for you.',
+        )
+        self.assertIsNotNone(reply)
+        self.assertEqual(queue_notification.call_count, notifications_before_admin_reply)
+
+        self.client.force_login(latest_chat.user)
+        chat_response = self.client.get(
+            reverse('shop:fetch_support_messages'),
+            {'after_id': latest_customer_message.id},
+        )
+        self.assertEqual(chat_response.status_code, 200)
+        self.assertEqual(chat_response.json()['messages'][0]['id'], reply.id)
+        self.assertEqual(chat_response.json()['messages'][0]['text'], reply.text)
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    @patch.dict(os.environ, {
+        'TWILIO_AUTH_TOKEN': 'webhook-secret',
+        'TWILIO_WHATSAPP_ADMIN_NUMBER': '+2349130273282',
+    }, clear=True)
+    def test_twilio_webhook_rejects_messages_from_non_admin_number(self):
+        url = reverse('shop:whatsapp_webhook')
+        payload = {'From': 'whatsapp:+1234567890', 'Body': 'Spoofed reply'}
+        signature = self._twilio_signature(
+            f'http://testserver{url}',
+            payload,
+            'webhook-secret',
+        )
+
+        response = self.client.post(url, payload, HTTP_X_TWILIO_SIGNATURE=signature)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ChatMessage.objects.filter(sender_type='admin').exists())
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    @patch.dict(os.environ, {'TWILIO_AUTH_TOKEN': 'webhook-secret'}, clear=True)
+    def test_twilio_webhook_rejects_invalid_signature(self):
+        response = self.client.post(
+            reverse('shop:whatsapp_webhook'),
+            {'From': 'whatsapp:+2349130273282', 'Body': 'Unverified reply'},
+            HTTP_X_TWILIO_SIGNATURE='invalid',
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ChatMessage.objects.filter(sender_type='admin').exists())

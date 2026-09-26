@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import logging
 import os
 import re
@@ -14,6 +16,37 @@ logger = logging.getLogger(__name__)
 
 WHATSAPP_ADMIN_NUMBER = 'whatsapp:+2349130273282'
 TWILIO_API_TIMEOUT_SECONDS = 5
+
+
+def _normalized_whatsapp_number(number):
+    return re.sub(r'\D', '', (number or '').removeprefix('whatsapp:'))
+
+
+def is_admin_whatsapp_number(number):
+    configured_number = os.environ.get(
+        'TWILIO_WHATSAPP_ADMIN_NUMBER',
+        WHATSAPP_ADMIN_NUMBER,
+    ).strip()
+    return bool(_normalized_whatsapp_number(number)) and (
+        _normalized_whatsapp_number(number) == _normalized_whatsapp_number(configured_number)
+    )
+
+
+def verify_twilio_request(request):
+    auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '').strip()
+    received_signature = request.headers.get('X-Twilio-Signature', '')
+    if not auth_token or not received_signature:
+        return False
+
+    signed_data = request.build_absolute_uri()
+    for key in sorted(request.POST):
+        for value in request.POST.getlist(key):
+            signed_data += key + value
+
+    expected_signature = base64.b64encode(
+        hmac.new(auth_token.encode('utf-8'), signed_data.encode('utf-8'), hashlib.sha1).digest()
+    ).decode('ascii')
+    return hmac.compare_digest(received_signature, expected_signature)
 
 
 def send_whatsapp_notification(customer_name, customer_email, message_content):
